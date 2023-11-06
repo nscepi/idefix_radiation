@@ -169,6 +169,8 @@ class Fluid {
   IdefixArray4D<real> Ve;      // Main edge-centered varariables (only when EVOLVE_VECTOR_POTENTIAL)
   IdefixArray4D<real> Uc;      // Main cell-centered conservative variables
   IdefixArray4D<real> J;       // Electrical current
+  IdefixArray4D<real> Vrad;      // Main cell-centered radiation variables
+
                                // (only defined when non-ideal MHD effects are enabled)
 
   // Name of the fields (used in outputs)
@@ -557,6 +559,11 @@ Fluid<Phys>::Fluid(Grid &grid, Input &input, DataBlock *datain, int n) {
     #else // EVOLVE_VECTOR_POTENTIAL
       data->states["current"].PushArray(Vs, State::center, prefix+"_Vs");
     #endif // EVOLVE_VECTOR_POTENTIAL
+  }
+
+  if constexpr(Phys::radiation) {
+    Vrad = IdefixArray4D<real>(prefix+"_Vrad", 1+DIMENSIONS,
+              data->np_tot[KDIR]+KOFFSET, data->np_tot[JDIR]+JOFFSET, data->np_tot[IDIR]+IOFFSET);
   }
 
   if(this->haveCurrent) {

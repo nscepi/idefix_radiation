@@ -33,6 +33,12 @@ struct DefaultPhysics {
     static constexpr int nvar{1+COMPONENTS  + (pressure?1:0)};
   #endif
 
+  #ifdef RADIATION
+    static constexpr bool radiation{true};
+  #else
+    static constexpr bool radiation{false};
+  #endif
+
   // prefix
   static constexpr std::string_view prefix = "Hydro";
 };
@@ -47,8 +53,27 @@ struct DustPhysics {
   static constexpr bool mhd{false};
   static constexpr int nvar{1+COMPONENTS};
 
+  #ifdef RADIATION
+    static constexpr bool radiation{false}; // No radiation for dust for now
+  #endif
+
   // prefix
   static constexpr std::string_view prefix = "Dust";
+};
+
+// Radiation Physics
+struct RadiationPhysics {
+  static constexpr bool dust{false};
+  static constexpr bool pressure{false};
+  static constexpr bool isothermal{false};
+  static constexpr bool eos{false};
+
+  static constexpr bool mhd{false};
+  static constexpr int radiation{true};
+  static constexpr int nvar{1+COMPONENTS};
+
+  // prefix
+  static constexpr std::string_view prefix = "Radiation";
 };
 
 #endif // PHYSICS_HPP_

@@ -48,6 +48,9 @@ class DataBlockHost {
   IdefixArray3D<real>::HostMirror Ex3;    ///< x3 electric field
 
   #endif
+
+  IdefixArray4D<real>::HostMirror Vrad;     ///< Main face-centered primitive variables index for radiation
+
   IdefixArray4D<real>::HostMirror Uc;     ///< Main cell-centered conservative variables
   IdefixArray3D<real>::HostMirror InvDt;  ///< Inverse of maximum timestep in each cell
 
