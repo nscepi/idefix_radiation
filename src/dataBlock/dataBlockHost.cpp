@@ -45,6 +45,7 @@ DataBlockHost::DataBlockHost(DataBlock& datain) {
 
   dV = Kokkos::create_mirror_view(data->dV);
   Vc = Kokkos::create_mirror_view(data->hydro->Vc);
+  Vrad = Kokkos::create_mirror_view(data->hydro->Vrad);
   Uc = Kokkos::create_mirror_view(data->hydro->Uc);
   InvDt = Kokkos::create_mirror_view(data->hydro->InvDt);
 
