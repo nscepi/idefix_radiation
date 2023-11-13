@@ -49,6 +49,7 @@ class DataBlockHost {
 
   #endif
 
+  bool haveRadiation{false};
   IdefixArray4D<real>::HostMirror Vrad;     ///< Main face-centered primitive variables index for radiation
 
   IdefixArray4D<real>::HostMirror Uc;     ///< Main cell-centered conservative variables

@@ -210,6 +210,7 @@ target_include_directories(idefix PUBLIC
                            src/fluid/RiemannSolver/Dustsolvers
                            src/fluid/tracer
                            src/output
+                           src/radiation
                            src/rkl
                            src/gravity
                            src/utils

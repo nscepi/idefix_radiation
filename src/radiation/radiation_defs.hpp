@@ -4,10 +4,9 @@
 #include "../idefix.hpp"
 
 // forward class declaration
-class DataBlock;
+//class DataBlock;
 
 template<typename Phys>
-class Fluid;
 class Radiation;
 
 #endif //RADIATION_DEFS_HPP_

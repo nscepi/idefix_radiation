@@ -19,6 +19,7 @@
 #include "planetarySystem.hpp"
 #include "gravity.hpp"
 #include "stateContainer.hpp"
+#include "radiation.hpp"
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
 /// The DataBlock class is designed to store the data and child class instances that belongs to the
@@ -42,6 +43,8 @@ class Fluid;
 class SubGrid;
 class Vtk;
 class Dump;
+template<typename Phys>
+class Radiation;
 
 // Forward class hydro declaration
 #include "physics.hpp"
@@ -114,7 +117,7 @@ class DataBlock {
   std::unique_ptr<Fluid<DefaultPhysics>> hydro;   ///< The Hydro object attached to this datablock
   bool haveDust{false};
   std::vector<std::unique_ptr<Fluid<DustPhysics>>> dust; ///< Holder for zero pressure dust fluid
-
+  
   std::unique_ptr<Vtk> vtk;
   std::unique_ptr<Dump> dump;
   #ifdef WITH_HDF5
@@ -130,6 +133,11 @@ class DataBlock {
   void DumpToFile(std::string);   ///< Dump current datablock to a file for inspection
   void Validate();                ///< error out early in case problems are found in IC
   int CheckNan();                 ///< Return the number of cells which have Nans
+
+
+  // Radiation
+  bool haveRadiation{false};
+  std::unique_ptr<Radiation<RadiationPhysics>> radiation;   ///< The Radiation object attached to this datablock
 
   // The Planetary system
   bool haveplanetarySystem{false};

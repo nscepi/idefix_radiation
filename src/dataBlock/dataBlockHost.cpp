@@ -8,6 +8,7 @@
 #include "idefix.hpp"
 #include "dataBlockHost.hpp"
 #include "fluid.hpp"
+#include "radiation.hpp"
 
 DataBlockHost::DataBlockHost(DataBlock& datain) {
   idfx::pushRegion("DataBlockHost::DataBlockHost(DataBlock)");
@@ -40,12 +41,12 @@ DataBlockHost::DataBlockHost(DataBlock& datain) {
   gbeg = data->gbeg;
   gend = data->gend;
   haveDust = data->haveDust;
+  haveRadiation = data->haveRadiation;
 
     // TO BE COMPLETED...
 
   dV = Kokkos::create_mirror_view(data->dV);
   Vc = Kokkos::create_mirror_view(data->hydro->Vc);
-  Vrad = Kokkos::create_mirror_view(data->hydro->Vrad);
   Uc = Kokkos::create_mirror_view(data->hydro->Uc);
   InvDt = Kokkos::create_mirror_view(data->hydro->InvDt);
 
@@ -64,11 +65,16 @@ DataBlockHost::DataBlockHost(DataBlock& datain) {
             Ex1 = Kokkos::create_mirror_view(data->hydro->emf->ex);
             Ex2 = Kokkos::create_mirror_view(data->hydro->emf->ey);  )
 #endif
+
   if(haveDust) {
     dustVc = std::vector<IdefixHostArray4D<real>>(data->dust.size());
     for(int i = 0 ; i < data->dust.size() ; i++) {
       dustVc[i] = Kokkos::create_mirror_view(data->dust[i]->Vc);
     }
+  }
+
+  if(haveRadiation) {
+    Vrad = Kokkos::create_mirror_view(data->radiation->Vrad);
   }
 
   // if grid coarsening is enabled

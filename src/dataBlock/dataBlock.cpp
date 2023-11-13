@@ -16,6 +16,7 @@
 #ifdef WITH_HDF5
 #include "xdmf.hpp"
 #endif
+#include "radiation.hpp"
 
 DataBlock::DataBlock(Grid &grid, Input &input) {
   idfx::pushRegion("DataBlock::DataBlock");
@@ -150,6 +151,13 @@ DataBlock::DataBlock(Grid &grid, Input &input) {
       dust.emplace_back(std::make_unique<Fluid<DustPhysics>>(grid, input, this, i));
     }
   }
+
+  // Initialize the radiation object attached to this datablock if needed
+  if(input.CheckBlock("Radiation")) {
+    haveRadiation = true;
+     this->radiation = std::make_unique<Radiation<RadiationPhysics>>(grid, input, this);
+  }
+  
   // Register variables that need to be saved in case of restart dump
   dump->RegisterVariable(&t, "time");
   dump->RegisterVariable(&dt, "dt");

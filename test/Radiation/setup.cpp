@@ -16,10 +16,13 @@ void Setup::InitFlow(DataBlock &data) {
         for(int j = 0; j < d.np_tot[JDIR] ; j++) {
             for(int i = 0; i < d.np_tot[IDIR] ; i++) {
 
+                const real r0 = 5.;
+                const real center = pow(d.x[IDIR](i)-r0,2)+pow(d.x[JDIR](j)-r0,2);
+
                 d.Vc(RHO,k,j,i) = 1.;
                 d.Vc(VX1,k,j,i) = 2.;
                 d.Vc(VX2,k,j,i) = 3.;
-                d.Vrad(ER,k,j,i) = 4.;
+                d.Vrad(ER,k,j,i) = 4.*exp(-center/2.)+0.1;
                 d.Vrad(FR1,k,j,i) = 5.;
                 d.Vrad(FR2,k,j,i) = 6.;
 

@@ -124,12 +124,12 @@ enum class LoopPattern { SIMDFOR, RANGE, MDRANGE, TPX, TPTTRTVR, UNDEFINED };
   #endif
 #endif
 
-#ifdef RADIATION
-  #define ER 0 
-  #define FR1 1
-  #define FR2 (COMPONENTS >= 2 ? 2: 255)
-  #define FR3 (COMPONENTS >= 3 ? 3: 254)
-#endif
+// Radiation variables
+#define ER 0 
+#define FR1 1
+#define FR2 (COMPONENTS >= 2 ? 2: 255)
+#define FR3 (COMPONENTS >= 3 ? 3: 254)
+
 
 // User-Friendly variables in non-cartesian geometry
 #if GEOMETRY == CYLINDRICAL
