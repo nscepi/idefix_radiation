@@ -8,6 +8,7 @@
 #include "../idefix.hpp"
 #include "dataBlock.hpp"
 #include "fluid.hpp"
+#include "radiation.hpp"
 
 // Evolve one step forward in time of hydro
 void DataBlock::EvolveStage() {
@@ -23,6 +24,17 @@ void DataBlock::EvolveStage() {
 
   idfx::popRegion();
 }
+
+// Evolve one step forward in time of radiation
+void DataBlock::EvolveStage_rad() {
+  idfx::pushRegion("DataBlock::EvolveStage_rad");
+
+  radiation->EvolveStage(this->t,this->dt);
+
+  idfx::popRegion();
+}
+
+
 
 void DataBlock::EvolveRKLStage() {
   idfx::pushRegion("DataBlock::EvolveRKLStage");

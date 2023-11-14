@@ -48,6 +48,9 @@ void ComputeUserVars(DataBlock & data, UserDefVariablesContainer &variables) {
   IdefixHostArray3D<real> Er = variables["ER"];
   IdefixHostArray3D<real> FrX = variables["FRX"];
   IdefixHostArray3D<real> FrY = variables["FRY"];
+  IdefixHostArray3D<real> Er_cons = variables["ER_cons"];
+  IdefixHostArray3D<real> FrX_cons = variables["FRX_cons"];
+  IdefixHostArray3D<real> FrY_cons = variables["FRY_cons"];
 
   for(int k = 0; k < d.np_tot[KDIR] ; k++) {
     for(int j = 0; j < d.np_tot[JDIR] ; j++) {
@@ -55,6 +58,9 @@ void ComputeUserVars(DataBlock & data, UserDefVariablesContainer &variables) {
         Er(k,j,i) = d.Vrad(ER,k,j,i);
         FrX(k,j,i) = d.Vrad(FR1,k,j,i);
         FrY(k,j,i) = d.Vrad(FR2,k,j,i);
+        Er_cons(k,j,i) = d.Urad(ER,k,j,i);
+        FrX_cons(k,j,i) = d.Urad(FR1,k,j,i);
+        FrY_cons(k,j,i) = d.Urad(FR2,k,j,i);
       }
     }
   }

@@ -75,6 +75,7 @@ DataBlockHost::DataBlockHost(DataBlock& datain) {
 
   if(haveRadiation) {
     Vrad = Kokkos::create_mirror_view(data->radiation->Vrad);
+    Urad = Kokkos::create_mirror_view(data->radiation->Urad);
   }
 
   // if grid coarsening is enabled
@@ -128,6 +129,14 @@ void DataBlockHost::SyncToDevice() {
       Kokkos::deep_copy(data->dust[i]->Vc, dustVc[i]);
     }
   }
+ 
+ if(haveRadiation){
+    Kokkos::deep_copy(data->radiation->Vrad,Vrad);
+  }
+
+ if(haveRadiation){
+    Kokkos::deep_copy(data->radiation->Urad,Urad);
+  }
 
   Kokkos::deep_copy(data->hydro->Uc,Uc);
 
@@ -165,6 +174,14 @@ void DataBlockHost::SyncFromDevice() {
     for(int i = 0 ; i < dustVc.size() ; i++) {
       Kokkos::deep_copy(dustVc[i], data->dust[i]->Vc);
     }
+  }
+
+  if(haveRadiation){
+    Kokkos::deep_copy(Vrad,data->radiation->Vrad);
+  }
+
+  if(haveRadiation){
+    Kokkos::deep_copy(Urad,data->radiation->Urad);
   }
 
   if(haveGridCoarsening) {

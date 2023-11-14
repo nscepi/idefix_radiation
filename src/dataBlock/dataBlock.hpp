@@ -136,7 +136,7 @@ class DataBlock {
 
 
   // Radiation
-  bool haveRadiation{false};
+  bool haveRadiation{true};
   std::unique_ptr<Radiation<RadiationPhysics>> radiation;   ///< The Radiation object attached to this datablock
 
   // The Planetary system
@@ -147,6 +147,7 @@ class DataBlock {
   bool rklCycle{false};           ///<  // Set to true when we're inside a RKL call
 
   void EvolveStage();             ///< Evolve this DataBlock by dt
+  void EvolveStage_rad();             ///< Evolve this DataBlock by dt for Radiation
   void EvolveRKLStage();          ///< Evolve this DataBlock by dt for terms impacted by RKL
   void SetBoundaries();       ///< Enforce boundary conditions to this datablock
   void ConsToPrim();       ///< Convert conservative to primitive variables

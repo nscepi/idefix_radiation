@@ -230,6 +230,10 @@ void TimeIntegrator::Cycle(DataBlock &data) {
     // Update Uc & Vs
     data.EvolveStage();
 
+    // Update Urad
+    data.EvolveStage_rad();
+
+
     // evolve dt accordingly
     data.t += data.dt;
 

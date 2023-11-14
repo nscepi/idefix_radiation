@@ -260,6 +260,9 @@ void DataBlock::ResetStage() {
       dust[i]->ResetStage();
     }
   }
+  if(haveRadiation) {
+    this->radiation->ResetStage();
+  }
 }
 
 void DataBlock::ConsToPrim() {
@@ -269,6 +272,9 @@ void DataBlock::ConsToPrim() {
       dust[i]->ConvertConsToPrim();
     }
   }
+  if(haveRadiation) {
+    this->radiation->ConvertConsToPrim();
+  }
 }
 
 void DataBlock::PrimToCons() {
@@ -277,6 +283,9 @@ void DataBlock::PrimToCons() {
     for(int i = 0 ; i < dust.size() ; i++) {
       dust[i]->ConvertPrimToCons();
     }
+  }
+  if(haveRadiation) {
+    this->radiation->ConvertPrimToCons();
   }
 }
 
