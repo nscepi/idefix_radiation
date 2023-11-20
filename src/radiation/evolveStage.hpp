@@ -9,12 +9,13 @@
 #define RAD_EVOLVESTAGE_HPP_
 
 #include "radiation.hpp"
+#include "riemannSolver_rad.hpp"
 
 template<typename Phys>
 template<int dir>
 void Radiation<Phys>::LoopDir(const real t, const real dt) {
     // Step 2: compute the intercell flux with our Riemann solver, store the resulting InvDt
-    //this->rSolver->template CalcFlux<dir>(this->FluxRiemann);
+    this->rSolver->template CalcFlux<dir>(this->FluxRiemann);
 
 
     // Step 3: compute the resulting evolution of the conserved variables, stored in Uc

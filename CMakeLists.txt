@@ -211,6 +211,7 @@ target_include_directories(idefix PUBLIC
                            src/fluid/tracer
                            src/output
                            src/radiation
+                           src/radiation/RiemannSolver
                            src/rkl
                            src/gravity
                            src/utils

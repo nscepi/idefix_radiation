@@ -15,6 +15,7 @@
 #include "stateContainer.hpp"
 #include "fluid.hpp"
 #include "planetarySystem.hpp"
+#include "radiation.hpp"
 
 
 TimeIntegrator::TimeIntegrator(Input & input, DataBlock & data) {
