@@ -40,12 +40,12 @@ DataBlockHost::DataBlockHost(DataBlock& datain) {
   gbeg = data->gbeg;
   gend = data->gend;
   haveDust = data->haveDust;
+  haveRadiation = data->haveRadiation;
 
     // TO BE COMPLETED...
 
   dV = Kokkos::create_mirror_view(data->dV);
   Vc = Kokkos::create_mirror_view(data->hydro->Vc);
-  Vrad = Kokkos::create_mirror_view(data->hydro->Vrad);
   Uc = Kokkos::create_mirror_view(data->hydro->Uc);
   InvDt = Kokkos::create_mirror_view(data->hydro->InvDt);
 
@@ -68,6 +68,15 @@ DataBlockHost::DataBlockHost(DataBlock& datain) {
     dustVc = std::vector<IdefixHostArray4D<real>>(data->dust.size());
     for(int i = 0 ; i < data->dust.size() ; i++) {
       dustVc[i] = Kokkos::create_mirror_view(data->dust[i]->Vc);
+    }
+  }
+
+  if(haveRadiation) {
+    RadVc = std::vector<IdefixHostArray4D<real>>(data->radiation.size());
+    RadUc = std::vector<IdefixHostArray4D<real>>(data->radiation.size());
+    for(int i = 0 ; i < data->radiation.size() ; i++) {
+      RadVc[i] = Kokkos::create_mirror_view(data->radiation[i]->Vc);
+      RadUc[i] = Kokkos::create_mirror_view(data->radiation[i]->Uc);
     }
   }
 
@@ -123,6 +132,13 @@ void DataBlockHost::SyncToDevice() {
     }
   }
 
+  if(haveRadiation) {
+    for(int i = 0 ; i < RadVc.size() ; i++) {
+      Kokkos::deep_copy(data->radiation[i]->Vc, RadVc[i]);
+      Kokkos::deep_copy(data->radiation[i]->Uc, RadUc[i]);
+    }
+  }
+
   Kokkos::deep_copy(data->hydro->Uc,Uc);
 
   if(haveGridCoarsening) {
@@ -158,6 +174,13 @@ void DataBlockHost::SyncFromDevice() {
   if(haveDust) {
     for(int i = 0 ; i < dustVc.size() ; i++) {
       Kokkos::deep_copy(dustVc[i], data->dust[i]->Vc);
+    }
+  }
+
+  if(haveRadiation) {
+    for(int i = 0 ; i < RadVc.size() ; i++) {
+      Kokkos::deep_copy(RadVc[i], data->radiation[i]->Vc);
+      Kokkos::deep_copy(RadUc[i], data->radiation[i]->Uc);
     }
   }
 

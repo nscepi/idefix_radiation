@@ -16,13 +16,18 @@ void Setup::InitFlow(DataBlock &data) {
         for(int j = 0; j < d.np_tot[JDIR] ; j++) {
             for(int i = 0; i < d.np_tot[IDIR] ; i++) {
 
+                const real r0 = 5.;
+                const real center = pow(d.x[IDIR](i)-r0,2)+pow(d.x[JDIR](j)-r0,2);
+
                 d.Vc(RHO,k,j,i) = 1.;
                 d.Vc(VX1,k,j,i) = 2.;
                 d.Vc(VX2,k,j,i) = 3.;
-                d.Vrad(ER,k,j,i) = 4.;
-                d.Vrad(FR1,k,j,i) = 5.;
-                d.Vrad(FR2,k,j,i) = 6.;
-
+                d.RadVc[0](ER,k,j,i) = 4.*exp(-center/2.)+0.1;
+                d.RadVc[0](FR1,k,j,i) = 5.*exp(-center/5.)+0.1;
+                d.RadVc[0](FR2,k,j,i) = 6.;
+                d.RadUc[0](ER,k,j,i) = 10.*exp(-center/2.)+0.1;
+                d.RadUc[0](FR1,k,j,i) = 11.*exp(-center/5.)+0.1;
+                d.RadUc[0](FR2,k,j,i) = 12.;
             }
         }
     }
@@ -49,9 +54,9 @@ void ComputeUserVars(DataBlock & data, UserDefVariablesContainer &variables) {
   for(int k = 0; k < d.np_tot[KDIR] ; k++) {
     for(int j = 0; j < d.np_tot[JDIR] ; j++) {
       for(int i = 0; i < d.np_tot[IDIR] ; i++) {
-        Er(k,j,i) = d.Vrad(ER,k,j,i);
-        FrX(k,j,i) = d.Vrad(FR1,k,j,i);
-        FrY(k,j,i) = d.Vrad(FR2,k,j,i);
+        Er(k,j,i) = d.RadUc[0](ER,k,j,i);
+        FrX(k,j,i) = d.RadUc[0](FR1,k,j,i);
+        FrY(k,j,i) = d.RadUc[0](FR2,k,j,i);
       }
     }
   }

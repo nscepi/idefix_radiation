@@ -150,6 +150,16 @@ DataBlock::DataBlock(Grid &grid, Input &input) {
       dust.emplace_back(std::make_unique<Fluid<DustPhysics>>(grid, input, this, i));
     }
   }
+
+  // Initialise radiation fluid if needed
+  if(input.CheckBlock("Radiation")) {
+    haveRadiation = true;
+    int nFrequencies = input.Get<int>("Radiation","nFrequencies",0);
+    for(int i = 0 ; i < nFrequencies ; i++) {
+      radiation.emplace_back(std::make_unique<Fluid<RadiationPhysics>>(grid, input, this, i));
+    }
+  }
+
   // Register variables that need to be saved in case of restart dump
   dump->RegisterVariable(&t, "time");
   dump->RegisterVariable(&dt, "dt");
