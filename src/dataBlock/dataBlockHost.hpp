@@ -52,6 +52,7 @@ class DataBlockHost {
   bool haveRadiation{false};
   std::vector<IdefixHostArray4D<real>> RadVc; ///< Cell-centered primitive variables index for radiation
   std::vector<IdefixHostArray4D<real>> RadUc; ///< Cell-centered conservative variables index for radiation
+  std::vector<IdefixHostArray4D<real>> RadFlux; ///< Cell-centered conservative variables index for radiation
 
   IdefixArray4D<real>::HostMirror Uc;     ///< Main cell-centered conservative variables
   IdefixArray3D<real>::HostMirror InvDt;  ///< Inverse of maximum timestep in each cell

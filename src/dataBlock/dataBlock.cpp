@@ -152,9 +152,9 @@ DataBlock::DataBlock(Grid &grid, Input &input) {
   }
 
   // Initialise radiation fluid if needed
-  if(input.CheckBlock("Radiation")) {
+  if(input.CheckBlock("Rad")) {
     haveRadiation = true;
-    int nFrequencies = input.Get<int>("Radiation","nFrequencies",0);
+    int nFrequencies = input.Get<int>("Rad","nFrequencies",0);
     for(int i = 0 ; i < nFrequencies ; i++) {
       radiation.emplace_back(std::make_unique<Fluid<RadiationPhysics>>(grid, input, this, i));
     }
@@ -265,6 +265,11 @@ void DataBlock::ResetStage() {
       dust[i]->ResetStage();
     }
   }
+  if(haveRadiation) {
+    for(int i = 0 ; i < radiation.size() ; i++) {
+      radiation[i]->ResetStage();
+    }
+  }
 }
 
 void DataBlock::ConsToPrim() {
@@ -274,6 +279,11 @@ void DataBlock::ConsToPrim() {
       dust[i]->ConvertConsToPrim();
     }
   }
+  if(haveRadiation) {
+    for(int i = 0 ; i < radiation.size() ; i++) {
+      radiation[i]->ConvertConsToPrim();
+    }
+  }
 }
 
 void DataBlock::PrimToCons() {
@@ -281,6 +291,11 @@ void DataBlock::PrimToCons() {
   if(haveDust) {
     for(int i = 0 ; i < dust.size() ; i++) {
       dust[i]->ConvertPrimToCons();
+    }
+  }
+  if(haveRadiation) {
+    for(int i = 0 ; i < radiation.size() ; i++) {
+      radiation[i]->ConvertPrimToCons();
     }
   }
 }
@@ -298,10 +313,20 @@ void DataBlock::SetBoundaries() {
         dust[i]->CoarsenFlow(dust[i]->Vc);
       }
     }
+    if(haveRadiation) {
+      for(int i = 0 ; i < radiation.size() ; i++) {
+        radiation[i]->CoarsenFlow(radiation[i]->Vc);
+      }
+    }
   }
   if(haveDust) {
     for(int i = 0 ; i < dust.size() ; i++) {
       dust[i]->boundary->SetBoundaries(t);
+    }
+  }
+  if(haveRadiation) {
+    for(int i = 0 ; i < radiation.size() ; i++) {
+      radiation[i]->boundary->SetBoundaries(t);
     }
   }
   hydro->boundary->SetBoundaries(t);
@@ -335,6 +360,15 @@ void DataBlock::ShowConfig() {
       dust[i]->ShowConfig();
     }*/
   }
+  if(haveRadiation) {
+    idfx::cout << "DataBlock: evolving " << radiation.size() << " radiation frequencies." << std::endl;
+    // Only show the config the first radiation frequency
+    radiation[0]->ShowConfig();
+    /*
+    for(int i = 0 ; i < radiation.size() ; i++) {
+      radiation[i]->ShowConfig();
+    }*/
+  }
 }
 
 
@@ -365,6 +399,21 @@ real DataBlock::ComputeTimestep() {
               },
           Kokkos::Min<real>(dtDust));
       dt = std::min(dt,dtDust);
+    }
+  }
+  if(haveRadiation) {
+    for(int n = 0 ; n < radiation.size() ; n++) {
+      real dtRadiation;
+      auto InvDt = radiation[n]->InvDt;
+      idefix_reduce("Timestep_reduction_radiation",
+          beg[KDIR], end[KDIR],
+          beg[JDIR], end[JDIR],
+          beg[IDIR], end[IDIR],
+          KOKKOS_LAMBDA (int k, int j, int i, real &dtmin) {
+                  dtmin=FMIN(ONE_F/InvDt(k,j,i),dtmin);
+              },
+          Kokkos::Min<real>(dtRadiation));
+      dt = std::min(dt,dtRadiation);
     }
   }
   Kokkos::fence();

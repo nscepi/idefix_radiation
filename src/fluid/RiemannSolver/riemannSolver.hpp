@@ -25,7 +25,7 @@ class RiemannSolver {
  public:
   // Riemann Solver type
 
-  enum Solver {TVDLF_MHD, HLL_MHD, HLLD_MHD, ROE_MHD, TVDLF, HLL, HLLC, ROE, HLL_DUST};
+  enum Solver {TVDLF_MHD, HLL_MHD, HLLD_MHD, ROE_MHD, TVDLF, HLL, HLLC, ROE, HLL_DUST,HLL_RAD,LFR_RAD};
 
   RiemannSolver(Input &input, Fluid<Phys>* hydro);
 
@@ -58,6 +58,12 @@ class RiemannSolver {
 
   template<const int>
     void HllDust(IdefixArray4D<real> &);
+
+  template<const int>
+    void HllRad(IdefixArray4D<real> &);
+  template<const int>
+    void LFRRad(IdefixArray4D<real> &);
+
   // Get the right slope limiter
   template<int dir>
   ExtrapolateToFaces<Phys, dir>* GetExtrapolator();
@@ -96,7 +102,18 @@ RiemannSolver<Phys>::RiemannSolver(Input &input, Fluid<Phys>* hydro) : Vc{hydro-
                                       data{hydro->data}
                                       {
   // read Solver from input file
-  if(!Phys::dust) {
+  if (Phys::dust) {
+    // We're dealing with dust grains
+    mySolver = HLL_DUST;
+  } else if (Phys::radiation) {
+    // We're dealing with radiation
+    std::string solver_rad_String = input.Get<std::string>(std::string(Phys::prefix),"solver_rad",0);
+    if (solver_rad_String.compare("hll_rad") == 0) {
+      mySolver = HLL_RAD;
+    } else if (solver_rad_String.compare("lfr_rad") == 0) {
+      mySolver = LFR_RAD;
+    }
+  } else {
     std::string solverString = input.Get<std::string>(std::string(Phys::prefix),"solver",0);
     if (solverString.compare("tvdlf") == 0) {
       if constexpr(Phys::mhd) {
@@ -143,9 +160,8 @@ RiemannSolver<Phys>::RiemannSolver(Input &input, Fluid<Phys>* hydro) : Vc{hydro-
         if(mySolver != HLL_MHD )
           IDEFIX_ERROR("Hall effect is only compatible with HLL Riemann solver.");
     }
-  } else {
-    // We're dealing with dust grains
-    mySolver = HLL_DUST;
+   
+
   }
 
 
@@ -198,6 +214,12 @@ void RiemannSolver<Phys>::ShowConfig() {
       break;
     case HLL_DUST:
       idfx::cout << "HLL (Dust)." << std::endl;
+      break;
+    case HLL_RAD:
+      idfx::cout << "HLL (RAD)." << std::endl;
+      break;
+    case LFR_RAD:
+      idfx::cout << "LFR (RAD)." << std::endl;
       break;
     default:
       IDEFIX_ERROR("Unknown Riemann solver");

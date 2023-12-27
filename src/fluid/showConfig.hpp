@@ -17,7 +17,11 @@
 template<typename Phys>
 void Fluid<Phys>::ShowConfig() {
   idfx::cout << Phys::prefix << ": ";
-  if constexpr(!Phys::dust) {
+  if constexpr(Phys::dust) {
+    idfx::cout << "solving pressure-less dust equations." << std::endl;
+  } else if constexpr(Phys::radiation) {
+    idfx::cout << "solving radiation equations." << std::endl;
+  } else {
     if constexpr(Phys::mhd) {
       idfx::cout << "solving MHD equations." << std::endl;
       #ifdef EVOLVE_VECTOR_POTENTIAL
@@ -27,8 +31,6 @@ void Fluid<Phys>::ShowConfig() {
     } else {
       idfx::cout << "solving HD equations." << std::endl;
     }
-  } else {
-    idfx::cout << "solving pressure-less dust equations." << std::endl;
   }
   idfx::cout << Phys::prefix << ": Reconstruction: ";
   #if ORDER == 1

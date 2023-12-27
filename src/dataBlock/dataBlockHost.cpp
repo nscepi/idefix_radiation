@@ -74,9 +74,11 @@ DataBlockHost::DataBlockHost(DataBlock& datain) {
   if(haveRadiation) {
     RadVc = std::vector<IdefixHostArray4D<real>>(data->radiation.size());
     RadUc = std::vector<IdefixHostArray4D<real>>(data->radiation.size());
+    RadFlux = std::vector<IdefixHostArray4D<real>>(data->radiation.size());
     for(int i = 0 ; i < data->radiation.size() ; i++) {
       RadVc[i] = Kokkos::create_mirror_view(data->radiation[i]->Vc);
       RadUc[i] = Kokkos::create_mirror_view(data->radiation[i]->Uc);
+      RadFlux[i] = Kokkos::create_mirror_view(data->radiation[i]->FluxRiemann);
     }
   }
 
@@ -136,6 +138,7 @@ void DataBlockHost::SyncToDevice() {
     for(int i = 0 ; i < RadVc.size() ; i++) {
       Kokkos::deep_copy(data->radiation[i]->Vc, RadVc[i]);
       Kokkos::deep_copy(data->radiation[i]->Uc, RadUc[i]);
+      Kokkos::deep_copy(data->radiation[i]->FluxRiemann, RadFlux[i]);
     }
   }
 
@@ -181,6 +184,7 @@ void DataBlockHost::SyncFromDevice() {
     for(int i = 0 ; i < RadVc.size() ; i++) {
       Kokkos::deep_copy(RadVc[i], data->radiation[i]->Vc);
       Kokkos::deep_copy(RadUc[i], data->radiation[i]->Uc);
+      Kokkos::deep_copy(RadFlux[i], data->radiation[i]->FluxRiemann);
     }
   }
 

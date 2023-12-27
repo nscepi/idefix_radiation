@@ -68,7 +68,7 @@ struct RadiationPhysics {
   static constexpr int radiation{true};
 
   // prefix
-  static constexpr std::string_view prefix = "Radiation";
+  static constexpr std::string_view prefix = "Rad";
 };
 
 #endif // PHYSICS_HPP_

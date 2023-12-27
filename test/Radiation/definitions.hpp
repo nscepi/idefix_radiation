@@ -2,5 +2,4 @@
 #define     DIMENSIONS      2
 
 #define     GEOMETRY        CARTESIAN
-#define     ISOTHERMAL
 #define     RADIATION

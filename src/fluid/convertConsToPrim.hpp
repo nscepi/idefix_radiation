@@ -16,9 +16,16 @@ template <typename Phys>
 KOKKOS_INLINE_FUNCTION void K_ConsToPrim(real Vc[], real Uc[], const EquationOfState *eos) {
   Vc[RHO] = Uc[RHO];
 
-  EXPAND( Vc[VX1] = Uc[MX1]/Uc[RHO];  ,
-          Vc[VX2] = Uc[MX2]/Uc[RHO];  ,
-          Vc[VX3] = Uc[MX3]/Uc[RHO];  )
+
+  if constexpr(Phys::radiation) {
+      EXPAND( Vc[VX1] = Uc[MX1];  ,
+              Vc[VX2] = Uc[MX2];  ,
+              Vc[VX3] = Uc[MX3];  )
+  } else {
+      EXPAND( Vc[VX1] = Uc[MX1]/Uc[RHO];  ,
+              Vc[VX2] = Uc[MX2]/Uc[RHO];  ,
+              Vc[VX3] = Uc[MX3]/Uc[RHO];  )
+  }
 
   if constexpr(Phys::mhd) {
     EXPAND( Vc[BX1] = Uc[BX1];  ,
@@ -70,9 +77,15 @@ template <typename Phys>
 KOKKOS_INLINE_FUNCTION void K_PrimToCons(real Uc[], real Vc[], const EquationOfState *eos) {
   Uc[RHO] = Vc[RHO];
 
-  EXPAND( Uc[MX1] = Vc[VX1]*Vc[RHO];  ,
-          Uc[MX2] = Vc[VX2]*Vc[RHO];  ,
-          Uc[MX3] = Vc[VX3]*Vc[RHO];  )
+  if constexpr(Phys::radiation) {
+      EXPAND( Uc[MX1] = Vc[VX1];  ,
+              Uc[MX2] = Vc[VX2];  ,
+              Uc[MX3] = Vc[VX3];  )
+  } else {
+      EXPAND( Uc[MX1] = Vc[VX1]*Vc[RHO];  ,
+              Uc[MX2] = Vc[VX2]*Vc[RHO];  ,
+              Uc[MX3] = Vc[VX3]*Vc[RHO];  )  
+  }
 
   if constexpr(Phys::mhd) {
     EXPAND( Uc[BX1] = Vc[BX1];  ,
