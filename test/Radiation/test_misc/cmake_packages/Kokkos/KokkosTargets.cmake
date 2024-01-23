@@ -64,7 +64,7 @@ set_target_properties(Kokkos::kokkoscore PROPERTIES
   INTERFACE_COMPILE_DEFINITIONS "\$<\$<COMPILE_LANGUAGE:CXX>:KOKKOS_DEPENDENCE>"
   INTERFACE_COMPILE_FEATURES "cxx_std_17"
   INTERFACE_COMPILE_OPTIONS "\$<\$<COMPILE_LANGUAGE:CXX>:>"
-  INTERFACE_INCLUDE_DIRECTORIES "/Users/nscepi/Documents/git-idefix/idefix/test/Radiation/build/kokkos;/Users/nscepi/Documents/git-idefix/idefix/test/Radiation/build/kokkos/core/src;/Users/nscepi/Documents/git-idefix/idefix/src/kokkos/core/src;/Users/nscepi/Documents/git-idefix/idefix/src/kokkos/core/src/../../tpls/desul/include"
+  INTERFACE_INCLUDE_DIRECTORIES "/Users/nscepi/Documents/git-idefix/idefix/test/Radiation/test_misc/build/kokkos;/Users/nscepi/Documents/git-idefix/idefix/test/Radiation/test_misc/build/kokkos/core/src;/Users/nscepi/Documents/git-idefix/idefix/src/kokkos/core/src;/Users/nscepi/Documents/git-idefix/idefix/src/kokkos/core/src/../../tpls/desul/include"
   INTERFACE_LINK_LIBRARIES "Kokkos::LIBDL"
   INTERFACE_LINK_OPTIONS "\$<\$<LINK_LANGUAGE:CXX>:-DKOKKOS_DEPENDENCE>"
 )
@@ -73,7 +73,7 @@ set_target_properties(Kokkos::kokkoscore PROPERTIES
 add_library(Kokkos::kokkoscontainers STATIC IMPORTED)
 
 set_target_properties(Kokkos::kokkoscontainers PROPERTIES
-  INTERFACE_INCLUDE_DIRECTORIES "/Users/nscepi/Documents/git-idefix/idefix/test/Radiation/build/kokkos;/Users/nscepi/Documents/git-idefix/idefix/test/Radiation/build/kokkos/containers/src;/Users/nscepi/Documents/git-idefix/idefix/src/kokkos/containers/src"
+  INTERFACE_INCLUDE_DIRECTORIES "/Users/nscepi/Documents/git-idefix/idefix/test/Radiation/test_misc/build/kokkos;/Users/nscepi/Documents/git-idefix/idefix/test/Radiation/test_misc/build/kokkos/containers/src;/Users/nscepi/Documents/git-idefix/idefix/src/kokkos/containers/src"
   INTERFACE_LINK_LIBRARIES "Kokkos::kokkoscore"
 )
 
@@ -81,14 +81,14 @@ set_target_properties(Kokkos::kokkoscontainers PROPERTIES
 add_library(Kokkos::kokkosalgorithms INTERFACE IMPORTED)
 
 set_target_properties(Kokkos::kokkosalgorithms PROPERTIES
-  INTERFACE_INCLUDE_DIRECTORIES "/Users/nscepi/Documents/git-idefix/idefix/test/Radiation/build/kokkos;/Users/nscepi/Documents/git-idefix/idefix/test/Radiation/build/kokkos/algorithms/src;/Users/nscepi/Documents/git-idefix/idefix/src/kokkos/algorithms/src"
+  INTERFACE_INCLUDE_DIRECTORIES "/Users/nscepi/Documents/git-idefix/idefix/test/Radiation/test_misc/build/kokkos;/Users/nscepi/Documents/git-idefix/idefix/test/Radiation/test_misc/build/kokkos/algorithms/src;/Users/nscepi/Documents/git-idefix/idefix/src/kokkos/algorithms/src"
 )
 
 # Create imported target Kokkos::kokkossimd
 add_library(Kokkos::kokkossimd STATIC IMPORTED)
 
 set_target_properties(Kokkos::kokkossimd PROPERTIES
-  INTERFACE_INCLUDE_DIRECTORIES "/Users/nscepi/Documents/git-idefix/idefix/test/Radiation/build/kokkos;/Users/nscepi/Documents/git-idefix/idefix/test/Radiation/build/kokkos/simd/src;/Users/nscepi/Documents/git-idefix/idefix/src/kokkos/simd/src"
+  INTERFACE_INCLUDE_DIRECTORIES "/Users/nscepi/Documents/git-idefix/idefix/test/Radiation/test_misc/build/kokkos;/Users/nscepi/Documents/git-idefix/idefix/test/Radiation/test_misc/build/kokkos/simd/src;/Users/nscepi/Documents/git-idefix/idefix/src/kokkos/simd/src"
 )
 
 # Create imported target Kokkos::kokkos
@@ -102,21 +102,21 @@ set_target_properties(Kokkos::kokkos PROPERTIES
 set_property(TARGET Kokkos::kokkoscore APPEND PROPERTY IMPORTED_CONFIGURATIONS RELEASE)
 set_target_properties(Kokkos::kokkoscore PROPERTIES
   IMPORTED_LINK_INTERFACE_LANGUAGES_RELEASE "CXX"
-  IMPORTED_LOCATION_RELEASE "/Users/nscepi/Documents/git-idefix/idefix/test/Radiation/build/kokkos/core/src/libkokkoscore.a"
+  IMPORTED_LOCATION_RELEASE "/Users/nscepi/Documents/git-idefix/idefix/test/Radiation/test_misc/build/kokkos/core/src/libkokkoscore.a"
   )
 
 # Import target "Kokkos::kokkoscontainers" for configuration "Release"
 set_property(TARGET Kokkos::kokkoscontainers APPEND PROPERTY IMPORTED_CONFIGURATIONS RELEASE)
 set_target_properties(Kokkos::kokkoscontainers PROPERTIES
   IMPORTED_LINK_INTERFACE_LANGUAGES_RELEASE "CXX"
-  IMPORTED_LOCATION_RELEASE "/Users/nscepi/Documents/git-idefix/idefix/test/Radiation/build/kokkos/containers/src/libkokkoscontainers.a"
+  IMPORTED_LOCATION_RELEASE "/Users/nscepi/Documents/git-idefix/idefix/test/Radiation/test_misc/build/kokkos/containers/src/libkokkoscontainers.a"
   )
 
 # Import target "Kokkos::kokkossimd" for configuration "Release"
 set_property(TARGET Kokkos::kokkossimd APPEND PROPERTY IMPORTED_CONFIGURATIONS RELEASE)
 set_target_properties(Kokkos::kokkossimd PROPERTIES
   IMPORTED_LINK_INTERFACE_LANGUAGES_RELEASE "CXX"
-  IMPORTED_LOCATION_RELEASE "/Users/nscepi/Documents/git-idefix/idefix/test/Radiation/build/kokkos/simd/src/libkokkossimd.a"
+  IMPORTED_LOCATION_RELEASE "/Users/nscepi/Documents/git-idefix/idefix/test/Radiation/test_misc/build/kokkos/simd/src/libkokkossimd.a"
   )
 
 # This file does not depend on other imported targets which have
