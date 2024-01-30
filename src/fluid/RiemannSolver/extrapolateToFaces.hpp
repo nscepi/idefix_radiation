@@ -102,11 +102,7 @@ class ExtrapolateToFaces {
               dv = SL::PLMLim(dvp,dvm);
             }
           } else { // No shock flattening
-            if constexpr(Phys::radiation){
-              dv = SL::MinModLim(dvp,dvm); //Force MinModLim for radiation
-            } else{
-              dv = SL::PLMLim(dvp,dvm);
-            }
+            dv = SL::PLMLim(dvp,dvm);
           }
 
           vL[nv] = Vc(nv,k-koffset,j-joffset,i-ioffset) + HALF_F*dv;
@@ -121,11 +117,7 @@ class ExtrapolateToFaces {
               dv = SL::PLMLim(dvp,dvm);
             }
           } else { // No shock flattening
-            if constexpr(Phys::radiation){
-              dv = SL::MinModLim(dvp,dvm); //Force MinModLim for radiation
-            } else{
-              dv = SL::PLMLim(dvp,dvm);
-            }          
+            dv = SL::PLMLim(dvp,dvm);        
           }
 
           vR[nv] = Vc(nv,k,j,i) - HALF_F*dv;
