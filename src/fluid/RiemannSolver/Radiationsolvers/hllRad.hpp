@@ -59,8 +59,8 @@ void RiemannSolver<Phys>::HllRad(IdefixArray4D<real> &Flux) {
       real fluxR[Phys::nvar];
 
       //VWave speeds
-      real lambdaL[3];
-      real lambdaR[3];
+      real lambdaL[2];
+      real lambdaR[2];
 
       // 1-- Store the primitive variables on the left, right, and averaged states
       extrapol.ExtrapolatePrimVar(i, j, k, vL, vR);
@@ -73,10 +73,10 @@ void RiemannSolver<Phys>::HllRad(IdefixArray4D<real> &Flux) {
       K_speeds_Rad(lambdaL,vL,Xn);
       K_speeds_Rad(lambdaR,vR,Xn);
  
-      real lambda_max_L = FMAX(FMAX(lambdaL[0],lambdaL[1]),lambdaL[2]);
-      real lambda_max_R = FMAX(FMAX(lambdaR[0],lambdaR[1]),lambdaR[2]);
-      real lambda_min_L = FMIN(FMIN(lambdaL[0],lambdaL[1]),lambdaL[2]);
-      real lambda_min_R = FMIN(FMIN(lambdaR[0],lambdaR[1]),lambdaR[2]);
+      real lambda_max_L = FMAX(lambdaL[0],lambdaL[1]);
+      real lambda_max_R = FMAX(lambdaR[0],lambdaR[1]);
+      real lambda_min_L = FMIN(lambdaL[0],lambdaL[1]);
+      real lambda_min_R = FMIN(lambdaR[0],lambdaR[1]);
       
       real SR = FMAX(ZERO_F,FMAX(lambda_max_L,lambda_max_R));
       real SL = FMIN(ZERO_F,FMIN(lambda_min_L,lambda_min_R));
@@ -92,27 +92,15 @@ void RiemannSolver<Phys>::HllRad(IdefixArray4D<real> &Flux) {
       K_Flux<Phys,DIR>(fluxR, vR, uR, 0);
 
       // 5-- Compute the flux from the left and right states
-      if (SL > 0) {
+      real dS = SR-SL;
+      if(std::abs(dS) < SMALL_NUMBER) {
+        dS = SMALL_NUMBER;
+//      printf("Velocities are the same\n");
+      }
 #pragma unroll
-        for (int nv = 0 ; nv < Phys::nvar; nv++) {
-          Flux(nv,k,j,i) = fluxL[nv];
-        }
-      } else if (SR < 0) {
-#pragma unroll
-        for (int nv = 0 ; nv < Phys::nvar; nv++) {
-          Flux(nv,k,j,i) = fluxR[nv];
-        }
-      } else {
-        real dS = SR-SL;
-        if(std::abs(dS) < SMALL_NUMBER) {
-          dS = SMALL_NUMBER;
-//         printf("Velocities are the same\n");
-        }
-#pragma unroll
-        for(int nv = 0 ; nv < Phys::nvar; nv++) {
-          Flux(nv,k,j,i) = SL*SR*uR[nv] - SL*SR*uL[nv] + SR*fluxL[nv] - SL*fluxR[nv];
-          Flux(nv,k,j,i) /= dS;
-        }
+      for(int nv = 0 ; nv < Phys::nvar; nv++) {
+        Flux(nv,k,j,i) = SL*SR*uR[nv] - SL*SR*uL[nv] + SR*fluxL[nv] - SL*fluxR[nv];
+        Flux(nv,k,j,i) /= dS;
       }
 
       //6-- Compute maximum wave speed for this sweep

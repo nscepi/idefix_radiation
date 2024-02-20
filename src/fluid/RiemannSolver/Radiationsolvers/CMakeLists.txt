@@ -1,5 +1,6 @@
 target_sources(idefix
 PUBLIC ${CMAKE_CURRENT_LIST_DIR}/hllRad.hpp
+PUBLIC ${CMAKE_CURRENT_LIST_DIR}/hllcRad.hpp
 PUBLIC ${CMAKE_CURRENT_LIST_DIR}/lfrRad.hpp
 PUBLIC ${CMAKE_CURRENT_LIST_DIR}/speedRad.hpp
 PUBLIC ${CMAKE_CURRENT_LIST_DIR}/lim_fluxRad.hpp

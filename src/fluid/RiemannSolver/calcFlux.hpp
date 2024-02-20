@@ -20,6 +20,7 @@
 #include "tvdlfHD.hpp"
 #include "roeHD.hpp"
 #include "hllDust.hpp"
+#include "hllcRad.hpp"
 #include "hllRad.hpp"
 #include "lfrRad.hpp"
 
@@ -67,6 +68,9 @@ void RiemannSolver<Phys>::CalcFlux(IdefixArray4D<real> &flux) {
       }
     } else if constexpr(Phys::radiation) {
       switch (mySolver) {
+        case HLLC_RAD:
+          HllcRad<dir>(flux);
+          break;
         case HLL_RAD:
           HllRad<dir>(flux);
           break;

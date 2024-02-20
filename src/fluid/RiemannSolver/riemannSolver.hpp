@@ -25,7 +25,7 @@ class RiemannSolver {
  public:
   // Riemann Solver type
 
-  enum Solver {TVDLF_MHD, HLL_MHD, HLLD_MHD, ROE_MHD, TVDLF, HLL, HLLC, ROE, HLL_DUST,HLL_RAD,LFR_RAD};
+  enum Solver {TVDLF_MHD, HLL_MHD, HLLD_MHD, ROE_MHD, TVDLF, HLL, HLLC, ROE, HLL_DUST,HLL_RAD,LFR_RAD,HLLC_RAD};
 
   RiemannSolver(Input &input, Fluid<Phys>* hydro);
 
@@ -63,6 +63,9 @@ class RiemannSolver {
     void HllRad(IdefixArray4D<real> &);
   template<const int>
     void LFRRad(IdefixArray4D<real> &);
+  template<const int>
+    void HllcRad(IdefixArray4D<real> &);
+
 
   // Get the right slope limiter
   template<int dir>
@@ -112,6 +115,8 @@ RiemannSolver<Phys>::RiemannSolver(Input &input, Fluid<Phys>* hydro) : Vc{hydro-
       mySolver = HLL_RAD;
     } else if (solver_rad_String.compare("lfr_rad") == 0) {
       mySolver = LFR_RAD;
+    } else if (solver_rad_String.compare("hllc_rad") == 0) {
+      mySolver = HLLC_RAD;
     }
   } else {
     std::string solverString = input.Get<std::string>(std::string(Phys::prefix),"solver",0);
@@ -220,6 +225,9 @@ void RiemannSolver<Phys>::ShowConfig() {
       break;
     case LFR_RAD:
       idfx::cout << "LFR (RAD)." << std::endl;
+      break;
+    case HLLC_RAD:
+      idfx::cout << "HLLC (RAD)." << std::endl;
       break;
     default:
       IDEFIX_ERROR("Unknown Riemann solver");

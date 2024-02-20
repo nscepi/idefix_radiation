@@ -727,11 +727,12 @@ void Boundary<Phys>::EnforceOutflow(int dir, BoundarySide side ) {
           // side = 1 on the left and =-1 on the right
           const int sign = 1-2*side;
 
-          if( (n== VX1+dir) && (sign*Vc(n,kref,jref,iref) >= ZERO_F) ) {
-            Vc(n,k,j,i) = ZERO_F;
-          } else {
-            Vc(n,k,j,i) = Vc(n,kref,jref,iref);
-          }
+          //if( (n== VX1+dir) && (sign*Vc(n,kref,jref,iref) >= ZERO_F) ) {
+            //Vc(n,k,j,i) = ZERO_F;
+          //} else {
+          Vc(n,k,j,i) = Vc(n,kref,jref,iref);
+          //}
+
         });
 
   if constexpr(Phys::mhd) {

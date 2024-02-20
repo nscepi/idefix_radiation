@@ -13,9 +13,10 @@ real reduced_c = 1.; // to change
 
 real Fnorm = std::sqrt(EXPAND(V[FR1]*V[FR1] , + V[FR2]*V[FR2], + V[FR3]*V[FR3]));
       
-if (Fnorm >= reduced_c*V[ER]) {
-    V[FR1] *= (Fnorm <= 1.e-5 ? reduced_c*V[ER]/1.e-5 : reduced_c*V[ER]/Fnorm); 
-    V[FR2] *= (Fnorm <= 1.e-5 ? reduced_c*V[ER]/1.e-5 : reduced_c*V[ER]/Fnorm);
+if (Fnorm > reduced_c*V[ER]) {
+    EXPAND( V[FR1] *= (Fnorm <= 1.e-50 ? reduced_c*V[ER]/1.e-50 : reduced_c*V[ER]/Fnorm);, 
+            V[FR2] *= (Fnorm <= 1.e-50 ? reduced_c*V[ER]/1.e-50 : reduced_c*V[ER]/Fnorm);,
+            V[FR3] *= (Fnorm <= 1.e-50 ? reduced_c*V[ER]/1.e-50 : reduced_c*V[ER]/Fnorm);)   
 }
 
 return;

@@ -59,8 +59,8 @@ void RiemannSolver<Phys>::LFRRad(IdefixArray4D<real> &Flux) {
       real fluxR[Phys::nvar];
 
       //VWave speeds
-      real lambdaL[3];
-      real lambdaR[3];
+      real lambdaL[2];
+      real lambdaR[2];
 
 
       // 1-- Store the primitive variables on the left, right, and averaged states
@@ -74,10 +74,10 @@ void RiemannSolver<Phys>::LFRRad(IdefixArray4D<real> &Flux) {
       K_speeds_Rad(lambdaL,vL,Xn);
       K_speeds_Rad(lambdaR,vR,Xn);
 
-      real lambda_max_L = FMAX(FMAX(lambdaL[0],lambdaL[1]),lambdaL[2]);
-      real lambda_max_R = FMAX(FMAX(lambdaR[0],lambdaR[1]),lambdaR[2]);
-      real lambda_min_L = FMIN(FMIN(lambdaL[0],lambdaL[1]),lambdaL[2]);
-      real lambda_min_R = FMIN(FMIN(lambdaR[0],lambdaR[1]),lambdaR[2]);
+      real lambda_max_L = FMAX(lambdaL[0],lambdaL[1]);
+      real lambda_max_R = FMAX(lambdaR[0],lambdaR[1]);
+      real lambda_min_L = FMIN(lambdaL[0],lambdaL[1]);
+      real lambda_min_R = FMIN(lambdaR[0],lambdaR[1]);
       
       real SR = FMAX(lambda_max_L,lambda_max_R);
       real SL = FMIN(lambda_min_L,lambda_min_R);

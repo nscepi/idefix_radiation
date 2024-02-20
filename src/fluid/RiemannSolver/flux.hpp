@@ -41,32 +41,32 @@ KOKKOS_INLINE_FUNCTION void K_Flux(real *KOKKOS_RESTRICT F, const real *KOKKOS_R
             F[MX3] = U[MX3]*V[Xn] - V[BXn]*V[BX3];)
   } else if constexpr(Phys::radiation) { 
 
-            // Reduced velocity of light
-            real reduced_c = 1.;
+    // Reduced velocity of light
+    real reduced_c = 1.;
 
-            real Fnorm2 = EXPAND(V[FR1]*V[FR1] , + V[FR2]*V[FR2], + V[FR3]*V[FR3]);
-            //real inv_Fnorm2 = (Fnorm2 <= 1.e-10 ? ZERO_F : ONE_F / Fnorm2);
-            real Er2 = V[ER]*V[ER];
-            real f_param2 = Fnorm2/(reduced_c*reduced_c*Er2);
-            real epsilon_param = 3.+4.*f_param2;
-            epsilon_param /= 5.+2.*std::sqrt(4.-3.*f_param2);
-
+    real Fnorm2 = EXPAND(V[FR1]*V[FR1] , + V[FR2]*V[FR2], + V[FR3]*V[FR3]);
+    real inv_Fnorm2 = (Fnorm2 <= 1.e-40 ? ZERO_F : ONE_F / Fnorm2);
+    real Er2 = V[ER]*V[ER];
+    real f_param2 = (Er2 < 1.e-40 ? Fnorm2/(reduced_c*reduced_c*1.e-40) : Fnorm2/(reduced_c*reduced_c*Er2));
+    real xi  = 3.+4.*f_param2;
+    xi /= 5.+2.*std::sqrt(4.-3.*f_param2);
   
-     EXPAND( F[FR1] = (Fnorm2 <= 1.e-10 ? ZERO_F : HALF_F*(3.*epsilon_param-1.)*V[ER]*V[FR1]*V[Xn]/Fnorm2);  ,
-             F[FR2] = (Fnorm2 <= 1.e-10 ? ZERO_F : HALF_F*(3.*epsilon_param-1.)*V[ER]*V[FR2]*V[Xn]/Fnorm2);  ,
-             F[FR3] = (Fnorm2 <= 1.e-10 ? ZERO_F : HALF_F*(3.*epsilon_param-1.)*V[ER]*V[FR3]*V[Xn]/Fnorm2);  )
+    EXPAND ( F[FR1] = HALF_F*(3.*xi-1.)*V[ER]*V[FR1]*V[Xn]*inv_Fnorm2;  ,
+             F[FR2] = HALF_F*(3.*xi-1.)*V[ER]*V[FR2]*V[Xn]*inv_Fnorm2;  ,
+             F[FR3] = HALF_F*(3.*xi-1.)*V[ER]*V[FR3]*V[Xn]*inv_Fnorm2;  )
 
-     EXPAND ( F[FR1] += (Xn == 1 ? HALF_F*(1.-epsilon_param)*V[ER] : ZERO_F); , 
-              F[FR2] += (Xn == 2 ? HALF_F*(1.-epsilon_param)*V[ER] : ZERO_F); ,     
-              F[FR3] += (Xn == 3 ? HALF_F*(1.-epsilon_param)*V[ER] : ZERO_F); )
+    EXPAND ( F[FR1] += (Xn == 1 ? HALF_F*(1.-xi)*V[ER] : ZERO_F); , 
+             F[FR2] += (Xn == 2 ? HALF_F*(1.-xi)*V[ER] : ZERO_F); ,     
+             F[FR3] += (Xn == 3 ? HALF_F*(1.-xi)*V[ER] : ZERO_F); )
 
     EXPAND ( F[FR1] *= reduced_c; , 
              F[FR2] *= reduced_c; ,     
              F[FR3] *= reduced_c; )
+    
   } else {
-    EXPAND( F[MX1] = U[MX1]*V[Xn];  ,
-            F[MX2] = U[MX2]*V[Xn];  ,
-            F[MX3] = U[MX3]*V[Xn];  )
+    EXPAND ( F[MX1] = U[MX1]*V[Xn];  ,
+             F[MX2] = U[MX2]*V[Xn];  ,
+             F[MX3] = U[MX3]*V[Xn];  )
   }
 
   // Magnetic flux
