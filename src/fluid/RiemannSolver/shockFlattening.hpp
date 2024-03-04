@@ -92,7 +92,7 @@ struct ShockFlattening_FindShockFunctor {
       divV = 0.5*divV/dV(k,j,i);
     #endif
 
-    if(divV<ZERO_F) {
+    //if(divV<ZERO_F) {
       [[maybe_unused]] real pmin, gradP;
       if constexpr(Phys::isothermal) {
         real cs = eos.GetWaveSpeed(k,j,i);
@@ -164,7 +164,7 @@ struct ShockFlattening_FindShockFunctor {
           flags(k,j,i) = FlagShock::Shock;
         }
       }
-    }
+    //}
   }
 };
 

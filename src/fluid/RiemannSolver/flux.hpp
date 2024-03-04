@@ -44,20 +44,24 @@ KOKKOS_INLINE_FUNCTION void K_Flux(real *KOKKOS_RESTRICT F, const real *KOKKOS_R
     // Reduced velocity of light
     real reduced_c = 1.;
 
-    real Fnorm2 = EXPAND(V[FR1]*V[FR1] , + V[FR2]*V[FR2], + V[FR3]*V[FR3]);
+    real Fnorm2 = EXPAND(U[FR1]*U[FR1] , + U[FR2]*U[FR2], + U[FR3]*U[FR3]);
     real inv_Fnorm2 = (Fnorm2 <= 1.e-40 ? ZERO_F : ONE_F / Fnorm2);
-    real Er2 = V[ER]*V[ER];
+    real Er2 = U[ER]*U[ER];
     real f_param2 = (Er2 < 1.e-40 ? Fnorm2/(reduced_c*reduced_c*1.e-40) : Fnorm2/(reduced_c*reduced_c*Er2));
+    // if (f_param2 > ONE_F) {
+    //     printf("f_param2=%e\n",f_param2);
+    //     //f_param2 = ONE_F;
+    // }
     real xi  = 3.+4.*f_param2;
     xi /= 5.+2.*std::sqrt(4.-3.*f_param2);
   
-    EXPAND ( F[FR1] = HALF_F*(3.*xi-1.)*V[ER]*V[FR1]*V[Xn]*inv_Fnorm2;  ,
-             F[FR2] = HALF_F*(3.*xi-1.)*V[ER]*V[FR2]*V[Xn]*inv_Fnorm2;  ,
-             F[FR3] = HALF_F*(3.*xi-1.)*V[ER]*V[FR3]*V[Xn]*inv_Fnorm2;  )
+    EXPAND ( F[FR1] = HALF_F*(3.*xi-1.)*U[ER]*U[FR1]*U[Xn]*inv_Fnorm2;  ,
+             F[FR2] = HALF_F*(3.*xi-1.)*U[ER]*U[FR2]*U[Xn]*inv_Fnorm2;  ,
+             F[FR3] = HALF_F*(3.*xi-1.)*U[ER]*U[FR3]*U[Xn]*inv_Fnorm2;  )
 
-    EXPAND ( F[FR1] += (Xn == 1 ? HALF_F*(1.-xi)*V[ER] : ZERO_F); , 
-             F[FR2] += (Xn == 2 ? HALF_F*(1.-xi)*V[ER] : ZERO_F); ,     
-             F[FR3] += (Xn == 3 ? HALF_F*(1.-xi)*V[ER] : ZERO_F); )
+    EXPAND ( F[FR1] += (Xn == 1 ? HALF_F*(1.-xi)*U[ER] : ZERO_F); , 
+             F[FR2] += (Xn == 2 ? HALF_F*(1.-xi)*U[ER] : ZERO_F); ,     
+             F[FR3] += (Xn == 3 ? HALF_F*(1.-xi)*U[ER] : ZERO_F); )
 
     EXPAND ( F[FR1] *= reduced_c; , 
              F[FR2] *= reduced_c; ,     

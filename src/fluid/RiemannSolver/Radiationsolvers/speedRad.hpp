@@ -7,19 +7,20 @@
 #include "input.hpp"
 
 
-KOKKOS_INLINE_FUNCTION void K_speeds_Rad(real lambda[], const real *KOKKOS_RESTRICT V, int Xn) {
+KOKKOS_INLINE_FUNCTION void K_speeds_Rad(real lambda[], const real *KOKKOS_RESTRICT U, int Xn) {
     
-    real Fnorm = std::sqrt(EXPAND(V[FR1]*V[FR1] , + V[FR2]*V[FR2], + V[FR3]*V[FR3]));
+    real Fnorm = std::sqrt(EXPAND(U[FR1]*U[FR1] , + U[FR2]*U[FR2], + U[FR3]*U[FR3]));
 
-    real f_param = (Fnorm > V[ER] ? 1. : Fnorm/V[ER]);
+    real f_param = (Fnorm > U[ER] ? 1. : Fnorm/U[ER]);
 
     if (f_param < 1.e-50) {
+        printf("f_param=1.e-50\n");
         lambda[1] = ONE_F/std::sqrt(3.);
         lambda[0] = -lambda[1];
     } else {
         real f2_param = f_param*f_param;
       
-        real cos_theta = V[Xn] / Fnorm;
+        real cos_theta = U[Xn] / Fnorm;
       
         // Eq. 85 of Melon Fuksman & Mignone 2019  
         real zeta_1 = FABS(4.-3.*f2_param);

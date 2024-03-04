@@ -64,14 +64,22 @@ void RiemannSolver<Phys>::HllRad(IdefixArray4D<real> &Flux) {
 
       // 1-- Store the primitive variables on the left, right, and averaged states
       extrapol.ExtrapolatePrimVar(i, j, k, vL, vR);
-      
-      // Limit the fluxes after extrapolation to satisfy Fr<=Er
-      K_limit_RadFlux(vL);
-      K_limit_RadFlux(vR);
+
+      //if (vR[Xn]==vR[Xn]) printf("vR[FR1]=%e, vL[FR1]=%e, vR[FR2]=%e and vL[FR2]=%e at i=%i and DIR=%i\n",vR[FR1],vL[FR1],vR[FR2],vL[FR2],i,DIR);
+
+      // 3-- Compute the conservative variables: do this by extrapolation
+      K_PrimToCons<Phys>(uL, vL, NULL); 
+      K_PrimToCons<Phys>(uR, vR, NULL);
+
+      //if (uR[Xn]==uR[Xn]) printf("uR[FR1]=%e, uL[FR1]=%e, uR[FR2]=%e and uL[FR2]=%e at i=%i and DIR=%i\n",uR[FR1],uL[FR1],uR[FR2],L[FR2],i,DIR);
+
+      // Limit the fluxes after extrapolation and prim_to_cons to satisfy Fr<=Er
+      K_limit_RadFlux(uL);
+      K_limit_RadFlux(uR);
 
       // 2-- Get the wave speed
-      K_speeds_Rad(lambdaL,vL,Xn);
-      K_speeds_Rad(lambdaR,vR,Xn);
+      K_speeds_Rad(lambdaL,uL,Xn);
+      K_speeds_Rad(lambdaR,uR,Xn);
  
       real lambda_max_L = FMAX(lambdaL[0],lambdaL[1]);
       real lambda_max_R = FMAX(lambdaR[0],lambdaR[1]);
@@ -82,10 +90,6 @@ void RiemannSolver<Phys>::HllRad(IdefixArray4D<real> &Flux) {
       real SL = FMIN(ZERO_F,FMIN(lambda_min_L,lambda_min_R));
       
       real cmax  = FMAX(FABS(SL), FABS(SR));
-
-      // 3-- Compute the conservative variables: do this by extrapolation
-      K_PrimToCons<Phys>(uL, vL, NULL); 
-      K_PrimToCons<Phys>(uR, vR, NULL);
 
       // 4-- Compute the left and right fluxes (wave speed is null)
       K_Flux<Phys,DIR>(fluxL, vL, uL, 0);

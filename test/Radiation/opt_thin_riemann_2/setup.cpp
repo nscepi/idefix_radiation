@@ -36,6 +36,18 @@ void Setup::InitFlow(DataBlock &data) {
                 d.RadVc[0](FR1,k,j,i) = ZERO_F;
                 d.RadVc[0](FR2,k,j,i) = 1.;
               }
+
+              real reduced_c =1.;
+              real Fnorm2 = EXPAND(d.RadVc[0](FR1,k,j,i)*d.RadVc[0](FR1,k,j,i) , + d.RadVc[0](FR2,k,j,i)*d.RadVc[0](FR2,k,j,i), + d.RadVc[0](FR3,k,j,i)*d.RadVc[0](FR3,k,j,i));
+              real inv_Fnorm2 = (Fnorm2 <= 1.e-40 ? ZERO_F : ONE_F / Fnorm2);
+              real Er2 = d.RadVc[0](ER,k,j,i)*d.RadVc[0](ER,k,j,i);
+              real f_param2 = (Er2 < 1.e-40 ? Fnorm2/(reduced_c*reduced_c*1.e-40) : Fnorm2/(reduced_c*reduced_c*Er2));
+              real xi  = 3.+4.*f_param2;
+              xi /= 5.+2.*std::sqrt(4.-3.*f_param2);
+
+              d.RadVc[0](FR1,k,j,i) = HALF_F*(3.*xi-1.)*d.RadVc[0](ER,k,j,i)*d.RadVc[0](FR1,k,j,i)*inv_Fnorm2;
+              d.RadVc[0](FR2,k,j,i) = HALF_F*(3.*xi-1.)*d.RadVc[0](ER,k,j,i)*d.RadVc[0](FR2,k,j,i)*inv_Fnorm2;
+
             }
         }
     }
@@ -52,15 +64,17 @@ void ComputeUserVars(DataBlock & data, UserDefVariablesContainer &variables) {
 
   // Sync it
   d.SyncFromDevice();
+  IdefixHostArray3D<real> F1 = variables["F1"];
+  IdefixHostArray3D<real> F2 = variables["F2"];
 
   // Make references to the user-defined arrays (variables is a container of IdefixHostArray3D)
   // Note that the labels should match the variable names in the input file
-  IdefixHostArray3D<real> flag = variables["flag"];
 
   for(int k = 0; k < d.np_tot[KDIR] ; k++) {
     for(int j = 0; j < d.np_tot[JDIR] ; j++) {
-      for(int i = 0; i < d.np_tot[IDIR] ; i++) {
-          //flag = d.shockFlattening->flagArray(k,j,i);
+      for(int i = 0; i < d.np_tot[IDIR] ; i++) {      
+        F1(k,j,i) = d.RadUc[0](FR1,k,j,i);
+        F2(k,j,i) = d.RadUc[0](FR2,k,j,i);
       }
     }
   }
@@ -116,7 +130,7 @@ void UserdefBoundary(Fluid<DefaultPhysics> *hydro, int dir, BoundarySide side, r
 
 Setup::Setup(Input &input, Grid &grid, DataBlock &data, Output &output)
 {
-  //output.EnrollUserDefVariables(&ComputeUserVars);
+  output.EnrollUserDefVariables(&ComputeUserVars);
   // Set the function for userdefboundary
   if(data.haveRadiation) {
     int nFrequencies = data.radiation.size();

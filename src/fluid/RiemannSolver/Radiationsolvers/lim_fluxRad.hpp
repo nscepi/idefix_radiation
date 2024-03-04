@@ -7,16 +7,16 @@
 #include "input.hpp"
 
 
-KOKKOS_INLINE_FUNCTION void K_limit_RadFlux(real  V[]) {
+KOKKOS_INLINE_FUNCTION void K_limit_RadFlux(real  U[]) {
 
 real reduced_c = 1.; // to change
 
-real Fnorm = std::sqrt(EXPAND(V[FR1]*V[FR1] , + V[FR2]*V[FR2], + V[FR3]*V[FR3]));
+real Fnorm = std::sqrt(EXPAND(U[FR1]*U[FR1] , + U[FR2]*U[FR2], + U[FR3]*U[FR3]));
       
-if (Fnorm > reduced_c*V[ER]) {
-    EXPAND( V[FR1] *= (Fnorm <= 1.e-50 ? reduced_c*V[ER]/1.e-50 : reduced_c*V[ER]/Fnorm);, 
-            V[FR2] *= (Fnorm <= 1.e-50 ? reduced_c*V[ER]/1.e-50 : reduced_c*V[ER]/Fnorm);,
-            V[FR3] *= (Fnorm <= 1.e-50 ? reduced_c*V[ER]/1.e-50 : reduced_c*V[ER]/Fnorm);)   
+if (Fnorm > reduced_c*U[ER]) {
+    EXPAND( U[FR1] *= (Fnorm <= 1.e-50 ? reduced_c*U[ER]/1.e-50 : reduced_c*U[ER]/Fnorm);, 
+            U[FR2] *= (Fnorm <= 1.e-50 ? reduced_c*U[ER]/1.e-50 : reduced_c*U[ER]/Fnorm);,
+            U[FR3] *= (Fnorm <= 1.e-50 ? reduced_c*U[ER]/1.e-50 : reduced_c*U[ER]/Fnorm);)   
 }
 
 return;
