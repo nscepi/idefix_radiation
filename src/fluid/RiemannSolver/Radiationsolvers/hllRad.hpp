@@ -80,7 +80,7 @@ void RiemannSolver<Phys>::HllRad(IdefixArray4D<real> &Flux) {
       
       real SR = FMAX(ZERO_F,FMAX(lambda_max_L,lambda_max_R));
       real SL = FMIN(ZERO_F,FMIN(lambda_min_L,lambda_min_R));
-      
+
       real cmax  = FMAX(FABS(SL), FABS(SR));
 
       // 3-- Compute the conservative variables: do this by extrapolation

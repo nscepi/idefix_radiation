@@ -150,7 +150,9 @@ class idfxTest:
     else:
       comm.append("-DIdefix_MPI=OFF")
 
-    if(self.reconstruction == 2):
+    if(self.reconstruction == 1):
+      comm.append("-DIdefix_RECONSTRUCTION=Constant")
+    elif(self.reconstruction == 2):
       comm.append("-DIdefix_RECONSTRUCTION=Linear")
     elif(self.reconstruction==3):
       comm.append("-DIdefix_RECONSTRUCTION=LimO3")
@@ -242,9 +244,10 @@ class idfxTest:
 
 
     self.reconstruction = 2
+    if "1st order (donor cell)" in log:
+      self.reconstruction = 1
     if "3rd order (LimO3)" in log:
       self.reconstruction = 3
-
     if "4th order (PPM)" in log:
       self.reconstruction = 4
 
@@ -364,7 +367,9 @@ class idfxTest:
       print("Precision: Single")
     else:
       print("Precision: Double")
-    if(self.reconstruction==2):
+    if(self.reconstruction==1):
+      print("Reconstruction: Donor")
+    elif(self.reconstruction==2):
       print("Reconstruction: PLM")
     elif(self.reconstruction==3):
       print("Reconstruction: LimO3")
@@ -383,6 +388,8 @@ class idfxTest:
 
   def _getReferenceFilename(self):
     strReconstruction="plm"
+    if self.reconstruction == 1:
+      strReconstruction = "donor"
     if self.reconstruction == 3:
       strReconstruction = "limo3"
     if self.reconstruction == 4:

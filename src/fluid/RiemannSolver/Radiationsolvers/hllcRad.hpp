@@ -178,9 +178,9 @@ void RiemannSolver<Phys>::HllcRad(IdefixArray4D<real> &Flux) {
         real eeL = 1e-20*vL[ER] ;
         real eeR = 1e-20*vR[ER] ;
 
-        //if( (fabs(AL)<eeL && fabs(AR)<eeR) || (fabs(fpL)<eeL && fabs(fpR)<eeR) ){
+        if( (fabs(AL)<eeL && fabs(AR)<eeR) || (fabs(fpL)<eeL && fabs(fpR)<eeR) ){
         //if( (fabs(FnormL - vL[ER]) < 1.e-10) && (fabs(FnormR - vR[ER]) < 1.e-10) && ((vL[Xn]/FnormL) <= (vR[Xn]/FnormR))){
-        if( (fabs(AL) < eeL) && (fabs(AR) < eeR) && (fabs(BL) < eeL) && (fabs(BR) < eeR)){
+        //if( (fabs(AL) < eeL) && (fabs(AR) < eeR) && (fabs(BL) < eeL) && (fabs(BR) < eeR)){
 #pragma unroll
             for(int nv = 0 ; nv < Phys::nvar; nv++) {
                 //printf("Switch to HLL solver because of vacuum like int. states at i=%i, j=%i, k=%i and DIR=%i, FxL/FL=%e, FxR=%e,FR=%e\n",i,j,k,DIR,vL[Xn]/FnormL,vR[Xn],FnormR);
