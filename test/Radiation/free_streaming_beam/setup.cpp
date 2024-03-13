@@ -151,7 +151,7 @@ void InternalBoundaryRad(Fluid<RadiationPhysics> *radiation, const real t) {
     0, data->np_tot[JDIR],
     iend, data->np_tot[IDIR],
     KOKKOS_LAMBDA (int k, int j, int i) {
-      if ((x2(j) > 0.3) && (x2(j) < 0.44) && (x1(i) > 0.1) && (x1(i) < 0.2)) {
+      if ((x2(j) > 0.3) && (x2(j) < 0.44) && (x1(i) > 0.5) && (x1(i) < 0.6)) {
             Vc(ER,k,j,i) = 1.e12;
             Vc(FR1,k,j,i) = 1.e12*std::cos(M_PI/4.);
             Vc(FR2,k,j,i) = 1.e12*std::sin(M_PI/4.);

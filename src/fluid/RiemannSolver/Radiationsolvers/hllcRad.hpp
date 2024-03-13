@@ -84,8 +84,8 @@ void RiemannSolver<Phys>::HllcRad(IdefixArray4D<real> &Flux) {
       real lambda_min_L = FMIN(lambdaL[0],lambdaL[1]);
       real lambda_min_R = FMIN(lambdaR[0],lambdaR[1]);
       
-      real SR = FMAX(ZERO_F,FMAX(lambda_max_L,lambda_max_R));
-      real SL = FMIN(ZERO_F,FMIN(lambda_min_L,lambda_min_R));
+      real SR = FMAX(lambda_max_L,lambda_max_R);
+      real SL = FMIN(lambda_min_L,lambda_min_R);
       
       real cmax  = FMAX(FABS(SL), FABS(SR));
 
@@ -141,8 +141,8 @@ void RiemannSolver<Phys>::HllcRad(IdefixArray4D<real> &Flux) {
         real FnormL = std::sqrt(EXPAND(vL[FR1]*vL[FR1] , + vL[FR2]*vL[FR2], + vL[FR3]*vL[FR3]));
         real FnormR = std::sqrt(EXPAND(vR[FR1]*vR[FR1] , + vR[FR2]*vR[FR2], + vR[FR3]*vR[FR3]));
 
-        real cos_thetaL = (FnormL <= 1.e-50 ? vL[Xn]/1.e-50 : vL[Xn] / FnormL);
-        real cos_thetaR = (FnormR <= 1.e-50 ? vR[Xn]/1.e-50 : vR[Xn] / FnormR);
+        real cos_thetaL = (FnormL <= 1.e-20 ? vL[Xn]/1.e-20 : vL[Xn] / FnormL);
+        real cos_thetaR = (FnormR <= 1.e-20 ? vR[Xn]/1.e-20 : vR[Xn] / FnormR);
 
         real f_paramL = FnormL/vL[ER];
         real f2_paramL = f_paramL*f_paramL;
@@ -160,8 +160,8 @@ void RiemannSolver<Phys>::HllcRad(IdefixArray4D<real> &Flux) {
         real xiR = 3.+4.*f2_paramR;
         xiR /= 5.+2.*zeta_R;
 
-        real betaL = (f2_paramL < 1e-50) ? ZERO_F : (1.5*xiL-0.5)*cos_thetaL/f_paramL;
-        real betaR = (f2_paramR < 1e-50) ? ZERO_F : (1.5*xiR-0.5)*cos_thetaR/f_paramR;
+        real betaL = (f2_paramL < 1e-20) ? ZERO_F : (1.5*xiL-0.5)*cos_thetaL/f_paramL;
+        real betaR = (f2_paramR < 1e-20) ? ZERO_F : (1.5*xiR-0.5)*cos_thetaR/f_paramR;
         
         real AL = SL*vL[ER] - fluxL[ER];
         real AR = SR*vR[ER] - fluxR[ER];
@@ -175,8 +175,8 @@ void RiemannSolver<Phys>::HllcRad(IdefixArray4D<real> &Flux) {
         real fpL = EXPAND(ZERO_F, + vL[Xt]*vL[Xt], + vL[Xb]*vL[Xb]) ;
         real fpR = EXPAND(ZERO_F, + vR[Xt]*vR[Xt], + vR[Xb]*vR[Xb]) ;
 
-        real eeL = 1e-20*vL[ER] ;
-        real eeR = 1e-20*vR[ER] ;
+        real eeL = 1e-5*vL[ER] ;
+        real eeR = 1e-5*vR[ER] ;
 
         if( (fabs(AL)<eeL && fabs(AR)<eeR) || (fabs(fpL)<eeL && fabs(fpR)<eeR) ){
         //if( (fabs(FnormL - vL[ER]) < 1.e-10) && (fabs(FnormR - vR[ER]) < 1.e-10) && ((vL[Xn]/FnormL) <= (vR[Xn]/FnormR))){
