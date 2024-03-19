@@ -222,7 +222,7 @@ using IdfxFileHandler = FILE*;
 #endif
 
 // Types of boundary which can be treated
-enum BoundaryType { internal, periodic, reflective, outflow, shearingbox, axis, userdef};
+enum BoundaryType { internal, periodic, reflective, outflow, outflow_pluto, shearingbox, axis, userdef};
 enum BoundarySide { left, right};
 enum class SliceType {Cut, Average};
 

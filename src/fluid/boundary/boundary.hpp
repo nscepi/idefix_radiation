@@ -54,6 +54,7 @@ class Boundary {
   void EnforcePeriodic(int, BoundarySide ); ///< Enforce periodic BC in direction and side
   void EnforceReflective(int, BoundarySide ); ///< Enforce reflective BC in direction and side
   void EnforceOutflow(int, BoundarySide ); ///< Enforce outflow BC in direction and side
+  void EnforceOutflowPluto(int, BoundarySide ); ///< Enforce outflow BC in direction and side
   void EnforceShearingBox(real, int, BoundarySide ); ///< Enforce Shearing box BCs
 
   #ifdef WITH_MPI
@@ -278,6 +279,10 @@ void Boundary<Phys>::EnforceBoundaryDir(real t, int dir) {
       EnforceOutflow(dir,left);
       break;
 
+    case BoundaryType::outflow_pluto:
+      EnforceOutflowPluto(dir,left);
+      break;
+
     case BoundaryType::shearingbox:
       EnforceShearingBox(t,dir,left);
       break;
@@ -323,6 +328,9 @@ void Boundary<Phys>::EnforceBoundaryDir(real t, int dir) {
       break;
     case BoundaryType::outflow:
       EnforceOutflow(dir,right);
+      break;
+    case BoundaryType::outflow_pluto:
+      EnforceOutflowPluto(dir,right);
       break;
     case BoundaryType::shearingbox:
       EnforceShearingBox(t,dir,right);
@@ -727,11 +735,11 @@ void Boundary<Phys>::EnforceOutflow(int dir, BoundarySide side ) {
           // side = 1 on the left and =-1 on the right
           const int sign = 1-2*side;
 
-          //if( (n== VX1+dir) && (sign*Vc(n,kref,jref,iref) >= ZERO_F) ) {
-            //Vc(n,k,j,i) = ZERO_F;
-          //} else {
-          Vc(n,k,j,i) = Vc(n,kref,jref,iref);
-          //}
+          if( (n== VX1+dir) && (sign*Vc(n,kref,jref,iref) >= ZERO_F) ) {
+            Vc(n,k,j,i) = ZERO_F;
+          } else {
+            Vc(n,k,j,i) = Vc(n,kref,jref,iref);
+          }
 
         });
 
@@ -767,6 +775,67 @@ void Boundary<Phys>::EnforceOutflow(int dir, BoundarySide side ) {
             const int iref = (dir==IDIR) ? ighost + side*(nxi-1) : i;
             const int jref = (dir==JDIR) ? jghost + side*(nxj-1) : j;
             //const int kref = (dir==KDIR) ? kghost + side*(nxk-1) : k;
+
+            Vs(BX3s,k,j,i) = Vs(BX3s,k,jref,iref);
+          });
+      }
+    #endif
+  }// MHD
+  idfx::popRegion();
+}
+
+template<typename Phys>
+void Boundary<Phys>::EnforceOutflowPluto(int dir, BoundarySide side ) {
+  idfx::pushRegion("Boundary::EnforceOutflowPluto");
+  IdefixArray4D<real> Vc = this->Vc;
+  const int nxi = data->np_int[IDIR];
+  const int nxj = data->np_int[JDIR];
+  const int nxk = data->np_int[KDIR];
+
+  const int ighost = data->nghost[IDIR];
+  const int jghost = data->nghost[JDIR];
+  const int kghost = data->nghost[KDIR];
+
+  BoundaryForAll("BoundaryOutflowPluto", dir, side,
+        KOKKOS_LAMBDA (int n, int k, int j, int i) {
+          // ref= ibound
+          // with ibound = nghost on the left and ibound = nghost + nx -1 on the right
+          const int iref = (dir==IDIR) ? ighost + side*(nxi-1) : i;
+          const int jref = (dir==JDIR) ? jghost + side*(nxj-1) : j;
+          const int kref = (dir==KDIR) ? kghost + side*(nxk-1) : k;
+
+          Vc(n,k,j,i) = Vc(n,kref,jref,iref);
+        });
+
+  if constexpr(Phys::mhd) {
+    IdefixArray4D<real> Vs = this->Vs;
+    if(dir==JDIR || dir==KDIR) {
+      BoundaryForX1s("BoundaryOutflowX1sPluto",dir,side,
+        KOKKOS_LAMBDA (int k, int j, int i) {
+          // with ibound = nghost on the left and ibount = nghost + nx -1 on the right
+          const int jref = (dir==JDIR) ? jghost + side*(nxj-1) : j;
+          const int kref = (dir==KDIR) ? kghost + side*(nxk-1) : k;
+
+          Vs(BX1s,k,j,i) = Vs(BX1s,kref,jref,i);
+        });
+    }
+    #if DIMENSIONS >=2
+      if(dir==IDIR || dir==KDIR) {
+        BoundaryForX2s("BoundaryOutflowX2sPluto",dir,side,
+          KOKKOS_LAMBDA (int k, int j, int i) {
+            const int iref = (dir==IDIR) ? ighost + side*(nxi-1) : i;
+            const int kref = (dir==KDIR) ? kghost + side*(nxk-1) : k;
+
+            Vs(BX2s,k,j,i) = Vs(BX2s,kref,j,iref);
+          });
+      }
+    #endif
+    #if DIMENSIONS == 3
+      if(dir==IDIR || dir==JDIR) {
+        BoundaryForX3s("BoundaryOutflowX3sPluto",dir,side,
+          KOKKOS_LAMBDA (int k, int j, int i) {
+            const int iref = (dir==IDIR) ? ighost + side*(nxi-1) : i;
+            const int jref = (dir==JDIR) ? jghost + side*(nxj-1) : j;
 
             Vs(BX3s,k,j,i) = Vs(BX3s,k,jref,iref);
           });
