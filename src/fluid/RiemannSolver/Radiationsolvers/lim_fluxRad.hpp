@@ -9,14 +9,12 @@
 
 KOKKOS_INLINE_FUNCTION void K_limit_RadFlux(real  V[]) {
 
-real reduced_c = 1.; // to change
-
 real Fnorm = std::sqrt(EXPAND(V[FR1]*V[FR1] , + V[FR2]*V[FR2], + V[FR3]*V[FR3]));
       
-if (Fnorm > reduced_c*V[ER]) {
-    EXPAND( V[FR1] *= (Fnorm <= 1.e-50 ? reduced_c*V[ER]/1.e-50 : reduced_c*V[ER]/Fnorm);, 
-            V[FR2] *= (Fnorm <= 1.e-50 ? reduced_c*V[ER]/1.e-50 : reduced_c*V[ER]/Fnorm);,
-            V[FR3] *= (Fnorm <= 1.e-50 ? reduced_c*V[ER]/1.e-50 : reduced_c*V[ER]/Fnorm);)   
+if (Fnorm > V[ER]) {
+    EXPAND( V[FR1] *= (Fnorm <= 1.e-50 ? V[ER]/1.e-50 : V[ER]/Fnorm);, 
+            V[FR2] *= (Fnorm <= 1.e-50 ? V[ER]/1.e-50 : V[ER]/Fnorm);,
+            V[FR3] *= (Fnorm <= 1.e-50 ? V[ER]/1.e-50 : V[ER]/Fnorm);)   
 }
 
 return;

@@ -44,7 +44,8 @@ void RiemannSolver<Phys>::HllRad(IdefixArray4D<real> &Flux) {
       constexpr int Xn = DIR+MX1;
       
       // Reduced velocity of light
-      real reduced_c = 1.;
+      real reduced_c = this->reduced_c;
+      //printf("reduced=%e\n",reduced_c);
       
       // Primitive variables
       real vL[Phys::nvar];
@@ -70,8 +71,8 @@ void RiemannSolver<Phys>::HllRad(IdefixArray4D<real> &Flux) {
       K_limit_RadFlux(vR);
 
       // 2-- Get the wave speed
-      K_speeds_Rad(lambdaL,vL,Xn);
-      K_speeds_Rad(lambdaR,vR,Xn);
+      K_speeds_Rad(lambdaL,vL,Xn,reduced_c);
+      K_speeds_Rad(lambdaR,vR,Xn,reduced_c);
  
       real lambda_max_L = FMAX(lambdaL[0],lambdaL[1]);
       real lambda_max_R = FMAX(lambdaR[0],lambdaR[1]);
@@ -88,14 +89,14 @@ void RiemannSolver<Phys>::HllRad(IdefixArray4D<real> &Flux) {
       K_PrimToCons<Phys>(uR, vR, NULL);
 
       // 4-- Compute the left and right fluxes (wave speed is null)
-      K_Flux<Phys,DIR>(fluxL, vL, uL, 0);
-      K_Flux<Phys,DIR>(fluxR, vR, uR, 0);
+      K_Flux<Phys,DIR>(fluxL, vL, uL, reduced_c);
+      K_Flux<Phys,DIR>(fluxR, vR, uR, reduced_c);
 
       // 5-- Compute the flux from the left and right states
       real dS = SR-SL;
       if(std::abs(dS) < SMALL_NUMBER) {
         dS = SMALL_NUMBER;
-//      printf("Velocities are the same\n");
+      printf("Velocities are the same\n");
       }
 #pragma unroll
       for(int nv = 0 ; nv < Phys::nvar; nv++) {

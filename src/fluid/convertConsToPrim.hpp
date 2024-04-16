@@ -18,6 +18,12 @@ KOKKOS_INLINE_FUNCTION void K_ConsToPrim(real Vc[], real Uc[], const EquationOfS
 
 
   if constexpr(Phys::radiation) {
+
+      //Check radiation energy posivity   
+      if(Vc[RHO]<= ZERO_F) {
+        Vc[RHO] = SMALL_ER;
+      }
+
       EXPAND( Vc[VX1] = Uc[MX1];  ,
               Vc[VX2] = Uc[MX2];  ,
               Vc[VX3] = Uc[MX3];  )

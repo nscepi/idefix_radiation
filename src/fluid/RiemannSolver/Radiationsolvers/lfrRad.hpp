@@ -44,7 +44,7 @@ void RiemannSolver<Phys>::LFRRad(IdefixArray4D<real> &Flux) {
       constexpr int Xn = DIR+MX1;
 
       // Reduced velocity of light
-      real reduced_c = 1.;
+      real reduced_c = this->reduced_c;
 
       // Primitive variables
       real vL[Phys::nvar];
@@ -71,8 +71,8 @@ void RiemannSolver<Phys>::LFRRad(IdefixArray4D<real> &Flux) {
       K_limit_RadFlux(vR);
 
       // 2-- Get the wave speed
-      K_speeds_Rad(lambdaL,vL,Xn);
-      K_speeds_Rad(lambdaR,vR,Xn);
+      K_speeds_Rad(lambdaL,vL,Xn, reduced_c);
+      K_speeds_Rad(lambdaR,vR,Xn, reduced_c);
 
       real lambda_max_L = FMAX(lambdaL[0],lambdaL[1]);
       real lambda_max_R = FMAX(lambdaR[0],lambdaR[1]);
@@ -82,15 +82,15 @@ void RiemannSolver<Phys>::LFRRad(IdefixArray4D<real> &Flux) {
       real SR = FMAX(lambda_max_L,lambda_max_R);
       real SL = FMIN(lambda_min_L,lambda_min_R);
       
-      real cmax  = FABS(reduced_c*FMAX(SL, SR));
+      real cmax  = FABS(FMAX(SL, SR));
 
       // 3-- Compute the conservative variables: do this by extrapolation
       K_PrimToCons<Phys>(uL, vL, NULL); 
       K_PrimToCons<Phys>(uR, vR, NULL);
 
       // 4-- Compute the left and right fluxes (wave speed is null)
-      K_Flux<Phys,DIR>(fluxL, vL, uL, 0);
-      K_Flux<Phys,DIR>(fluxR, vR, uR, 0);
+      K_Flux<Phys,DIR>(fluxL, vL, uL, reduced_c);
+      K_Flux<Phys,DIR>(fluxR, vR, uR, reduced_c);
 
       // 5-- Compute the flux from the left and right states
 #pragma unroll

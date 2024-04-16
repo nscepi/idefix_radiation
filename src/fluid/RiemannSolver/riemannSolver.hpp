@@ -91,7 +91,9 @@ class RiemannSolver {
   std::unique_ptr<ExtrapolateToFaces<Phys,JDIR>> slopeLimJDIR;
   std::unique_ptr<ExtrapolateToFaces<Phys,KDIR>> slopeLimKDIR;
 
+  real reduced_c;
   bool haveShockFlattening;
+  bool haveRadiation;
 };
 
 #include "shockFlattening.hpp"
@@ -169,8 +171,11 @@ RiemannSolver<Phys>::RiemannSolver(Input &input, Fluid<Phys>* hydro) : Vc{hydro-
 
   }
 
-
-
+  // Reduced velocity of light 
+  if(input.CheckEntry(std::string(Phys::prefix),"reduced_c")>=0){
+    this->reduced_c = hydro->reduced_c;
+  }
+  
   // Shock flattening
   this->haveShockFlattening = input.CheckEntry(std::string(Phys::prefix),"shockFlattening")>=0;
   // Init shock flattening

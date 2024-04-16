@@ -7,7 +7,7 @@
 #include "input.hpp"
 
 
-KOKKOS_INLINE_FUNCTION void K_speeds_Rad(real lambda[], const real *KOKKOS_RESTRICT V, int Xn) {
+KOKKOS_INLINE_FUNCTION void K_speeds_Rad(real lambda[], const real *KOKKOS_RESTRICT V, int Xn, real reduced_c) {
     
     real Fnorm = std::sqrt(EXPAND(V[FR1]*V[FR1] , + V[FR2]*V[FR2], + V[FR3]*V[FR3]));
 
@@ -31,9 +31,11 @@ KOKKOS_INLINE_FUNCTION void K_speeds_Rad(real lambda[], const real *KOKKOS_RESTR
         // Eq. 82-84 of Melon Fuksman & Mignone 2019  
         lambda[0] = f_param*cos_theta-zeta;
         lambda[0] /= zeta_2;
+        lambda[0] *= reduced_c;
         // We never use the intermediate speed so we don't compute it
         lambda[1] = f_param*cos_theta+zeta;
         lambda[1] /= zeta_2;
+        lambda[1] *= reduced_c;
 
     }
     

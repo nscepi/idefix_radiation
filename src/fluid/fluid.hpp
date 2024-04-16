@@ -139,7 +139,6 @@ class Fluid {
   bool haveTracer{false};
   int nTracer{0};
 
-
   // Enroll user-defined boundary conditions (proxies for boundary class functions)
   template <typename T>
   void EnrollUserDefBoundary(T);
@@ -241,6 +240,8 @@ class Fluid {
   IdefixArray3D<real> xHall;
   IdefixArray3D<real> xAmbipolar;
 
+  real reduced_c;
+
   // Loop on dimensions
   template <int dir>
   void LoopDir(const real, const real);
@@ -271,6 +272,12 @@ Fluid<Phys>::Fluid(Grid &grid, Input &input, DataBlock *datain, int n) {
 
   // When dealing with dust, add the specie number
   if(Phys::prefix.compare("Dust") == 0) prefix += std::to_string(n);
+
+  // When dealing with radiation, add the frequency group number
+  if(Phys::prefix.compare("Rad") == 0) {
+    prefix += std::to_string(n);
+    this->reduced_c = input.Get<real>(std::string(Phys::prefix),"reduced_c",0);
+  }
 
   // Keep the instance # for later use
   instanceNumber = n;
