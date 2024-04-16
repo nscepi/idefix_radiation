@@ -20,6 +20,8 @@ target_sources(idefix
   PUBLIC ${CMAKE_CURRENT_LIST_DIR}/drag.cpp
   PUBLIC ${CMAKE_CURRENT_LIST_DIR}/evolveStage.hpp
   PUBLIC ${CMAKE_CURRENT_LIST_DIR}/fluid_defs.hpp
+  PUBLIC ${CMAKE_CURRENT_LIST_DIR}/radsource.hpp
+  PUBLIC ${CMAKE_CURRENT_LIST_DIR}/radsource.cpp
   PUBLIC ${CMAKE_CURRENT_LIST_DIR}/enroll.hpp
   PUBLIC ${CMAKE_CURRENT_LIST_DIR}/fluid.hpp
   PUBLIC ${CMAKE_CURRENT_LIST_DIR}/viscosity.hpp
