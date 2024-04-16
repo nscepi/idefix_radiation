@@ -2,6 +2,35 @@
 #include "setup.hpp"
 
 
+real csisoGlob;
+
+
+void InternalBoundary(Fluid<DefaultPhysics> *hydro, const real t) {
+  IdefixArray4D<real> Vc = hydro->Vc;
+  auto *data = hydro->data;
+  IdefixArray1D<real> x1 = data->x[IDIR];
+  IdefixArray1D<real> x2 = data->x[JDIR];
+  int ibeg,iend,nxi,iref;
+  real csiso = 0.000001;
+
+  ibeg = 0;
+  iend = data->beg[IDIR];
+  nxi = data->np_int[IDIR];
+  iref = iend;
+  idefix_for("InternalBoundaryFunc",
+    0, data->np_tot[KDIR],
+    0, data->np_tot[JDIR],
+    iend, data->np_tot[IDIR],
+    KOKKOS_LAMBDA (int k, int j, int i) {
+          Vc(RHO,k,j,i) = 1.;
+          Vc(VX1,k,j,i) = 0.;
+          Vc(VX2,k,j,i) = 0.;
+          Vc(PRS,k,j,i) = Vc(RHO,k,j,i)*csiso*csiso;
+      
+    });
+  
+}
+
 // This routine initialize the flow
 // Note that data is on the device.
 // One can therefore define locally
@@ -9,23 +38,17 @@
 void Setup::InitFlow(DataBlock &data) {
     // Create a host copy
     DataBlockHost d(data);
+    real csiso = 0.000001;
+
 
     for(int k = 0; k < d.np_tot[KDIR] ; k++) {
         for(int j = 0; j < d.np_tot[JDIR] ; j++) {
             for(int i = 0; i < d.np_tot[IDIR] ; i++) {
-
-              if (d.x[IDIR](i) < 0.){
-                d.Vc(RHO,k,j,i) = 5.99924;
-                d.Vc(VX1,k,j,i) = 19.5975;
-                d.Vc(VX2,k,j,i) = 0.;
-                d.Vc(PRS,k,j,i) = 460.894;
-              } else {
-                d.Vc(RHO,k,j,i) = 5.99242;
-                d.Vc(VX1,k,j,i) = -6.19633;
-                d.Vc(VX2,k,j,i) = 0.;
-                d.Vc(PRS,k,j,i) = 46.0950;
-
-              }
+              
+              d.Vc(RHO,k,j,i) = 0.1;
+              d.Vc(VX1,k,j,i) = 0.;
+              d.Vc(VX2,k,j,i) = 0.;
+              d.Vc(PRS,k,j,i) = d.Vc(RHO,k,j,i)*csiso*csiso;
         
               if (d.x[IDIR](i) < 0.){
                   d.RadVc[0](ER,k,j,i) = 1.;
@@ -113,6 +136,7 @@ void UserdefBoundary(Fluid<DefaultPhysics> *hydro, int dir, BoundarySide side, r
   }
 }
 
+
 Setup::Setup(Input &input, Grid &grid, DataBlock &data, Output &output)
 {
   //output.EnrollUserDefVariables(&ComputeUserVars);
@@ -123,6 +147,9 @@ Setup::Setup(Input &input, Grid &grid, DataBlock &data, Output &output)
     //  data.radiation[n]->EnrollUserDefBoundary(&UserdefBoundaryRad);
     //}
     //data.hydro->EnrollUserDefBoundary(&UserdefBoundary);
+    data.hydro->EnrollInternalBoundary(&InternalBoundary);
 
   }
+  //csisoGlob = input.Get<real>("Hydro","csiso",0);
+  csisoGlob = 0.0001;
 }

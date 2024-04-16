@@ -9,23 +9,17 @@
 void Setup::InitFlow(DataBlock &data) {
     // Create a host copy
     DataBlockHost d(data);
+    real csiso = 0.000001;
+
 
     for(int k = 0; k < d.np_tot[KDIR] ; k++) {
         for(int j = 0; j < d.np_tot[JDIR] ; j++) {
             for(int i = 0; i < d.np_tot[IDIR] ; i++) {
 
-              if (d.x[IDIR](i) < 0.){
-                d.Vc(RHO,k,j,i) = 5.99924;
-                d.Vc(VX1,k,j,i) = 19.5975;
-                d.Vc(VX2,k,j,i) = 0.;
-                d.Vc(PRS,k,j,i) = 460.894;
-              } else {
-                d.Vc(RHO,k,j,i) = 5.99242;
-                d.Vc(VX1,k,j,i) = -6.19633;
-                d.Vc(VX2,k,j,i) = 0.;
-                d.Vc(PRS,k,j,i) = 46.0950;
-
-              }
+              d.Vc(RHO,k,j,i) = 0.1;
+              d.Vc(VX1,k,j,i) = 0.;
+              d.Vc(VX2,k,j,i) = 0.;
+              d.Vc(PRS,k,j,i) = d.Vc(RHO,k,j,i)*csiso*csiso;
 
               d.RadVc[0](ER,k,j,i) = 1.e4;
               d.RadVc[0](FR1,k,j,i) = ZERO_F;
@@ -151,6 +145,7 @@ void InternalBoundaryRad(Fluid<RadiationPhysics> *radiation, const real t) {
     0, data->np_tot[JDIR],
     iend, data->np_tot[IDIR],
     KOKKOS_LAMBDA (int k, int j, int i) {
+      //if ((j > 12) && (j < 14) && (i > 0) && (i < 4)) {
       if ((x2(j) > 0.3) && (x2(j) < 0.44) && (x1(i) > 0.5) && (x1(i) < 0.6)) {
             Vc(ER,k,j,i) = 1.e12;
             Vc(FR1,k,j,i) = 1.e12*std::cos(M_PI/4.);

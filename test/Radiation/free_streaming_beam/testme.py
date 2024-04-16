@@ -12,7 +12,7 @@ import pytools.idfx_test as tst
 
 name="dump.0001.dmp"
 
-tolerance=1e-10
+tolerance=1e-13
 
 def testMe(test):
   test.configure()
@@ -30,7 +30,7 @@ def testMe(test):
 
 test=tst.idfxTest()
 if not test.dec:
-  test.dec=['2']
+  test.dec=['2','2']
 
 if not test.all:
   if(test.check):

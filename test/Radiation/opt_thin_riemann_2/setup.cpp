@@ -9,23 +9,16 @@
 void Setup::InitFlow(DataBlock &data) {
     // Create a host copy
     DataBlockHost d(data);
+    real csiso = 0.000001;
 
     for(int k = 0; k < d.np_tot[KDIR] ; k++) {
         for(int j = 0; j < d.np_tot[JDIR] ; j++) {
             for(int i = 0; i < d.np_tot[IDIR] ; i++) {
 
-              if (d.x[IDIR](i) < -5.){
-                d.Vc(RHO,k,j,i) = 5.99924;
-                d.Vc(VX1,k,j,i) = 19.5975;
-                d.Vc(VX2,k,j,i) = 0.;
-                d.Vc(PRS,k,j,i) = 460.894;
-              } else {
-                d.Vc(RHO,k,j,i) = 5.99242;
-                d.Vc(VX1,k,j,i) = -6.19633;
-                d.Vc(VX2,k,j,i) = 0.;
-                d.Vc(PRS,k,j,i) = 46.0950;
-
-              }
+              d.Vc(RHO,k,j,i) = 0.1;
+              d.Vc(VX1,k,j,i) = 0.;
+              d.Vc(VX2,k,j,i) = 0.;
+              d.Vc(PRS,k,j,i) = d.Vc(RHO,k,j,i)*csiso*csiso;
         
               if (d.x[IDIR](i) <= 0.){
                   d.RadVc[0](ER,k,j,i) = 0.1;
