@@ -96,7 +96,7 @@ void RiemannSolver<Phys>::HllRad(IdefixArray4D<real> &Flux) {
       real dS = SR-SL;
       if(std::abs(dS) < SMALL_NUMBER) {
         dS = SMALL_NUMBER;
-      printf("Velocities are the same\n");
+      //printf("Velocities are the same\n");
       }
 #pragma unroll
       for(int nv = 0 ; nv < Phys::nvar; nv++) {

@@ -47,6 +47,7 @@ class ThermalDiffusion;
 class BragViscosity;
 class BragThermalDiffusion;
 class Drag;
+class RadSource;
 class Tracer;
 
 
@@ -120,6 +121,10 @@ class Fluid {
   // Drag object
   bool haveDrag{false};
   std::unique_ptr<Drag> drag;
+
+  // RadSource object
+  bool haveRadiationSource{false};
+  std::unique_ptr<RadSource> radsource;
 
   // Whether or not we have to treat the axis
   bool haveAxis{false};
@@ -204,6 +209,7 @@ class Fluid {
   friend class BragViscosity;
   friend class BragThermalDiffusion;
   friend class Drag;
+  friend class RadSource;
 
   template <typename P>
   friend struct Fluid_AddSourceTermsFunctor;
@@ -257,6 +263,7 @@ class Fluid {
 #include "viscosity.hpp"
 #include "bragViscosity.hpp"
 #include "drag.hpp"
+#include "radsource.hpp"
 #include "checkNan.hpp"
 #include "tracer.hpp"
 
@@ -438,6 +445,10 @@ Fluid<Phys>::Fluid(Grid &grid, Input &input, DataBlock *datain, int n) {
 
   if(input.CheckEntry(std::string(Phys::prefix),"drag")>=0) {
     haveDrag = true;
+  }
+
+  if(input.CheckEntry(std::string(Phys::prefix),"radsource")>=0) {
+    haveRadiationSource = true;
   }
 
   if constexpr(Phys::mhd) {
@@ -748,6 +759,11 @@ Fluid<Phys>::Fluid(Grid &grid, Input &input, DataBlock *datain, int n) {
   // Drag force when needed
   if(haveDrag) {
     this->drag = std::make_unique<Drag>(input, this);
+  }
+
+  // Radiation source force when needed
+  if(haveRadiationSource) {
+    this->radsource = std::make_unique<RadSource>(input, this);
   }
 
   // Tracers when needed

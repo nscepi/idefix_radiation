@@ -63,6 +63,9 @@ void Fluid<Phys>::EvolveStage(const real t, const real dt) {
   // Step 5: add drag when needed
   if(haveDrag) drag->AddDragForce(dt);
 
+  // Step 6: add radiation source terms 
+  if(haveRadiationSource) radsource->AddRadSource(dt);
+
   if constexpr(Phys::mhd) {
     #if DIMENSIONS >= 2
       // Compute the field evolution according to CT

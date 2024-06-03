@@ -34,6 +34,14 @@ class RadSource {
   real kappa_rad;
   real xi_rad;
   real reduced_c;
+  real gamma;
+  real unit_velocity;
+  real unit_length;
+  real unit_mass;
+  int count_max;
+
+  // Sound speed computation
+  EquationOfState *eos;
 
 };
 
@@ -50,18 +58,42 @@ RadSource::RadSource(Input &input, Fluid<Phys> *hydroin):
   // Save the parent hydro object
 
   this->data = hydroin->data;
-  this->reduced_c = hydroin->reduced_c;
+  this->eos = hydroin->data->hydro->eos.get();
 
   // Check in which block we should fetch our information
   std::string BlockName;
-  if(Phys::Radiation) {
-    BlockName = "Radiation";
+  if(Phys::radiation) {
+    BlockName = "Rad";
   } else {
     IDEFIX_ERROR("Fluid is not radiative");
   }
 
+  // Physical units 
+  if(input.CheckEntry("Setup","unit_velocity")>=0){
+      this->unit_velocity =  input.Get<real>("Setup","unit_velocity",0);
+  }
+  if(input.CheckEntry("Setup","unit_length")>=0){
+      this->unit_length =  input.Get<real>("Setup","unit_length",0);
+  }
+  if(input.CheckEntry("Setup","unit_mass")>=0){
+      this->unit_mass =  input.Get<real>("Setup","unit_mass",0);
+  }
+
+  // Reduced velocity of light 
+  if(input.CheckEntry(std::string(Phys::prefix),"reduced_c")>=0){
+      this->reduced_c =  input.Get<real>(std::string(Phys::prefix),"reduced_c",0);
+  }
+
+  // Adiabatic index
+  if(input.CheckEntry("Hydro","gamma")>=0){
+      this->gamma =  input.Get<real>("Hydro","gamma",0);
+      printf("gamma found!\n");
+  } else {
+      printf("gamma not found!\n");
+  }
+ 
   if(input.CheckEntry(BlockName,"radsource")>=0) {
-    std::string RadType = input.Get<std::string>(BlockName,"Radiation",0);
+    std::string RadType = input.Get<std::string>(BlockName,"radsource",0);
     if(RadType.compare("Tconst") == 0) {
       this->type = Type::Tconst;
     } else if(RadType.compare("Tvar") == 0) {
@@ -76,11 +108,11 @@ RadSource::RadSource(Input &input, Fluid<Phys> *hydroin):
     }
     // Fetch the opacity coefficient for the current radiation group.
     const int n = hydroin->instanceNumber;
-    this->kappa_rad = input.Get<real>(BlockName,"kappa",n+1);
-    this->xi_rad = input.Get<real>(BlockName,"xi",n+1);
+    this->kappa_rad = input.Get<real>(BlockName,"kappa",n);
+    this->xi_rad = input.Get<real>(BlockName,"xi",n);
 
   } else {
-    IDEFIX_ERROR("A [Radiation] block is required in your input file to define the radiation source terms.");
+    IDEFIX_ERROR("A [Rad] block is required in your input file to define the radiation source terms.");
   }
 
 

@@ -16,9 +16,7 @@ template <typename Phys>
 KOKKOS_INLINE_FUNCTION void K_ConsToPrim(real Vc[], real Uc[], const EquationOfState *eos) {
   Vc[RHO] = Uc[RHO];
 
-
   if constexpr(Phys::radiation) {
-
       //Check radiation energy posivity   
       if(Vc[RHO]<= ZERO_F) {
         Vc[RHO] = SMALL_ER;
@@ -117,7 +115,6 @@ KOKKOS_INLINE_FUNCTION void K_PrimToCons(real Uc[], real Vc[], const EquationOfS
     } //MHD
   } // Energy
 }
-
 
 
 // Convect Conservative to Primitive variable

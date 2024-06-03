@@ -31,13 +31,14 @@ KOKKOS_INLINE_FUNCTION void K_speeds_Rad(real lambda[], const real *KOKKOS_RESTR
         // Eq. 82-84 of Melon Fuksman & Mignone 2019  
         lambda[0] = f_param*cos_theta-zeta;
         lambda[0] /= zeta_2;
-        lambda[0] *= reduced_c;
         // We never use the intermediate speed so we don't compute it
         lambda[1] = f_param*cos_theta+zeta;
         lambda[1] /= zeta_2;
-        lambda[1] *= reduced_c;
 
     }
+    
+    lambda[0] *= reduced_c;
+    lambda[1] *= reduced_c;
     
 
     return;
