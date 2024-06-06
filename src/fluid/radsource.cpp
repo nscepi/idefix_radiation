@@ -83,20 +83,13 @@ void RadSource::AddRadSource(const real dt) {
 
         for(int nv = 0 ; nv < RadiationPhysics::nvar ; nv++) {
           URad_old[nv] = URad[nv];
-          if (std::isnan(URad[nv])){
-                   printf("Urad = %e, nv=%i\n",URad[nv],nv);
-                   throw std::runtime_error("URad is nan before update");      
-          }
+          //if (std::isnan(URad[nv])){
+          //         printf("Urad = %e, nv=%i\n",URad[nv],nv);
+          //         throw std::runtime_error("URad is nan before update");      
+          //}
         }
-
-        //K_ConsToPrim<DefaultPhysics>(UGas, VGas, &eos);
-        //K_ConsToPrim<RadiationPhysics>(URad, VRad, NULL);
         
-        //printf("URad[ER] = %e, VRad[ER]=%e, URad[FR1]=%e, VRad[FR1]=%e, VGas[PRS]=%e, UGas[ENG]=%e, VGas[RHO]=%e, UGas[RHO]=%e, \n",URad[ER],VRad[ER],URad[FR1],VRad[FR1],VGas[PRS],UGas[ENG],VGas[RHO],UGas[RHO]);
-
         real T = VGas[PRS]*unit_energy/(VGas[RHO]*unit_density)/KELVIN;
-        //if (count==1) printf("T=%e\n",T);
-        //printf("T=%e\n",T);
         real kk_red = reduced_c * unit_velocity * dt * unit_time * kappa_rad * VGas[RHO]*unit_density;
         real xx_red = reduced_c * unit_velocity * dt * unit_time * (xi_rad + kappa_rad) * VGas[RHO]*unit_density;
 
@@ -107,26 +100,12 @@ void RadSource::AddRadSource(const real dt) {
         UGas[ENG] = Etot - URad[ER]/reduced_c;
         UGas[MX1] = mtot - URad[FR1]/reduced_c;
 
-        //real kin = HALF_F / UGas[RHO] * (EXPAND( UGas[MX1]*UGas[MX1]   ,
-        //                            + UGas[MX2]*UGas[MX2]  ,
-        //                            + UGas[MX3]*UGas[MX3]  ));
 
-        //VGas[PRS] = (gamma-1.0)*(UGas[ENG] - kin);
-
-        //if ( VGas[PRS] < 0.){
-        //  printf("WARNING VGas[PRS] = %e\n",VGas[PRS]);
-        //  VGas[PRS] = SMALL_PRESSURE_FIX;
-          //throw std::runtime_error("VGas[PRS] is negative after ConvToPrim");      
-        //}
-
-        //if (i==1) printf("Before ConsToPrim VGas[PRS]=%e, UGas[PRS]=%e\n",VGas[PRS],UGas[PRS]);
         K_ConsToPrim<DefaultPhysics>(VGas, UGas, &eos);
-        //if (i==1) printf("After ConsToPrim VGas[PRS]=%e, UGas[PRS]=%e\n",VGas[PRS],UGas[PRS]);
 
         real Fnorm = std::sqrt(EXPAND(URad[FR1]*URad[FR1] , + URad[FR2]*URad[FR2], + VURad[FR3]*URad[FR3]));
       
         if (Fnorm > URad[ER]) {
-        //printf("Limit Flux Fnorm/Er=%e \n",Fnorm/V[ER]);   
         EXPAND( URad[FR1] *= (Fnorm <= 1.e-50 ? URad[ER]/1.e-50 : URad[ER]/Fnorm);, 
                 URad[FR2] *= (Fnorm <= 1.e-50 ? URad[ER]/1.e-50 : URad[ER]/Fnorm);,
                 URad[FR3] *= (Fnorm <= 1.e-50 ? URad[ER]/1.e-50 : URad[ER]/Fnorm);)
@@ -136,19 +115,6 @@ void RadSource::AddRadSource(const real dt) {
         err2 = std::abs(1.-URad[FR1]/URad_old[FR1]);
         count += 1;
       }
-      if (count == MAX_ITER){
-        printf("DID NOT CONVERGE: Iterative step took %i cycles at i=%i, URad[ER]=%e and URad[FR1]=%e, err1=%e, err2=%e\n",count,i,URad[ER],URad[FR1],err1,err2);
-      }
-      
-      // to count number of cycles necessary for fixed-point method
-      //this->count_max = (this->count_max < count) ? count : this->count_max;
-
-      // if (count == 1){
-      //   printf("Did one cycle at i=%i, URad[ER]=%e and URad[FR1]=%e, err1=%e, err2=%e\n",i,URad[ER],URad[FR1],err1,err2);
-      // }
-
-      //K_ConsToPrim<DefaultPhysics>(UGas, VGas, &eos);
-      //K_ConsToPrim<RadiationPhysics>(URad, VRad, NULL);
 
       for(int nv = 0 ; nv < RadiationPhysics::nvar ; nv++) {
         UcRad(nv,k,j,i) = URad[nv];
@@ -160,7 +126,6 @@ void RadSource::AddRadSource(const real dt) {
         VcGas(nv,k,j,i) = VGas[nv];
       }
     });
-    //printf("count_max=%i\n",count_max);
 
   idfx::popRegion();
 }
