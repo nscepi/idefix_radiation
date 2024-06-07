@@ -103,7 +103,7 @@ void RadSource::AddRadSource(const real dt) {
 
         K_ConsToPrim<DefaultPhysics>(VGas, UGas, &eos);
 
-        real Fnorm = std::sqrt(EXPAND(URad[FR1]*URad[FR1] , + URad[FR2]*URad[FR2], + VURad[FR3]*URad[FR3]));
+        real Fnorm = std::sqrt(EXPAND(URad[FR1]*URad[FR1] , + URad[FR2]*URad[FR2], + URad[FR3]*URad[FR3]));
       
         if (Fnorm > URad[ER]) {
         EXPAND( URad[FR1] *= (Fnorm <= 1.e-50 ? URad[ER]/1.e-50 : URad[ER]/Fnorm);, 
