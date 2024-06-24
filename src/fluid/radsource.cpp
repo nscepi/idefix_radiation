@@ -30,7 +30,6 @@ void RadSource::AddRadSource(const real dt) {
   real mu = 1.;
   real KELVIN = C_kb/(C_mp*mu);
   real tol = 1.e-10;
-  real Etot;
 
   real unit_velocity = this->unit_velocity;
   real unit_length = this->unit_length;
@@ -42,24 +41,25 @@ void RadSource::AddRadSource(const real dt) {
   real unit_temp = std::pow(unit_energy/C_ar,0.25);
 
   int MAX_ITER = 100;
-  this->count_max = 0;
 
   EquationOfState eos = *(this->eos);
 
   idefix_for("RadSource",0,data->np_tot[KDIR],0,data->np_tot[JDIR],0,data->np_tot[IDIR],
     KOKKOS_LAMBDA (int k, int j, int i) {
-   
-      real Er_old,Fr_old,Er_new,Fr_new;
-
+  
       real Etot = UcGas(ENG,k,j,i)+UcRad(ER,k,j,i)/reduced_c;
-      real mtot = UcGas(MX1,k,j,i)+UcRad(FR1,k,j,i)/reduced_c;
+      real m1tot = UcGas(MX1,k,j,i)+UcRad(FR1,k,j,i)/(reduced_c*C_c);
+      real m2tot = UcGas(MX2,k,j,i)+UcRad(FR2,k,j,i)/(reduced_c*C_c);
+      real m3tot = UcGas(MX3,k,j,i)+UcRad(FR3,k,j,i)/(reduced_c*C_c);
       
       real Er_hyp = UcRad(ER,k,j,i);
-      real Fr_hyp = UcRad(FR1,k,j,i);
+      real Fr1_hyp = UcRad(FR1,k,j,i);
+      real Fr2_hyp = UcRad(FR2,k,j,i);
+      real Fr3_hyp = UcRad(FR3,k,j,i);
 
       real URad[RadiationPhysics::nvar];
       real VRad[RadiationPhysics::nvar];
-      real URad_old[RadiationPhysics::nvar];
+      real Er_old, Fnorm_old;
 
       real UGas[DefaultPhysics::nvar];
       real VGas[DefaultPhysics::nvar];
@@ -77,42 +77,38 @@ void RadSource::AddRadSource(const real dt) {
       real err1= 1.;
       real err2= 1.;
       int count = 0;
-      int count_max = 0;
+
+      real Fnorm = std::sqrt(EXPAND(URad[FR1]*URad[FR1] , + URad[FR2]*URad[FR2], + URad[FR3]*URad[FR3]));
 
       while (((err1>tol) || (err2>tol)) && (count < MAX_ITER)){
 
-        for(int nv = 0 ; nv < RadiationPhysics::nvar ; nv++) {
-          URad_old[nv] = URad[nv];
-          //if (std::isnan(URad[nv])){
-          //         printf("Urad = %e, nv=%i\n",URad[nv],nv);
-          //         throw std::runtime_error("URad is nan before update");      
-          //}
-        }
+        Er_old = URad[ER];
+        Fnorm_old = Fnorm;
         
         real T = VGas[PRS]*unit_energy/(VGas[RHO]*unit_density)/KELVIN;
-        real kk_red = reduced_c * unit_velocity * dt * unit_time * kappa_rad * VGas[RHO]*unit_density;
-        real xx_red = reduced_c * unit_velocity * dt * unit_time * (xi_rad + kappa_rad) * VGas[RHO]*unit_density;
+        real kk_red = reduced_c * C_c * dt * unit_time * kappa_rad * VGas[RHO]*unit_density;
+        real xx_red = reduced_c * C_c * dt * unit_time * (xi_rad + kappa_rad) * VGas[RHO]*unit_density;
 
         URad[ER] = Er_hyp +  kk_red*C_ar*std::pow(T,4)/unit_energy;
         URad[ER] /= 1. + kk_red;
-        URad[FR1] = Fr_hyp/(1.+xx_red);
+        EXPAND( URad[FR1] = Fr1_hyp/(1.+xx_red);,
+                URad[FR2] = Fr2_hyp/(1.+xx_red);,
+                URad[FR3] = Fr3_hyp/(1.+xx_red);)
 
         UGas[ENG] = Etot - URad[ER]/reduced_c;
-        UGas[MX1] = mtot - URad[FR1]/reduced_c;
+        if (UGas[ENG]<ZERO_F) {
+          printf("Gas Energy is <0\n");
+          UGas[ENG] = (&eos)->GetInternalEnergy(SMALL_PRESSURE_FIX,VGas[RHO]);
+        }
 
+        EXPAND( UGas[MX1] = m1tot - URad[FR1]/(reduced_c*C_c);,
+                UGas[MX2] = m2tot - URad[FR2]/(reduced_c*C_c);,
+                UGas[MX3] = m3tot - URad[FR3]/(reduced_c*C_c);)
 
         K_ConsToPrim<DefaultPhysics>(VGas, UGas, &eos);
 
-        real Fnorm = std::sqrt(EXPAND(URad[FR1]*URad[FR1] , + URad[FR2]*URad[FR2], + URad[FR3]*URad[FR3]));
-      
-        if (Fnorm > URad[ER]) {
-        EXPAND( URad[FR1] *= (Fnorm <= 1.e-50 ? URad[ER]/1.e-50 : URad[ER]/Fnorm);, 
-                URad[FR2] *= (Fnorm <= 1.e-50 ? URad[ER]/1.e-50 : URad[ER]/Fnorm);,
-                URad[FR3] *= (Fnorm <= 1.e-50 ? URad[ER]/1.e-50 : URad[ER]/Fnorm);)
-        }
-
-        err1 = std::abs(1.-URad[ER]/URad_old[ER]);
-        err2 = std::abs(1.-URad[FR1]/URad_old[FR1]);
+        err1 = std::abs(1.-URad[ER]/Er_old);
+        err2 = std::abs(1.-Fnorm/Fnorm_old);
         count += 1;
       }
 

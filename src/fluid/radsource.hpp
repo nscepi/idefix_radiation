@@ -80,10 +80,8 @@ RadSource::RadSource(Input &input, Fluid<Phys> *hydroin):
   }
 
   // Reduced velocity of light 
-  if(input.CheckEntry(std::string(Phys::prefix),"reduced_c")>=0){
-      this->reduced_c =  input.Get<real>(std::string(Phys::prefix),"reduced_c",0);
-  }
-
+  this->reduced_c =  hydroin->reduced_c;
+  
   // Adiabatic index
   if(input.CheckEntry("Hydro","gamma")>=0){
       this->gamma =  input.Get<real>("Hydro","gamma",0);
