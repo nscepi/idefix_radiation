@@ -11,6 +11,7 @@
 #include "fluid.hpp"
 #include "dataBlock.hpp"
 #include "tracer.hpp"
+#include "lim_fluxRad.hpp"
 
 template <typename Phys>
 KOKKOS_INLINE_FUNCTION void K_ConsToPrim(real Vc[], real Uc[], const EquationOfState *eos) {
@@ -19,14 +20,17 @@ KOKKOS_INLINE_FUNCTION void K_ConsToPrim(real Vc[], real Uc[], const EquationOfS
   if constexpr(Phys::radiation) {
       //Check radiation energy posivity  
       #ifdef SMALL_ER 
-      if(Vc[RHO]<= ZERO_F) {
-        Vc[RHO] = SMALL_ER;
+      if(Uc[ER]<= ZERO_F) {
+        Uc[ER] = SMALL_ER;
+        Vc[ER] = Uc[ER];
       }
       #endif
 
-      EXPAND( Vc[VX1] = Uc[MX1];  ,
-              Vc[VX2] = Uc[MX2];  ,
-              Vc[VX3] = Uc[MX3];  )
+      K_limit_RadFlux(Uc);
+
+      EXPAND( Vc[FR1] = Uc[FR1];  ,
+              Vc[FR2] = Uc[FR2];  ,
+              Vc[FR3] = Uc[FR3];  )
   } else {
       EXPAND( Vc[VX1] = Uc[MX1]/Uc[RHO];  ,
               Vc[VX2] = Uc[MX2]/Uc[RHO];  ,
