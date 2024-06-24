@@ -78,12 +78,9 @@ int main( int argc, char* argv[] ) {
     Input input(argc, argv);
     input.PrintLogo();
     idfx::cout << "Main: initialization stage." << std::endl;
-<<<<<<< HEAD
-=======
 
     // Init the units when needed
     idfx::units.Init(input);
->>>>>>> 4308f6d4d74df47d8416f584a32063754d3beb0a
 
     // Allocate the grid on device
     Grid grid(input);
