@@ -11,6 +11,8 @@
 #include "fluid.hpp"
 #include "dataBlock.hpp"
 #include "fargo.hpp"
+#include "flux.hpp"
+#include "input.hpp"
 
 template<typename Phys>
 struct Fluid_AddSourceTermsFunctor {
@@ -42,6 +44,10 @@ struct Fluid_AddSourceTermsFunctor {
     }
     // shearing box (only with fargo&cartesian)
     sbS = hydro->sbS;
+
+    // Reduced velocity of light 
+    this->reduced_c =  hydro->reduced_c;
+    
   }
 
   //*****************************************************************
@@ -72,6 +78,9 @@ struct Fluid_AddSourceTermsFunctor {
   // shearing box (only with fargo&cartesian)
   real sbS;
 
+  // Reduced velocity of light 
+  real reduced_c;  
+
   //*****************************************************************
   // Functor Operator
   //*****************************************************************
@@ -101,8 +110,23 @@ struct Fluid_AddSourceTermsFunctor {
   #if COMPONENTS == 3
       real vphi,Sm;
       vphi = Vc(iVPHI,k,j,i);
+      real Prad,Fnorm2,Er2,f_param2,xi,inv_Fnorm2;
       if(haveRotation) vphi += OmegaZ*x1(i);
-      Sm = Vc(RHO,k,j,i) * vphi*vphi; // Centrifugal
+      if constexpr(Phys::radiation){
+        Fnorm2 = EXPAND(Vc(iFR,k,j,i)*Vc(iFR,k,j,i) , + Vc(iFPHI,k,j,i)*Vc(iFPHI,k,j,i), + Vc(iFZ,k,j,i)*Vc(iFZ,k,j,i));
+        inv_Fnorm2 = (Fnorm2 <= 1.e-40 ? ZERO_F : ONE_F / Fnorm2);
+        Er2 = Vc(ER,k,j,i)*Vc(ER,k,j,i);
+        f_param2 = (Er2 < 1.e-40 ? Fnorm2/(1.e-40) : Fnorm2/(Er2));
+        f_param2 = FMIN(f_param2,ONE_F);
+        xi  = 3.+4.*f_param2;
+        xi /= 5.+2.*std::sqrt(4.-3.*f_param2);
+
+        Prad = HALF_F*(1.-xi)*Vc(ER,k,j,i)*reduced_c;
+    
+        Sm = 2.*Prad + HALF_F*(3.*xi-1.)*Vc(ER,k,j,i)*Vc(iFPHI,k,j,i)*Vc(iFPHI,k,j,i)*inv_Fnorm2*reduced_c);      
+      } else {
+        Sm = Vc(RHO,k,j,i) * vphi*vphi; // Centrifugal
+      }
       // Presure (because pressure is included in the flux, additional source terms arise)
       if constexpr(Phys::isothermal) {
         real c2Iso = eos.GetWaveSpeed(k,j,i);
@@ -125,8 +149,23 @@ struct Fluid_AddSourceTermsFunctor {
 #elif GEOMETRY == POLAR
       real vphi,Sm;
       vphi = Vc(iVPHI,k,j,i) + fargoV;
+      real Prad,Fnorm2,Er2,f_param2,xi,inv_Fnorm2;
       if(haveRotation) vphi += OmegaZ*x1(i);
-      Sm = Vc(RHO,k,j,i) * vphi*vphi;     // Centrifugal
+      if constexpr(Phys::radiation){
+        Fnorm2 = EXPAND(Vc(iFR,k,j,i)*Vc(iFR,k,j,i) , + Vc(iFPHI,k,j,i)*Vc(iFPHI,k,j,i), + Vc(iFZ,k,j,i)*Vc(iFZ,k,j,i));
+        inv_Fnorm2 = (Fnorm2 <= 1.e-40 ? ZERO_F : ONE_F / Fnorm2);
+        Er2 = Vc(ER,k,j,i)*Vc(ER,k,j,i);
+        f_param2 = (Er2 < 1.e-40 ? Fnorm2/(1.e-40) : Fnorm2/(Er2));
+        f_param2 = FMIN(f_param2,ONE_F);
+        xi  = 3.+4.*f_param2;
+        xi /= 5.+2.*std::sqrt(4.-3.*f_param2);
+
+        Prad = HALF_F*(1.-xi)*Vc(ER,k,j,i)*reduced_c;
+    
+        Sm = 2.*Prad + HALF_F*(3.*xi-1.)*Vc(ER,k,j,i)*Vc(iFPHI,k,j,i)*Vc(iFPHI,k,j,i)*inv_Fnorm2*reduced_c);      
+      } else {
+        Sm = Vc(RHO,k,j,i) * vphi*vphi;     // Centrifugal
+      }
       // Pressure (because we're including pressure in the flux,
       // we need that to get the radial pressure gradient)
       if constexpr(Phys::isothermal) {
@@ -148,9 +187,28 @@ struct Fluid_AddSourceTermsFunctor {
 #elif GEOMETRY == SPHERICAL
       real vphi,Sm;
       vphi = SELECT(ZERO_F, ZERO_F, Vc(iVPHI,k,j,i))+fargoV;
+      real Prad,Fnorm2,Er2,f_param2,xi,inv_Fnorm2;
+
       if(haveRotation) vphi += OmegaZ*x1(i)*FABS(sinx2(j));
       // Centrifugal
-      Sm = Vc(RHO,k,j,i) * (EXPAND( ZERO_F, + Vc(VX2,k,j,i)*Vc(VX2,k,j,i), + vphi*vphi));
+      if constexpr(Phys::radiation){
+        Fnorm2 = EXPAND(Vc(iFR,k,j,i)*Vc(iFR,k,j,i) , + Vc(iFTH,k,j,i)*Vc(iFTH,k,j,i), + Vc(iFPHI,k,j,i)*Vc(iFPHI,k,j,i));
+        inv_Fnorm2 = (Fnorm2 <= 1.e-40 ? ZERO_F : ONE_F / Fnorm2);
+        Er2 = Vc(ER,k,j,i)*Vc(ER,k,j,i);
+        f_param2 = (Er2 < 1.e-40 ? Fnorm2/(1.e-40) : Fnorm2/(Er2));
+        f_param2 = FMIN(f_param2,ONE_F);
+        xi  = 3.+4.*f_param2;
+        xi /= 5.+2.*std::sqrt(4.-3.*f_param2);
+
+        Prad = HALF_F*(1.-xi)*Vc(ER,k,j,i)*reduced_c;
+    
+        Sm = EXPAND(2.*Prad, 
+                    + HALF_F*(3.*xi-1.)*Vc(ER,k,j,i)*Vc(iFTH,k,j,i)*Vc(iFTH,k,j,i)*inv_Fnorm2*reduced_c,
+                    + HALF_F*(3.*xi-1.)*Vc(ER,k,j,i)*Vc(iFPHI,k,j,i)*Vc(iFPHI,k,j,i)*inv_Fnorm2*reduced_c);      
+      } else {
+        Sm = Vc(RHO,k,j,i) * (EXPAND( ZERO_F, + Vc(VX2,k,j,i)*Vc(VX2,k,j,i), + vphi*vphi));
+      }
+      
       // Pressure curvature
       [[maybe_unused]] real c2Iso{0};
       if constexpr(Phys::isothermal) {
@@ -174,7 +232,13 @@ struct Fluid_AddSourceTermsFunctor {
   #if COMPONENTS >= 2
       real ct = 1.0/tanx2(j);
        // Centrifugal
-      Sm = Vc(RHO,k,j,i) * (EXPAND( ZERO_F, - Vc(iVTH,k,j,i)*Vc(iVR,k,j,i), + ct*vphi*vphi));
+      if constexpr(Phys::radiation){
+        Sm = EXPAND(ct*Prad, 
+                    + HALF_F*(3.*xi-1.)*Vc(ER,k,j,i)*Vc(iFTH,k,j,i)*Vc(iFR,k,j,i)*inv_Fnorm2*reduced_c,
+                    + ct*HALF_F*(3.*xi-1.)*Vc(ER,k,j,i)*Vc(iFPHI,k,j,i)*Vc(iFPHI,k,j,i)*inv_Fnorm2*reduced_c);
+      } else {
+        Sm = Vc(RHO,k,j,i) * (EXPAND( ZERO_F, - Vc(iVTH,k,j,i)*Vc(iVR,k,j,i), + ct*vphi*vphi));
+      }
       // Pressure curvature
       if constexpr(Phys::isothermal) {
         Sm += ct * c2Iso * Vc(RHO,k,j,i);
