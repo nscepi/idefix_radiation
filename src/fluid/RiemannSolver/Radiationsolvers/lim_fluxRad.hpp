@@ -13,9 +13,9 @@ real Fnorm = std::sqrt(EXPAND(V[FR1]*V[FR1] , + V[FR2]*V[FR2], + V[FR3]*V[FR3]))
       
 if (Fnorm > V[ER]) {
     //printf("Limit Flux Fnorm/Er=%e \n",Fnorm/V[ER]);   
-    EXPAND( V[FR1] *= (Fnorm <= 1.e-50 ? V[ER]/1.e-50 : V[ER]/Fnorm);, 
-            V[FR2] *= (Fnorm <= 1.e-50 ? V[ER]/1.e-50 : V[ER]/Fnorm);,
-            V[FR3] *= (Fnorm <= 1.e-50 ? V[ER]/1.e-50 : V[ER]/Fnorm);)
+    EXPAND( V[FR1] *= (Fnorm <= 1.e-20 ? V[ER]/1.e-20 : V[ER]/Fnorm);, 
+            V[FR2] *= (Fnorm <= 1.e-20 ? V[ER]/1.e-20 : V[ER]/Fnorm);,
+            V[FR3] *= (Fnorm <= 1.e-20 ? V[ER]/1.e-20 : V[ER]/Fnorm);)
 }
 
 return;
