@@ -7,7 +7,7 @@
 #include "../idefix.hpp"
 #include "radsource.hpp"
 #include "physics.hpp"
-
+#include "units.hpp"
 
 void RadSource::AddRadSource(const real dt) {
   idfx::pushRegion("RadSource::AddRadSource");
@@ -23,24 +23,21 @@ void RadSource::AddRadSource(const real dt) {
   real xi_rad = this->xi_rad;
   real reduced_c = this->reduced_c;
   real gamma = this->gamma;
-  real C_kb = 1.38e-16;
-  real C_mp = 1.6726e-24;
-  real C_ar = 7.5646e-15;
-  real C_c = 2.99e10;
-  real mu = 1.;
-  real KELVIN = C_kb/(C_mp*mu);
-  real tol = 1.e-10;
+  
+  const real C_c = this->C_c;
+  real C_ar = this->C_ar;
 
   real unit_velocity = this->unit_velocity;
   real unit_length = this->unit_length;
-  real unit_mass = this->unit_mass;
+  real unit_density = this->unit_density;
+  real KELVIN = this->Kelvin;
   real unit_time = unit_length/unit_velocity;
-  real unit_vol = std::pow(unit_length,3);
-  real unit_density = unit_mass/std::pow(unit_length,3);
-  real unit_energy = unit_mass/(std::pow(unit_time,2)*unit_length);
-  real unit_temp = std::pow(unit_energy/C_ar,0.25);
+  real unit_energy = unit_density*unit_velocity*unit_velocity;
 
+  // Max iteration for fixed-point solver
   int MAX_ITER = 100;
+  // Tolerance on ER and ENG for fixed-point solver
+  real tol = 1.e-10;
 
   EquationOfState eos = *(this->eos);
 
@@ -96,6 +93,8 @@ void RadSource::AddRadSource(const real dt) {
                 URad[FR3] = Fr3_hyp/(1.+xx_red);)
 
         UGas[ENG] = Etot - URad[ER]/reduced_c;
+        
+        // Fix if UGas < 0
         if (UGas[ENG]<ZERO_F) {
           printf("Gas Energy is <0\n");
           UGas[ENG] = (&eos)->GetInternalEnergy(SMALL_PRESSURE_FIX,VGas[RHO]);

@@ -18,12 +18,13 @@ class Units {
  public:
   void Init(Input &input);
 
-  const real u  {1.6605390666e-24};                 // Atomic mass unit (g)
+  const real u{1.6605390666e-24};                   // Atomic mass unit (g)
   const real m_p{1.67262192369e-24};                // Proton mass unit (g)
   const real m_n{1.67492749804e-24};                // neutron mass unit (g)
   const real m_e{9.1093837015e-28};                 // electron mass unit (g)
   const real k_B{1.380649e-16};                     // Boltzmann constant (erg/K)
   const real sigma_sb{5.6703744191844314e-05};      // Stephan Boltzmann constant (g/(K^4 s^3))
+  const real ar{7.5646e-15};                        // Radiation constant = 4*sigma_sb/c (g/(K^4 s^2 cm))
   const real c{29979245800.0};                      // Speed of light (cm/s)
   const real M_sun{1.988409870698051e+33};          // Solar mass (g)
   const real R_sun{69570000000.0};                  // Solar radius (cm)
@@ -39,7 +40,6 @@ class Units {
   const real &length{_length};                      // L (cm)  = L (code) * Units::length
   const real &velocity{_velocity};                  // V(cm/s) = V(code) * Units::velocity
   const real &density{_density};                    // density (g/cm^3) = density(code)
-                                                    //                     * Units::density
 
   // Deduced units from user-defined units
   const real &Kelvin{_Kelvin};                      // T(K) = P(code)/rho(code) * mu * Units::Kelvin

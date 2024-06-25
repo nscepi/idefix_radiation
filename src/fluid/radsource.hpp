@@ -12,6 +12,7 @@
 #include "input.hpp"
 #include "fluid_defs.hpp"
 #include "eos.hpp"
+#include "units.hpp"
 
 class RadSource {
  public:
@@ -35,13 +36,21 @@ class RadSource {
   real xi_rad;
   real reduced_c;
   real gamma;
-  real unit_velocity;
-  real unit_length;
-  real unit_mass;
   int count_max;
+
+  real C_c;
+  real C_ar;
+
+  real unit_length;
+  real unit_velocity;
+  real unit_density;
+  real Kelvin;
 
   // Sound speed computation
   EquationOfState *eos;
+  
+  // Instance of Unit Class
+  idfx::Units *units;
 
 };
 
@@ -60,23 +69,20 @@ RadSource::RadSource(Input &input, Fluid<Phys> *hydroin):
   this->data = hydroin->data;
   this->eos = hydroin->data->hydro->eos.get();
 
+  this->C_c = idfx::units.c;
+  this->C_ar = idfx::units.ar;
+
+  this->unit_length = idfx::units.length;
+  this->unit_velocity = idfx::units.velocity;
+  this->unit_density = idfx::units.density;
+  this->Kelvin = idfx::units.Kelvin;
+  
   // Check in which block we should fetch our information
   std::string BlockName;
   if(Phys::radiation) {
     BlockName = "Rad";
   } else {
     IDEFIX_ERROR("Fluid is not radiative");
-  }
-
-  // Physical units 
-  if(input.CheckEntry("Setup","unit_velocity")>=0){
-      this->unit_velocity =  input.Get<real>("Setup","unit_velocity",0);
-  }
-  if(input.CheckEntry("Setup","unit_length")>=0){
-      this->unit_length =  input.Get<real>("Setup","unit_length",0);
-  }
-  if(input.CheckEntry("Setup","unit_mass")>=0){
-      this->unit_mass =  input.Get<real>("Setup","unit_mass",0);
   }
 
   // Reduced velocity of light 
