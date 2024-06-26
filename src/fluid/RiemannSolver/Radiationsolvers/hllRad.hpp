@@ -26,7 +26,6 @@ void RiemannSolver<Phys>::HllRad(IdefixArray4D<real> &Flux) {
   constexpr int ioffset = (DIR==IDIR) ? 1 : 0;
   constexpr int joffset = (DIR==JDIR) ? 1 : 0;
   constexpr int koffset = (DIR==KDIR) ? 1 : 0;
-  //const int index = ioffset*i + joffset*j + koffset*k;
 
   IdefixArray4D<real> Vc = this->Vc;
   IdefixArray3D<real> cMax = this->cMax;
@@ -44,7 +43,8 @@ void RiemannSolver<Phys>::HllRad(IdefixArray4D<real> &Flux) {
     KOKKOS_LAMBDA (int k, int j, int i) {
       // Init the directions (should be in the kernel for proper optimisation by the compilers)
       constexpr int Xn = DIR+MX1;
-      
+      const int index = ioffset*i + joffset*j + koffset*k;
+
       // Reduced velocity of light
       real reduced_c = this->reduced_c;
       //printf("reduced=%e\n",reduced_c);
@@ -76,7 +76,7 @@ void RiemannSolver<Phys>::HllRad(IdefixArray4D<real> &Flux) {
       K_speeds_Rad(lambdaL,vL,Xn,reduced_c);
       K_speeds_Rad(lambdaR,vR,Xn,reduced_c);
 
-      //real speed_diff = this->hydro->radsource->Limit_speeds_Rad(i,j,k,dx[index]);
+      real speed_diff = this->hydro->radsource->Limit_speeds_Rad(i,j,k,dx[index]);
       //printf("speed_diff=%e at i=%i, j=%i, k=%i\n",speed_diff,i,j,k);
  
       real lambda_max_L = FMAX(lambdaL[0],lambdaL[1]);
