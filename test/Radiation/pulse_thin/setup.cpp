@@ -3,7 +3,7 @@
 
 real unit_velocity;
 real unit_length;
-real unit_mass;
+real unit_density;
 
 
 // Default constructor
@@ -12,9 +12,9 @@ real unit_mass;
 Setup::Setup(Input &input, Grid &grid, DataBlock &data, Output &output)
 {
 
-  unit_velocity = input.Get<real>("Setup","unit_velocity",0);
-  unit_length = input.Get<real>("Setup","unit_length",0);
-  unit_mass = input.Get<real>("Setup","unit_mass",0);
+  unit_velocity = input.Get<real>("Units","velocity",0);
+  unit_length = input.Get<real>("Units","length",0);
+  unit_density = input.Get<real>("Units","density",0);
 
   //output.EnrollUserDefVariables(&ComputeUserVars);
   // Set the function for userdefboundary
@@ -46,8 +46,7 @@ void Setup::InitFlow(DataBlock &data) {
     real w = 5.;
 
     real unit_time = unit_length/unit_velocity;
-    real unit_density = unit_mass/std::pow(unit_length,3);
-    real unit_energy = unit_mass/(std::pow(unit_time,2)*unit_length);
+    real unit_energy = unit_density*unit_velocity*unit_velocity;
 
     for(int k = 0; k < d.np_tot[KDIR] ; k++) {
         for(int j = 0; j < d.np_tot[JDIR] ; j++) {
