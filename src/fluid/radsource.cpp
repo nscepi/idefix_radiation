@@ -33,7 +33,7 @@ void RadSource::AddRadSource(const real dt) {
   real KELVIN = this->Kelvin;
   real unit_time = unit_length/unit_velocity;
   real unit_energy = unit_density*unit_velocity*unit_velocity;
-
+  real mu = 1.;
   // Max iteration for fixed-point solver
   int MAX_ITER = 100;
   // Tolerance on ER and ENG for fixed-point solver
@@ -82,7 +82,7 @@ void RadSource::AddRadSource(const real dt) {
         Er_old = URad[ER];
         Fnorm_old = Fnorm;
         
-        real T = VGas[PRS]*unit_energy/(VGas[RHO]*unit_density)/KELVIN;
+        real T = VGas[PRS]/(VGas[RHO])*KELVIN*mu;
         real kk_red = reduced_c * C_c * dt * unit_time * kappa_rad * VGas[RHO]*unit_density;
         real xx_red = reduced_c * C_c * dt * unit_time * (xi_rad + kappa_rad) * VGas[RHO]*unit_density;
 
