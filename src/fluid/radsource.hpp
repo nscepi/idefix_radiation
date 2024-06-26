@@ -22,6 +22,7 @@ class RadSource {
   RadSource(Input &, Fluid<Phys> *);
   void ShowConfig();                    // print configuration
   void AddRadSource(const real);
+  real Limit_speeds_Rad(int,int,int,real);
 
   IdefixArray4D<real> UcRad;  // Radiation conservative quantities
   IdefixArray4D<real> UcGas;  // Gas conservative quantities
@@ -29,7 +30,7 @@ class RadSource {
   IdefixArray4D<real> VcGas;  // Gas primitive quantities
   IdefixArray3D<real> InvDt;  // The InvDt of current radiation multigroup
   Type type;
-
+  
  private:
   DataBlock* data;
   real kappa_rad;

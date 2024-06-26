@@ -15,6 +15,7 @@
 #include "convertConsToPrim.hpp"
 #include "speedRad.hpp"
 #include "lim_fluxRad.hpp"
+#include "radsource.hpp"
 
 // Compute Riemann fluxes from states using HLL solver
 template <typename Phys>
@@ -25,6 +26,7 @@ void RiemannSolver<Phys>::HllRad(IdefixArray4D<real> &Flux) {
   constexpr int ioffset = (DIR==IDIR) ? 1 : 0;
   constexpr int joffset = (DIR==JDIR) ? 1 : 0;
   constexpr int koffset = (DIR==KDIR) ? 1 : 0;
+  //const int index = ioffset*i + joffset*j + koffset*k;
 
   IdefixArray4D<real> Vc = this->Vc;
   IdefixArray3D<real> cMax = this->cMax;
@@ -73,6 +75,9 @@ void RiemannSolver<Phys>::HllRad(IdefixArray4D<real> &Flux) {
       // 2-- Get the wave speed
       K_speeds_Rad(lambdaL,vL,Xn,reduced_c);
       K_speeds_Rad(lambdaR,vR,Xn,reduced_c);
+
+      //real speed_diff = this->hydro->radsource->Limit_speeds_Rad(i,j,k,dx[index]);
+      //printf("speed_diff=%e at i=%i, j=%i, k=%i\n",speed_diff,i,j,k);
  
       real lambda_max_L = FMAX(lambdaL[0],lambdaL[1]);
       real lambda_max_R = FMAX(lambdaR[0],lambdaR[1]);
@@ -80,7 +85,9 @@ void RiemannSolver<Phys>::HllRad(IdefixArray4D<real> &Flux) {
       real lambda_min_R = FMIN(lambdaR[0],lambdaR[1]);
       
       real SR = FMAX(ZERO_F,FMAX(lambda_max_L,lambda_max_R));
+      //SR = FMIN(speed_diff,SR);
       real SL = FMIN(ZERO_F,FMIN(lambda_min_L,lambda_min_R));
+      //SL = FMAX(-speed_diff,SL);
 
       real cmax  = FMAX(FABS(SL), FABS(SR));
 

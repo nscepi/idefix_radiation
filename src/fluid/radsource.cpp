@@ -125,6 +125,15 @@ void RadSource::AddRadSource(const real dt) {
   idfx::popRegion();
 }
 
+real RadSource::Limit_speeds_Rad(int i, int j, int k, real dx) {
+  auto VcGas = this->VcGas;
+  real kappa_rad = this->kappa_rad;
+  real xi_rad = this->xi_rad;
+  real tau = VcGas(RHO,k,j,i)*this->unit_density*(kappa_rad+xi_rad)*dx*this->unit_length;
+
+  return 4./(3.*tau);
+}
+
 void RadSource::ShowConfig() {
   idfx::cout << "RadSource: Using ";
   switch(type) {
