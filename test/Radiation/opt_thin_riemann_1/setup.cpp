@@ -3,7 +3,31 @@
 
 
 real csisoGlob;
+real unit_velocity;
+real unit_length;
+real unit_density;
 
+Setup::Setup(Input &input, Grid &grid, DataBlock &data, Output &output)
+{
+
+  unit_velocity = input.Get<real>("Units","velocity",0);
+  unit_length = input.Get<real>("Units","length",0);
+  unit_density = input.Get<real>("Units","density",0);
+
+  //output.EnrollUserDefVariables(&ComputeUserVars);
+  // Set the function for userdefboundary
+  if(data.haveRadiation) {
+    int nFrequencies = data.radiation.size();
+    //for(int n = 0 ; n < nFrequencies ; n++) {
+    //  data.radiation[n]->EnrollUserDefBoundary(&UserdefBoundaryRad);
+    //}
+    //data.hydro->EnrollUserDefBoundary(&UserdefBoundary);
+    //data.hydro->EnrollInternalBoundary(&InternalBoundary);
+
+  }
+  //csisoGlob = input.Get<real>("Hydro","csiso",0);
+  csisoGlob = 0.0001;
+}
 
 void InternalBoundary(Fluid<DefaultPhysics> *hydro, const real t) {
   IdefixArray4D<real> Vc = hydro->Vc;
@@ -40,6 +64,8 @@ void Setup::InitFlow(DataBlock &data) {
     DataBlockHost d(data);
     real csiso = 0.000001;
 
+    real unit_time = unit_length/unit_velocity;
+    real unit_energy = unit_density*unit_velocity*unit_velocity;
 
     for(int k = 0; k < d.np_tot[KDIR] ; k++) {
         for(int j = 0; j < d.np_tot[JDIR] ; j++) {
@@ -137,19 +163,3 @@ void UserdefBoundary(Fluid<DefaultPhysics> *hydro, int dir, BoundarySide side, r
 }
 
 
-Setup::Setup(Input &input, Grid &grid, DataBlock &data, Output &output)
-{
-  //output.EnrollUserDefVariables(&ComputeUserVars);
-  // Set the function for userdefboundary
-  if(data.haveRadiation) {
-    int nFrequencies = data.radiation.size();
-    //for(int n = 0 ; n < nFrequencies ; n++) {
-    //  data.radiation[n]->EnrollUserDefBoundary(&UserdefBoundaryRad);
-    //}
-    //data.hydro->EnrollUserDefBoundary(&UserdefBoundary);
-    data.hydro->EnrollInternalBoundary(&InternalBoundary);
-
-  }
-  //csisoGlob = input.Get<real>("Hydro","csiso",0);
-  csisoGlob = 0.0001;
-}
