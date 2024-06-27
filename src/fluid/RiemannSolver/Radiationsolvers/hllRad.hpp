@@ -85,9 +85,9 @@ void RiemannSolver<Phys>::HllRad(IdefixArray4D<real> &Flux) {
       real lambda_min_R = FMIN(lambdaR[0],lambdaR[1]);
       
       real SR = FMAX(ZERO_F,FMAX(lambda_max_L,lambda_max_R));
-      //SR = FMIN(speed_diff,SR);
+      SR = FMIN(speed_diff,SR);
       real SL = FMIN(ZERO_F,FMIN(lambda_min_L,lambda_min_R));
-      //SL = FMAX(-speed_diff,SL);
+      SL = FMAX(-speed_diff,SL);
 
       real cmax  = FMAX(FABS(SL), FABS(SR));
 

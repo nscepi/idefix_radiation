@@ -49,6 +49,7 @@ class BragThermalDiffusion;
 class Drag;
 class RadSource;
 class Tracer;
+class Units;
 
 
 template<typename Phys>
@@ -123,7 +124,6 @@ class Fluid {
   std::unique_ptr<Drag> drag;
 
   // RadSource object
-  bool haveRadiationSource{false};
   std::unique_ptr<RadSource> radsource;
 
   // Whether or not we have to treat the axis
@@ -284,6 +284,7 @@ Fluid<Phys>::Fluid(Grid &grid, Input &input, DataBlock *datain, int n) {
   if(Phys::prefix.compare("Rad") == 0) {
     prefix += std::to_string(n);
     this->reduced_c = input.Get<real>(std::string(Phys::prefix),"reduced_c",0);
+    this->reduced_c *= idfx::units.c/idfx::units.velocity;
   }
 
   // Keep the instance # for later use
@@ -445,10 +446,6 @@ Fluid<Phys>::Fluid(Grid &grid, Input &input, DataBlock *datain, int n) {
 
   if(input.CheckEntry(std::string(Phys::prefix),"drag")>=0) {
     haveDrag = true;
-  }
-
-  if(input.CheckEntry(std::string(Phys::prefix),"radsource")>=0) {
-    haveRadiationSource = true;
   }
 
   if constexpr(Phys::mhd) {
@@ -762,7 +759,7 @@ Fluid<Phys>::Fluid(Grid &grid, Input &input, DataBlock *datain, int n) {
   }
 
   // Radiation source force when needed
-  if(haveRadiationSource) {
+  if constexpr(Phys::radiation)  {
     this->radsource = std::make_unique<RadSource>(input, this);
   }
 

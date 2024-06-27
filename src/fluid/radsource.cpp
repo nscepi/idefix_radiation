@@ -44,10 +44,10 @@ void RadSource::AddRadSource(const real dt) {
   idefix_for("RadSource",0,data->np_tot[KDIR],0,data->np_tot[JDIR],0,data->np_tot[IDIR],
     KOKKOS_LAMBDA (int k, int j, int i) {
   
-      real Etot = UcGas(ENG,k,j,i)+UcRad(ER,k,j,i)/reduced_c;
-      real m1tot = UcGas(MX1,k,j,i)+UcRad(FR1,k,j,i)/(reduced_c*C_c);
-      real m2tot = UcGas(MX2,k,j,i)+UcRad(FR2,k,j,i)/(reduced_c*C_c);
-      real m3tot = UcGas(MX3,k,j,i)+UcRad(FR3,k,j,i)/(reduced_c*C_c);
+      real Etot = UcGas(ENG,k,j,i)+UcRad(ER,k,j,i)*C_c/(reduced_c*unit_velocity);
+      real m1tot = UcGas(MX1,k,j,i)+UcRad(FR1,k,j,i)/(reduced_c*unit_velocity);
+      real m2tot = UcGas(MX2,k,j,i)+UcRad(FR2,k,j,i)/(reduced_c*unit_velocity);
+      real m3tot = UcGas(MX3,k,j,i)+UcRad(FR3,k,j,i)/(reduced_c*unit_velocity);
       
       real Er_hyp = UcRad(ER,k,j,i);
       real Fr1_hyp = UcRad(FR1,k,j,i);
@@ -83,8 +83,8 @@ void RadSource::AddRadSource(const real dt) {
         Fnorm_old = Fnorm;
         
         real T = VGas[PRS]/(VGas[RHO])*KELVIN*mu;
-        real kk_red = reduced_c * C_c * dt * unit_time * kappa_rad * VGas[RHO]*unit_density;
-        real xx_red = reduced_c * C_c * dt * unit_time * (xi_rad + kappa_rad) * VGas[RHO]*unit_density;
+        real kk_red = reduced_c * unit_velocity * dt * unit_time * kappa_rad * VGas[RHO]*unit_density;
+        real xx_red = reduced_c * unit_velocity * dt * unit_time * (xi_rad + kappa_rad) * VGas[RHO]*unit_density;
 
         URad[ER] = Er_hyp +  kk_red*C_ar*std::pow(T,4)/unit_energy;
         URad[ER] /= 1. + kk_red;
@@ -92,7 +92,7 @@ void RadSource::AddRadSource(const real dt) {
                 URad[FR2] = Fr2_hyp/(1.+xx_red);,
                 URad[FR3] = Fr3_hyp/(1.+xx_red);)
 
-        UGas[ENG] = Etot - URad[ER]/reduced_c;
+        UGas[ENG] = Etot - URad[ER]*C_c/(reduced_c*unit_velocity);
         
         // Fix if UGas < 0
         if (UGas[ENG]<ZERO_F) {
@@ -100,9 +100,9 @@ void RadSource::AddRadSource(const real dt) {
           UGas[ENG] = (&eos)->GetInternalEnergy(SMALL_PRESSURE_FIX,VGas[RHO]);
         }
 
-        EXPAND( UGas[MX1] = m1tot - URad[FR1]/(reduced_c*C_c);,
-                UGas[MX2] = m2tot - URad[FR2]/(reduced_c*C_c);,
-                UGas[MX3] = m3tot - URad[FR3]/(reduced_c*C_c);)
+        EXPAND( UGas[MX1] = m1tot - URad[FR1]/(reduced_c*unit_velocity);,
+                UGas[MX2] = m2tot - URad[FR2]/(reduced_c*unit_velocity);,
+                UGas[MX3] = m3tot - URad[FR3]/(reduced_c*unit_velocity);)
 
         K_ConsToPrim<DefaultPhysics>(VGas, UGas, &eos);
 
