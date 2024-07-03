@@ -9,6 +9,10 @@
 #include "physics.hpp"
 #include "units.hpp"
 
+
+
+
+
 void RadSource::AddRadSource(const real dt) {
   idfx::pushRegion("RadSource::AddRadSource");
 
@@ -18,8 +22,10 @@ void RadSource::AddRadSource(const real dt) {
   auto VcRad = this->VcRad;
   auto InvDt = this->InvDt;
   
-  const Type type = this->type;
-  real kappa_rad = this->kappa_rad;
+  const Type kappa_type = this->kappa_type;
+  real kappa_0 = this->kappa_0;
+  real rho_0 = this->rho_0;
+  real T_0 = this->T_0;
   real xi_rad = this->xi_rad;
   real reduced_c = this->reduced_c;
   real gamma = this->gamma;
@@ -61,6 +67,11 @@ void RadSource::AddRadSource(const real dt) {
       real UGas[DefaultPhysics::nvar];
       real VGas[DefaultPhysics::nvar];
       
+      real kappa;
+      if (kappa_type == Type::constant){
+        kappa = kappa_0;
+      }
+
       for(int nv = 0 ; nv < RadiationPhysics::nvar ; nv++) {
         URad[nv] = UcRad(nv,k,j,i);
         VRad[nv] = VcRad(nv,k,j,i);
@@ -83,8 +94,11 @@ void RadSource::AddRadSource(const real dt) {
         Fnorm_old = Fnorm;
         
         real T = VGas[PRS]/(VGas[RHO])*KELVIN*mu;
-        real kk_red = reduced_c * unit_velocity * dt * unit_time * kappa_rad * VGas[RHO]*unit_density;
-        real xx_red = reduced_c * unit_velocity * dt * unit_time * (xi_rad + kappa_rad) * VGas[RHO]*unit_density;
+        if (kappa_type == Type::kramers){
+          kappa = kappa_0*(VGas[RHO]*unit_density/rho_0)*std::pow(T/T_0,-3.5);
+        }
+        real kk_red = reduced_c * unit_velocity * dt * unit_time * kappa * VGas[RHO]*unit_density;
+        real xx_red = reduced_c * unit_velocity * dt * unit_time * (xi_rad + kappa) * VGas[RHO]*unit_density;
 
         URad[ER] = Er_hyp +  kk_red*C_ar*std::pow(T,4)/unit_energy;
         URad[ER] /= 1. + kk_red;
@@ -127,21 +141,30 @@ void RadSource::AddRadSource(const real dt) {
 
 real RadSource::Limit_speeds_Rad(int i, int j, int k, real dx) {
   auto VcGas = this->VcGas;
-  real kappa_rad = this->kappa_rad;
+  real kappa_0 = this->kappa_0;
   real xi_rad = this->xi_rad;
-  real tau = VcGas(RHO,k,j,i)*this->unit_density*(kappa_rad+xi_rad)*dx*this->unit_length;
+  real KELVIN = this->Kelvin;
+  real mu =1.;
+  real kappa;
+  if (kappa_type == Type::constant){
+    kappa = kappa_0;
+  } else if (kappa_type == Type::kramers){
+    real T = VcGas(PRS,k,j,i)/(VcGas(RHO,k,j,i))*KELVIN*mu;
+    kappa = kappa_0*std::pow(VcGas(RHO,k,j,i)*unit_density/rho_0,2.)*std::pow(T/T_0,-3.5);
+  }
+  real tau = VcGas(RHO,k,j,i)*this->unit_density*(kappa+xi_rad)*dx*this->unit_length;
 
   return 4./(3.*tau)*this->reduced_c*this->C_c/this->unit_velocity;
 }
 
 void RadSource::ShowConfig() {
   idfx::cout << "RadSource: Using ";
-  switch(type) {
-    case Type::Tconst:
-      idfx::cout << "constant Temperature in source term integration";
+  switch(kappa_type) {
+    case Type::constant:
+      idfx::cout << "constant kappa in source term integration";
       break;
-    case Type::Tvar:
-      idfx::cout << "Temperature solved with additional equation";
+    case Type::kramers:
+      idfx::cout << "kappa in kramers form in source term integration";
       break;
   }
 }

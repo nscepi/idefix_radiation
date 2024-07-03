@@ -16,7 +16,7 @@
 
 class RadSource {
  public:
-  enum class Type{Tconst,Tvar};
+  enum class Type{constant,kramers};
   // Different types of implementation for the radiation source terms.
   template <typename Phys>
   RadSource(Input &, Fluid<Phys> *);
@@ -29,11 +29,13 @@ class RadSource {
   IdefixArray4D<real> VcRad;  // Radiation primitive quantities
   IdefixArray4D<real> VcGas;  // Gas primitive quantities
   IdefixArray3D<real> InvDt;  // The InvDt of current radiation multigroup
-  Type type;
+  Type kappa_type;
   
  private:
   DataBlock* data;
-  real kappa_rad;
+  real kappa_0;
+  real rho_0;
+  real T_0;
   real xi_rad;
   real reduced_c;
   real gamma;
@@ -97,29 +99,33 @@ RadSource::RadSource(Input &input, Fluid<Phys> *hydroin):
       printf("gamma not found!\n");
   }
  
-  if(input.CheckEntry(BlockName,"radsource")>=0) {
-    std::string RadType = input.Get<std::string>(BlockName,"radsource",0);
-    if(RadType.compare("Tconst") == 0) {
-      this->type = Type::Tconst;
-    } else if(RadType.compare("Tvar") == 0) {
-      this->type = Type::Tvar;
+  if(input.CheckEntry(BlockName,"kappa")>=0) {
+    // Fetch the opacity coefficient for the current radiation group.
+    const int n = hydroin->instanceNumber;
+    this->xi_rad = input.Get<real>(BlockName,"xi",n);
+
+    std::string KappaType = input.Get<std::string>(BlockName,"kappa",0);
+    if(KappaType.compare("constant") == 0) {
+      this->kappa_type = Type::constant;
+      this->kappa_0 = input.Get<real>(BlockName,"kappa",n+1);
+    } else if(KappaType.compare("kramers") == 0) {
+      this->kappa_0 = input.Get<real>(BlockName,"kappa",n+1);
+      this->kappa_type = Type::kramers;
+      this->rho_0 = input.Get<real>(BlockName,"kappa",n+2);
+      this->T_0 = input.Get<real>(BlockName,"kappa",n+3);
     } else {
       std::stringstream msg;
-      msg << "Unknown radsource type \"" <<  RadType
+      msg << "Unknown kappa type \"" <<  KappaType
           << "\" in your input file." << std::endl
-          << "Allowed values are: Tconst, Tvar." << std::endl;
+          << "Allowed values are: constant, kramers." << std::endl;
 
       IDEFIX_ERROR(msg);
     }
-    // Fetch the opacity coefficient for the current radiation group.
-    const int n = hydroin->instanceNumber;
-    this->kappa_rad = input.Get<real>(BlockName,"kappa",n);
-    this->xi_rad = input.Get<real>(BlockName,"xi",n);
+    
 
   } else {
     IDEFIX_ERROR("A [Rad] block is required in your input file to define the radiation source terms.");
   }
-
 
   idfx::popRegion();
 }
