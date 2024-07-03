@@ -47,9 +47,9 @@ KOKKOS_INLINE_FUNCTION void K_Flux(real *KOKKOS_RESTRICT F, const real *KOKKOS_R
     F[RHO] *= reduced_c;
 
     real Fnorm2 = EXPAND(V[FR1]*V[FR1] , + V[FR2]*V[FR2], + V[FR3]*V[FR3]);
-    real inv_Fnorm2 = (Fnorm2 <= 1.e-40 ? ZERO_F : ONE_F / Fnorm2);
+    real inv_Fnorm2 = (Fnorm2 <= 1.e-100 ? 1.e-100 : ONE_F / Fnorm2);
     real Er2 = V[ER]*V[ER];
-    real f_param2 = (Er2 < 1.e-40 ? Fnorm2/(1.e-40) : Fnorm2/(Er2));
+    real f_param2 = (Er2 < 1.e-100 ? Fnorm2/(1.e-100) : Fnorm2/(Er2));
     real xi  = 3.+4.*f_param2;
     xi /= 5.+2.*std::sqrt(4.-3.*f_param2);
   

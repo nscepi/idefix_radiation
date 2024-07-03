@@ -6,6 +6,53 @@ real unit_length;
 real unit_density;
 
 
+void UserdefBoundaryRad(Fluid<RadiationPhysics> *radiation, int dir, BoundarySide side, real t) {
+  IdefixArray4D<real> Vc = radiation->Vc;
+  auto *data = radiation->data;
+  IdefixArray1D<real> x1 = data->x[IDIR];
+  IdefixArray1D<real> x2 = data->x[JDIR];
+  if(dir==IDIR) {
+    int ighost,ibeg,iend;
+    if(side == left) {
+      ighost = data->beg[IDIR];
+      ibeg = 0;
+      iend = data->beg[IDIR];
+      idefix_for("UserDefBoundaryRad",
+        0, data->np_tot[KDIR],
+        0, data->np_tot[JDIR],
+        ibeg, iend,
+        KOKKOS_LAMBDA (int k, int j, int i) {
+          Vc(ER,k,j,i) = Vc(ER,k,j,2*ighost-i-1);
+          Vc(FR1,k,j,i) = Vc(FR1,k,j,ighost);
+        });
+    }
+  }
+}
+
+void UserdefBoundary(Fluid<DefaultPhysics> *hydro, int dir, BoundarySide side, real t) {
+  IdefixArray4D<real> Vc = hydro->Vc;
+  auto *data = hydro->data;
+  IdefixArray1D<real> x1 = data->x[IDIR];
+  IdefixArray1D<real> x2 = data->x[JDIR];
+  if(dir==IDIR) {
+    int ighost,ibeg,iend;
+    if(side == left) {
+      ighost = data->beg[IDIR];
+      ibeg = 0;
+      iend = data->beg[IDIR];
+      idefix_for("UserDefBoundary",
+        0, data->np_tot[KDIR],
+        0, data->np_tot[JDIR],
+        ibeg, iend,
+        KOKKOS_LAMBDA (int k, int j, int i) {
+          Vc(RHO,k,j,i) = Vc(RHO,k,j,2*ighost-i-1);
+          Vc(PRS,k,j,i) = Vc(PRS,k,j,2*ighost-i-1);
+          Vc(VX1,k,j,i) = -Vc(VX1,k,j,2*ighost-i-1);
+        });
+    }
+  }
+}
+
 // Default constructor
 // Initialisation routine. Can be used to allocate
 // Arrays or variables which are used later on
@@ -20,9 +67,9 @@ Setup::Setup(Input &input, Grid &grid, DataBlock &data, Output &output)
   // Set the function for userdefboundary
   if(data.haveRadiation) {
     int nFrequencies = data.radiation.size();
-    //for(int n = 0 ; n < nFrequencies ; n++) {
-    //  data.radiation[n]->EnrollUserDefBoundary(&UserdefBoundaryRad);
-    //}
+    for(int n = 0 ; n < nFrequencies ; n++) {
+      //data.radiation[n]->EnrollUserDefBoundary(&UserdefBoundaryRad);
+    }
     //data.hydro->EnrollUserDefBoundary(&UserdefBoundary);
     //data.hydro->EnrollInternalBoundary(&InternalBoundary);
 
@@ -88,52 +135,6 @@ void ComputeUserVars(DataBlock & data, UserDefVariablesContainer &variables) {
   }
 }
 
-void UserdefBoundaryRad(Fluid<RadiationPhysics> *radiation, int dir, BoundarySide side, real t) {
-  IdefixArray4D<real> Vc = radiation->Vc;
-  auto *data = radiation->data;
-  IdefixArray1D<real> x1 = data->x[IDIR];
-  IdefixArray1D<real> x2 = data->x[JDIR];
-  if(dir==IDIR) {
-    int ighost,ibeg,iend;
-    if(side == left) {
-      ighost = data->beg[IDIR];
-      ibeg = 0;
-      iend = data->beg[IDIR];
-      idefix_for("UserDefBoundaryRad",
-        0, data->np_tot[KDIR],
-        0, data->np_tot[JDIR],
-        ibeg, iend,
-        KOKKOS_LAMBDA (int k, int j, int i) {
-          Vc(ER,k,j,i) = 1.e6;
-          Vc(FR1,k,j,i) = 1.e6;
-          Vc(FR2,k,j,i) = 0.;
-        });
-    }
-  }
-}
 
-void UserdefBoundary(Fluid<DefaultPhysics> *hydro, int dir, BoundarySide side, real t) {
-  IdefixArray4D<real> Vc = hydro->Vc;
-  auto *data = hydro->data;
-  IdefixArray1D<real> x1 = data->x[IDIR];
-  IdefixArray1D<real> x2 = data->x[JDIR];
-  if(dir==IDIR) {
-    int ighost,ibeg,iend;
-    if(side == left) {
-      ighost = data->beg[IDIR];
-      ibeg = 0;
-      iend = data->beg[IDIR];
-      idefix_for("UserDefBoundary",
-        0, data->np_tot[KDIR],
-        0, data->np_tot[JDIR],
-        ibeg, iend,
-        KOKKOS_LAMBDA (int k, int j, int i) {
-          Vc(RHO,k,j,i) = 1.;
-          Vc(VX1,k,j,i) = 0.;
-          Vc(VX2,k,j,i) = 0.;
-        });
-    }
-  }
-}
 
 
