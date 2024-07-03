@@ -131,7 +131,7 @@ real RadSource::Limit_speeds_Rad(int i, int j, int k, real dx) {
   real xi_rad = this->xi_rad;
   real tau = VcGas(RHO,k,j,i)*this->unit_density*(kappa_rad+xi_rad)*dx*this->unit_length;
 
-  return 4./(3.*tau);
+  return 4./(3.*tau)*this->reduced_c*this->C_c/this->unit_velocity;
 }
 
 void RadSource::ShowConfig() {
