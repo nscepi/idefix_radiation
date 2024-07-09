@@ -9,10 +9,6 @@
 #include "physics.hpp"
 #include "units.hpp"
 
-
-
-
-
 void RadSource::AddRadSource(const real dt) {
   idfx::pushRegion("RadSource::AddRadSource");
 
@@ -107,10 +103,10 @@ void RadSource::AddRadSource(const real dt) {
                 URad[FR3] = Fr3_hyp/(1.+xx_red);)
 
         UGas[ENG] = Etot - URad[ER]*C_c/(reduced_c*unit_velocity);
-        
+
         // Fix if UGas < 0
         if (UGas[ENG]<ZERO_F) {
-          printf("Gas Energy is <0\n");
+          printf("Gas Energy is <0 at i=%i, j=%i, k=%i\n",i,j,k);
           UGas[ENG] = (&eos)->GetInternalEnergy(SMALL_PRESSURE_FIX,VGas[RHO]);
         }
 
