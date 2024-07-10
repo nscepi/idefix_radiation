@@ -4,4 +4,4 @@
 #define     GEOMETRY        CARTESIAN
 #define     RADIATION
 
-#define     SMALL_ER         1.e-16
+#define     SMALL_ER         1.e-20

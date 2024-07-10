@@ -9,14 +9,14 @@
 void Setup::InitFlow(DataBlock &data) {
     // Create a host copy
     DataBlockHost d(data);
-    real csiso = 0.000001;
+    real csiso = 0.1;
 
 
     for(int k = 0; k < d.np_tot[KDIR] ; k++) {
         for(int j = 0; j < d.np_tot[JDIR] ; j++) {
             for(int i = 0; i < d.np_tot[IDIR] ; i++) {
 
-              d.Vc(RHO,k,j,i) = 0.1;
+              d.Vc(RHO,k,j,i) = 1.e4;
               d.Vc(VX1,k,j,i) = 0.;
               d.Vc(VX2,k,j,i) = 0.;
               d.Vc(PRS,k,j,i) = d.Vc(RHO,k,j,i)*csiso*csiso;
@@ -24,17 +24,6 @@ void Setup::InitFlow(DataBlock &data) {
               d.RadVc[0](ER,k,j,i) = 1.e4;
               d.RadVc[0](FR1,k,j,i) = ZERO_F;
               d.RadVc[0](FR2,k,j,i) = ZERO_F;
-
-              // if ((d.x[JDIR](j) < 0.5) && (d.x[IDIR](i) < 0.5) ) {
-              //   d.RadVc[0](ER,k,j,i) = 1.e12;
-              //   d.RadVc[0](FR1,k,j,i) = 1.e12/std::sqrt(2.);
-              //   d.RadVc[0](FR2,k,j,i) = 1.e12/std::sqrt(2.);
-              // } else {
-              //   d.RadVc[0](ER,k,j,i) = 1.e4;
-              //   d.RadVc[0](FR1,k,j,i) = ZERO_F;
-              //   d.RadVc[0](FR2,k,j,i) = ZERO_F;
-              // }
-    
               
             }
         }
@@ -62,69 +51,6 @@ void ComputeUserVars(DataBlock & data, UserDefVariablesContainer &variables) {
         
 
       }
-    }
-  }
-}
-
-void UserdefBoundaryRad(Fluid<RadiationPhysics> *radiation, int dir, BoundarySide side, real t) {
-  IdefixArray4D<real> Vc = radiation->Vc;
-  auto *data = radiation->data;
-  IdefixArray1D<real> x1 = data->x[IDIR];
-  IdefixArray1D<real> x2 = data->x[JDIR];
-  if(dir==IDIR) {
-    int ibeg,iend,nxi,iref;
-
-    if(side == left) {
-      ibeg = 0;
-      iend = data->beg[IDIR];
-      nxi = data->np_int[IDIR];
-      iref = iend;
-      idefix_for("UserDefBoundaryRad",
-        0, data->np_tot[KDIR],
-        0, data->np_tot[JDIR],
-        ibeg, iend,
-        KOKKOS_LAMBDA (int k, int j, int i) {
-          if ((x2(j) > 0.3) && (x2(j) < 0.44)) {
-            Vc(ER,k,j,i) = 1.e4;
-            Vc(FR1,k,j,i) = 1.e4*std::cos(M_PI/4.);
-            Vc(FR2,k,j,i) = 1.e4*std::sin(M_PI/4.);
-          } else {
-            if( Vc(FR1,k,j,iref) >= ZERO_F ) {
-              Vc(ER,k,j,i) = Vc(ER,k,j,iref);
-              Vc(FR1,k,j,i) = ZERO_F;
-              Vc(FR2,k,j,i) = Vc(FR2,k,j,iref);
-            } else {
-              Vc(ER,k,j,i) = Vc(ER,k,j,iref);
-              Vc(FR1,k,j,i) = Vc(FR1,k,j,iref);
-              Vc(FR2,k,j,i) = Vc(FR2,k,j,iref);
-            }
-              
-          }
-        });
-    }
-  }
-}
-
-void UserdefBoundary(Fluid<DefaultPhysics> *hydro, int dir, BoundarySide side, real t) {
-  IdefixArray4D<real> Vc = hydro->Vc;
-  auto *data = hydro->data;
-  IdefixArray1D<real> x1 = data->x[IDIR];
-  IdefixArray1D<real> x2 = data->x[JDIR];
-  if(dir==IDIR) {
-    int ighost,ibeg,iend;
-    if(side == left) {
-      ighost = data->beg[IDIR];
-      ibeg = 0;
-      iend = data->beg[IDIR];
-      idefix_for("UserDefBoundary",
-        0, data->np_tot[KDIR],
-        0, data->np_tot[JDIR],
-        ibeg, iend,
-        KOKKOS_LAMBDA (int k, int j, int i) {
-          Vc(RHO,k,j,i) = 1.;
-          Vc(VX1,k,j,i) = 0.;
-          Vc(VX2,k,j,i) = 0.;
-        });
     }
   }
 }
@@ -164,10 +90,10 @@ Setup::Setup(Input &input, Grid &grid, DataBlock &data, Output &output)
   if(data.haveRadiation) {
     int nFrequencies = data.radiation.size();
     for(int n = 0 ; n < nFrequencies ; n++) {
-      data.radiation[n]->EnrollUserDefBoundary(&UserdefBoundaryRad);
+      //data.radiation[n]->EnrollUserDefBoundary(&UserdefBoundaryRad);
       data.radiation[n]->EnrollInternalBoundary(&InternalBoundaryRad);
     }
-    data.hydro->EnrollUserDefBoundary(&UserdefBoundary);
+    //data.hydro->EnrollUserDefBoundary(&UserdefBoundary);
 
   }
 }
