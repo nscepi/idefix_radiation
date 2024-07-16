@@ -39,6 +39,7 @@ class RadSource {
   real xi_rad;
   real reduced_c;
   real gamma;
+  real mu;
   int count_max;
 
   real C_c;
@@ -103,6 +104,7 @@ RadSource::RadSource(Input &input, Fluid<Phys> *hydroin):
     // Fetch the opacity coefficient for the current radiation group.
     const int n = hydroin->instanceNumber;
     this->xi_rad = input.Get<real>(BlockName,"xi",n);
+    this->mu = input.Get<real>(BlockName,"mu",n);
 
     std::string KappaType = input.Get<std::string>(BlockName,"kappa",0);
     if(KappaType.compare("constant") == 0) {

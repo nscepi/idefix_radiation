@@ -35,7 +35,7 @@ void RadSource::AddRadSource(const real dt) {
   real KELVIN = this->Kelvin;
   real unit_time = unit_length/unit_velocity;
   real unit_energy = unit_density*unit_velocity*unit_velocity;
-  real mu = 1.;
+  real mu = this->mu;
   // Max iteration for fixed-point solver
   int MAX_ITER = 100;
   // Tolerance on ER and ENG for fixed-point solver
