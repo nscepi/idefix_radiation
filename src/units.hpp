@@ -33,7 +33,7 @@ class Units {
   const real G{6.674299999999999e-8};               // Gravitatonal constant  (cm3 / (g s2))
   const real h{6.62607015e-27};                     // Planck constant (erg.s)
   const real pc{3.08568e+18};                       // Parsec (cm)
-  const real au{1.49598e+13};                       // Astronomical unit (cm)
+  const real au{1.49597892e13};                       // Astronomical unit (cm)
 
 
   // User-defined units, non user-modifiable
