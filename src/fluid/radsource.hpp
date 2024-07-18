@@ -93,18 +93,15 @@ RadSource::RadSource(Input &input, Fluid<Phys> *hydroin):
   this->reduced_c =  hydroin->reduced_c;
   
   // Adiabatic index
-  if(input.CheckEntry("Hydro","gamma")>=0){
-      this->gamma =  input.Get<real>("Hydro","gamma",0);
-      printf("gamma found!\n");
-  } else {
-      printf("gamma not found!\n");
-  }
- 
+  this->gamma = this->eos->GetGamma();
+  
+  // Mean molecular weight
+  this->mu = this->eos->GetMu();
+
   if(input.CheckEntry(BlockName,"kappa")>=0) {
     // Fetch the opacity coefficient for the current radiation group.
     const int n = hydroin->instanceNumber;
     this->xi_rad = input.Get<real>(BlockName,"xi",n);
-    this->mu = input.Get<real>(BlockName,"mu",n);
 
     std::string KappaType = input.Get<std::string>(BlockName,"kappa",0);
     if(KappaType.compare("constant") == 0) {

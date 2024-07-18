@@ -38,7 +38,7 @@ void MySourceTerm(Hydro *hydro, const real t, const real dtin) {
   real dt=dtin;
   real Omega_K = std::sqrt(C_G*C_Msol/(R*R*R));
   //real csiso = epsilon*R*Omega_K;
-  real csiso = std::sqrt(gamma*C_kb*T0/(mu*C_amu));
+  real csiso = std::sqrt(C_kb*T0/(mu*C_amu));
 
   idefix_for("MySourceTerm",
     0, data->np_tot[KDIR],
@@ -197,8 +197,8 @@ Setup::Setup(Input &input, Grid &grid, DataBlock &data, Output &output)
   rho0Glob = input.Get<real>("Setup","rho0",0);
   rhominGlob = input.Get<real>("Setup","rhomin",0);
   T0Glob = input.Get<real>("Setup","T0",0);
-  muGlob = input.Get<real>("Rad","mu",0);
   gammaGlob=data.hydro->eos->GetGamma();
+  muGlob=data.hydro->eos->GetMu();
 
   data.hydro->EnrollUserDefBoundary(&UserdefBoundary);
   data.hydro->EnrollUserSourceTerm(&MySourceTerm);
