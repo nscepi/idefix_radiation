@@ -27,13 +27,13 @@ void RadSource::AddRadSource(const real dt) {
   real gamma = this->gamma;
   real mu = this->mu;
 
-  const real C_c = this->C_c;
-  real C_ar = this->C_ar;
+  const real C_c = idfx::units.c;
+  real C_ar = idfx::units.ar;
 
-  real unit_velocity = this->unit_velocity;
-  real unit_length = this->unit_length;
-  real unit_density = this->unit_density;
-  real KELVIN = this->Kelvin;
+  real unit_velocity = idfx::units.velocity;
+  real unit_length = idfx::units.length;
+  real unit_density = idfx::units.density;
+  real KELVIN = idfx::units.Kelvin;
   real unit_time = unit_length/unit_velocity;
   real unit_energy = unit_density*unit_velocity*unit_velocity;
   // Max iteration for fixed-point solver
@@ -139,8 +139,8 @@ real RadSource::Limit_speeds_Rad(int i, int j, int k, real dx) {
   auto VcGas = this->VcGas;
   real kappa_0 = this->kappa_0;
   real xi_rad = this->xi_rad;
-  real KELVIN = this->Kelvin;
-  real mu =1.;
+  real mu =this->mu;
+  real KELVIN = idfx::units.Kelvin;
   real kappa;
   if (kappa_type == Type::constant){
     kappa = kappa_0;
@@ -148,9 +148,9 @@ real RadSource::Limit_speeds_Rad(int i, int j, int k, real dx) {
     real T = VcGas(PRS,k,j,i)/(VcGas(RHO,k,j,i))*KELVIN*mu;
     kappa = kappa_0*std::pow(VcGas(RHO,k,j,i)*unit_density/rho_0,2.)*std::pow(T/T_0,-3.5);
   }
-  real tau = VcGas(RHO,k,j,i)*this->unit_density*(kappa+xi_rad)*dx*this->unit_length;
+  real tau = VcGas(RHO,k,j,i)*idfx::units.density*(kappa+xi_rad)*dx*idfx::units.length;
 
-  return 4./(3.*tau)*this->reduced_c*this->C_c/this->unit_velocity;
+  return 4./(3.*tau)*this->reduced_c*this->C_c/idfx::units.velocity;
 }
 
 void RadSource::ShowConfig() {

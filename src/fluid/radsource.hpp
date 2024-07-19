@@ -73,14 +73,6 @@ RadSource::RadSource(Input &input, Fluid<Phys> *hydroin):
   this->data = hydroin->data;
   this->eos = hydroin->data->hydro->eos.get();
 
-  this->C_c = idfx::units.c;
-  this->C_ar = idfx::units.ar;
-
-  this->unit_length = idfx::units.length;
-  this->unit_velocity = idfx::units.velocity;
-  this->unit_density = idfx::units.density;
-  this->Kelvin = idfx::units.Kelvin;
-  
   // Check in which block we should fetch our information
   std::string BlockName;
   if(Phys::radiation) {
