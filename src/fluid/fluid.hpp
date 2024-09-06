@@ -270,7 +270,7 @@ class Fluid {
 
 template<typename Phys>
 Fluid<Phys>::Fluid(Grid &grid, Input &input, DataBlock *datain, int n) {
-  idfx::pushRegion("Fluid::Fluid");
+  idfx::pushRegion("Fluid_"+prefix+"::Fluid");
   // Save the datablock to which we are attached from now on
   this->data = datain;
 

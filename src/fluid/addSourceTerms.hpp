@@ -265,7 +265,7 @@ struct Fluid_AddSourceTermsFunctor {
 // Add source terms
 template <typename Phys>
 void Fluid<Phys>::AddSourceTerms(real t, real dt) {
-  idfx::pushRegion("Fluid::AddSourceTerms");
+  idfx::pushRegion("Fluid_"+prefix+"::AddSourceTerms");
 
   if(haveUserSourceTerm) {
     if(userSourceTerm != NULL) {

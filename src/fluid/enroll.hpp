@@ -116,7 +116,7 @@ template<typename Phys>
 void Fluid<Phys>::ResetStage() {
   // Reset variables required at the beginning of each stage
   // (essentially linked to timestep evaluation)
-  idfx::pushRegion("Fluid::ResetStage");
+  idfx::pushRegion("Fluid_"+prefix+"::ResetStage");
 
   IdefixArray3D<real> InvDt=this->InvDt;
 

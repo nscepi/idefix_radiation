@@ -39,7 +39,7 @@ void Fluid<Phys>::LoopDir(const real t, const real dt) {
 // Evolve one step forward in time of hydro
 template<typename Phys>
 void Fluid<Phys>::EvolveStage(const real t, const real dt) {
-  idfx::pushRegion("Fluid::EvolveStage");
+  idfx::pushRegion("Fluid_"+prefix+"::EvolveStage");
   // Compute current when needed
   if(needExplicitCurrent) CalcCurrent();
 
