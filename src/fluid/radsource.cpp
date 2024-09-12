@@ -8,6 +8,7 @@
 #include "radsource.hpp"
 #include "physics.hpp"
 #include "units.hpp"
+#include "lookupTable.hpp"
 
 void RadSource::AddRadSource(const real dt) {
   idfx::pushRegion("RadSource::AddRadSource");
@@ -43,6 +44,9 @@ void RadSource::AddRadSource(const real dt) {
 
   EquationOfState eos = *(this->eos);
 
+  auto k_p = this->kappa_planck;
+  auto k_r = this->kappa_ross;
+  
   idefix_for("RadSource",0,data->np_tot[KDIR],0,data->np_tot[JDIR],0,data->np_tot[IDIR],
     KOKKOS_LAMBDA (int k, int j, int i) {
   
@@ -63,9 +67,11 @@ void RadSource::AddRadSource(const real dt) {
       real UGas[DefaultPhysics::nvar];
       real VGas[DefaultPhysics::nvar];
       
-      real kappa;
+      real kappa_p;
+      real kappa_r;
       if (kappa_type == Type::constant){
-        kappa = kappa_0;
+        kappa_p = kappa_0;
+        kappa_r = kappa_0;
       }
 
       for(int nv = 0 ; nv < RadiationPhysics::nvar ; nv++) {
@@ -91,10 +97,15 @@ void RadSource::AddRadSource(const real dt) {
         
         real T = VGas[PRS]/(VGas[RHO])*KELVIN*mu;
         if (kappa_type == Type::kramers){
-          kappa = kappa_0*(VGas[RHO]*unit_density/rho_0)*std::pow(T/T_0,-3.5);
+          kappa_p = kappa_0*(VGas[RHO]*unit_density/rho_0)*std::pow(T/T_0,-3.5);
+          kappa_r = kappa_p;
+        } else if (kappa_type == Type::usertable){
+          kappa_p = k_p.Get(&T);
+          kappa_r = k_r.Get(&T);
+          //printf("T=%e,kappa_p=%e\n",T,kappa);
         }
-        real kk_red = reduced_c * unit_velocity * dt * unit_time * kappa * VGas[RHO]*unit_density;
-        real xx_red = reduced_c * unit_velocity * dt * unit_time * (xi_rad + kappa) * VGas[RHO]*unit_density;
+        real kk_red = reduced_c * unit_velocity * dt * unit_time * kappa_p * VGas[RHO]*unit_density;
+        real xx_red = reduced_c * unit_velocity * dt * unit_time * (xi_rad + kappa_r) * VGas[RHO]*unit_density;
 
         URad[ER] = Er_hyp +  kk_red*C_ar*std::pow(T,4)/unit_energy;
         URad[ER] /= 1. + kk_red;
@@ -104,10 +115,18 @@ void RadSource::AddRadSource(const real dt) {
 
         UGas[ENG] = Etot - URad[ER]*C_c/(reduced_c*unit_velocity);
 
-        // Fix if UGas < 0
-        if (UGas[ENG]<ZERO_F) {
-          printf("Gas Energy is <0 at i=%i, j=%i, k=%i\n",i,j,k);
-          UGas[ENG] = (&eos)->GetInternalEnergy(SMALL_PRESSURE_FIX,VGas[RHO]);
+        // Fix if UGas <= 0
+        // This can happen easily in low density regions where the radiation energy density exceeds vastly the plasma internal energy
+        if (UGas[ENG]<=ZERO_F) {
+          //printf("Gas Energy is <0 at i=%i, j=%i, k=%i\n",i,j,k);
+          printf("UGas[ENG]=%e RHO=%e PRS=%e Etot=%e URad[ER]=%e\n",UGas[ENG],VGas[RHO],VGas[PRS],Etot,URad[ER]*C_c/(reduced_c*unit_velocity));
+          throw std::runtime_error("ENG=0 in Radsource");
+    
+          #ifdef SMALL_PRESSURE_TEMPERATURE
+            UGas[ENG] = (&eos)->GetInternalEnergy(SMALL_PRESSURE_TEMPERATURE*VGas[RHO],VGas[RHO]);
+          #else
+            UGas[ENG] = (&eos)->GetInternalEnergy(SMALL_PRESSURE_FIX,VGas[RHO]);
+          #endif
         }
 
         EXPAND( UGas[MX1] = m1tot - URad[FR1]/(reduced_c*unit_velocity);,
@@ -150,7 +169,7 @@ real RadSource::Limit_speeds_Rad(int i, int j, int k, real dx) {
   }
   real tau = VcGas(RHO,k,j,i)*idfx::units.density*(kappa+xi_rad)*dx*idfx::units.length;
 
-  return 4./(3.*tau)*this->reduced_c*this->C_c/idfx::units.velocity;
+  return 4./(3.*tau)*this->reduced_c*idfx::units.c/idfx::units.velocity;
 }
 
 void RadSource::ShowConfig() {
@@ -161,6 +180,9 @@ void RadSource::ShowConfig() {
       break;
     case Type::kramers:
       idfx::cout << "kappa in kramers form in source term integration";
+      break;
+    case Type::usertable:
+      idfx::cout << "kappa from table provided by user in source term integration";
       break;
   }
 }

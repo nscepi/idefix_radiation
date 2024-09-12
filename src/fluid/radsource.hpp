@@ -13,10 +13,11 @@
 #include "fluid_defs.hpp"
 #include "eos.hpp"
 #include "units.hpp"
+#include "lookupTable.hpp"
 
 class RadSource {
  public:
-  enum class Type{constant,kramers};
+  enum class Type{constant,kramers,usertable};
   // Different types of implementation for the radiation source terms.
   template <typename Phys>
   RadSource(Input &, Fluid<Phys> *);
@@ -37,6 +38,7 @@ class RadSource {
   real rho_0;
   real T_0;
   real xi_rad;
+  real kappa_irr;
   real reduced_c;
   real gamma;
   real mu;
@@ -52,7 +54,11 @@ class RadSource {
 
   // Sound speed computation
   EquationOfState *eos;
-  
+
+  // Planck and Rosseland opacities 
+  LookupTable<1> kappa_planck;
+  LookupTable<1> kappa_ross;
+
   // Instance of Unit Class
   idfx::Units *units;
 
@@ -90,10 +96,19 @@ RadSource::RadSource(Input &input, Fluid<Phys> *hydroin):
   // Mean molecular weight
   this->mu = this->eos->GetMu();
 
+  if(input.CheckEntry(BlockName,"xi")>=0) {
+    const int n = hydroin->instanceNumber;
+    this->xi_rad = input.Get<real>(BlockName,"xi",n);
+  }
+
+  if(input.CheckEntry(BlockName,"kappa_irr")>=0) {
+    const int n = hydroin->instanceNumber;
+    this->kappa_irr = input.Get<real>(BlockName,"kappa_irr",n);
+  }
+
   if(input.CheckEntry(BlockName,"kappa")>=0) {
     // Fetch the opacity coefficient for the current radiation group.
     const int n = hydroin->instanceNumber;
-    this->xi_rad = input.Get<real>(BlockName,"xi",n);
 
     std::string KappaType = input.Get<std::string>(BlockName,"kappa",0);
     if(KappaType.compare("constant") == 0) {
@@ -104,11 +119,15 @@ RadSource::RadSource(Input &input, Fluid<Phys> *hydroin):
       this->kappa_type = Type::kramers;
       this->rho_0 = input.Get<real>(BlockName,"kappa",n+2);
       this->T_0 = input.Get<real>(BlockName,"kappa",n+3);
+    } else if(KappaType.compare("usertable") == 0) {
+      this->kappa_type = Type::usertable;
+      this-> kappa_planck = LookupTable<1>("kappa_p.dat",',');
+      this-> kappa_ross = LookupTable<1>("kappa_r.dat",',');
     } else {
       std::stringstream msg;
       msg << "Unknown kappa type \"" <<  KappaType
           << "\" in your input file." << std::endl
-          << "Allowed values are: constant, kramers." << std::endl;
+          << "Allowed values are: constant, kramers, usertable." << std::endl;
 
       IDEFIX_ERROR(msg);
     }
