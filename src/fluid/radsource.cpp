@@ -96,12 +96,13 @@ void RadSource::AddRadSource(const real dt) {
         Fnorm_old = Fnorm;
         
         real T = VGas[PRS]/(VGas[RHO])*KELVIN*mu;
+        real logT = std::log10(T);
         if (kappa_type == Type::kramers){
           kappa_p = kappa_0*(VGas[RHO]*unit_density/rho_0)*std::pow(T/T_0,-3.5);
           kappa_r = kappa_p;
         } else if (kappa_type == Type::usertable){
-          kappa_p = k_p.Get(&T);
-          kappa_r = k_r.Get(&T);
+          kappa_p = k_p.Get(&logT);
+          kappa_r = k_r.Get(&logT);
           //printf("T=%e,kappa_p=%e\n",T,kappa);
         }
         real kk_red = reduced_c * unit_velocity * dt * unit_time * kappa_p * VGas[RHO]*unit_density;
