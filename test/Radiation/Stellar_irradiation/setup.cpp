@@ -17,27 +17,6 @@ real kappairrGlob;
 
 Column *columnGlob;
 
-
-real mykappa(real nu){
-  
-  real C_h = idfx::units.h;
-  real C_c = idfx::units.c;
-  real C_kb = idfx::units.k_B;
-  real Ts = TsGlob;
-
-  real h_kt = C_h/(C_kb*Ts);
-
-  real planck_pre = 2.*M_PI*C_h/std::pow(C_c,2.);
-
-  real planck_nu = std::pow(nu,3.)/(std::exp(h_kt*nu)-1.);
-
-  real kappa_nu = 6.e-23*std::pow(nu,1.5);
-
-  return std::exp(-kappa_nu)*planck_pre*planck_nu;
-  //return planck_pre*planck_nu;
-
-}
-
 void MySourceTerm(Hydro *hydro, const real t, const real dtin) {
   auto *data = hydro->data;
 
@@ -73,15 +52,9 @@ void MySourceTerm(Hydro *hydro, const real t, const real dtin) {
   real csiso = std::sqrt(C_kb*T0/(mu*C_amu));
   real rs = rsGlob;
   real Ts = TsGlob;
-  //real kappa_0 = kappaGlob;
   real kappa_irr = kappairrGlob*unit_density*unit_length;
 
-  //real kappa_rad = kappa_0*unit_density*unit_length;
-
   real flux_pre = M_PI*std::pow(rs/unit_length,2.)*idfx::units.ar*std::pow(Ts,4.)/unit_energy;
-  //real flux_pre = 4.*M_PI*std::pow(rs/unit_length,2.)*sum/C_c/unit_energy;
-
-  //printf("planck_int=%e, sigmaT4=%e, planck_int/sigmaT4=%e\n",planck_int,idfx::units.sigma_sb*std::pow(Ts,4.),planck_int/(idfx::units.sigma_sb*std::pow(Ts,4.)));  
   
   columnGlob->ComputeColumn(hydro->Vc);
   tau = columnGlob->GetColumn();
@@ -94,7 +67,6 @@ void MySourceTerm(Hydro *hydro, const real t, const real dtin) {
                 real Fim = std::exp(-kappa_irr*tau(k,j,i-1))*A1(k,j,i)/std::pow(x1l(i),2.);
                 real Fip = std::exp(-kappa_irr*tau(k,j,i))*A1(k,j,i+1)/std::pow(x1l(i+1),2.);
 
-                //real divF = kappa_irr*flux_pre*(Fip-Fim)/dV(k,j,i);
                 real divF = flux_pre*(Fip-Fim)/dV(k,j,i);
 
                 Uc(ENG,k,j,i) -= dt*divF;
