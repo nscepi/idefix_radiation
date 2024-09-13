@@ -84,12 +84,34 @@ class LookupTable {
           // Nop, so the points are not evenly distributed
           // Search for the correct index (a dicotomy would be more appropriate...)
 
+          //Dichotomy method
           i = 0;
-          while(xin(offset(n) + i) < x_n && i < dimensions(n)-1 ) {
-            i++;
+          int count = 0.;
+          bool success = false;
+          int start = offset(n);
+          int end = dimensions(n) - 1;
+          int mid;
+          while(success == false) {
+            mid = (end+start)/2;
+            if (x_n < xin(mid))  {
+              end = (mid -1);
+            } else if (x_n > xin(mid+1)) {
+              start = (mid+1);
+            } else {
+              i = mid;
+              success = true;
+            }
+            count++;
+            if (count > 100) throw std::runtime_error("Dichotomy in LookupTable did not work");
           }
-          i = i-1; // i is overestimated by one
-        }
+          
+          // Brut force method
+          //i = 0;
+          //while(xin(offset(n) + i) < x_n && i < dimensions(n)-1 ) {
+          //  i++;
+          //}
+          //i = i-1; // i is overestimated by one
+        } 
       }
 
       // Store the index
