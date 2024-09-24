@@ -120,7 +120,7 @@ void RadSource::AddRadSource(const real dt) {
         // This can happen easily in low density regions where the radiation energy density exceeds vastly the plasma internal energy
         if (UGas[ENG]<=ZERO_F) {
           //printf("Gas Energy is <0 at i=%i, j=%i, k=%i\n",i,j,k);
-          printf("UGas[ENG]=%e RHO=%e PRS=%e Etot=%e URad[ER]=%e\n",UGas[ENG],VGas[RHO],VGas[PRS],Etot,URad[ER]*C_c/(reduced_c*unit_velocity));
+          printf("UGas[ENG]=%e RHO=%e PRS=%e Etot=%e URad[ER]=%e at i=%i j=%i and k=%i at iteration %i\n",UGas[ENG],VGas[RHO],VGas[PRS],Etot,URad[ER]*C_c/(reduced_c*unit_velocity),i,j,k,count);
           throw std::runtime_error("ENG=0 in Radsource");
     
           #ifdef SMALL_PRESSURE_TEMPERATURE
@@ -155,9 +155,10 @@ void RadSource::AddRadSource(const real dt) {
   idfx::popRegion();
 }
 
-real RadSource::Limit_speeds_Rad(int i, int j, int k, real dx) {
+real RadSource::Limit_speeds_Rad(int i, int j, int k, real dx) const{
   auto VcGas = this->VcGas;
   real kappa_0 = this->kappa_0;
+  auto kappa_type = this->kappa_type;
   real xi_rad = this->xi_rad;
   real mu =this->mu;
   real KELVIN = idfx::units.Kelvin;

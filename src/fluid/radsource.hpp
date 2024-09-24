@@ -23,7 +23,7 @@ class RadSource {
   RadSource(Input &, Fluid<Phys> *);
   void ShowConfig();                    // print configuration
   void AddRadSource(const real);
-  real Limit_speeds_Rad(int,int,int,real);
+  real Limit_speeds_Rad(int,int,int,real) const;
 
   IdefixArray4D<real> UcRad;  // Radiation conservative quantities
   IdefixArray4D<real> UcGas;  // Gas conservative quantities

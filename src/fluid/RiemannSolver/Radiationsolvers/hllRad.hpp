@@ -36,6 +36,12 @@ void RiemannSolver<Phys>::HllRad(IdefixArray4D<real> &Flux) {
 
   ExtrapolateToFaces<Phys,DIR> extrapol = *this->GetExtrapolator<DIR>();
 
+  // Reduced velocity of light
+  real reduced_c = this->reduced_c;
+  //printf("reduced=%e\n",reduced_c);
+
+  RadSource &rad_source = *(this->hydro->radsource);
+  
   idefix_for("HLL_Rad_Kernel",
              data->beg[KDIR],data->end[KDIR]+koffset,
              data->beg[JDIR],data->end[JDIR]+joffset,
@@ -44,10 +50,6 @@ void RiemannSolver<Phys>::HllRad(IdefixArray4D<real> &Flux) {
       // Init the directions (should be in the kernel for proper optimisation by the compilers)
       constexpr int Xn = DIR+MX1;
       const int index = ioffset*i + joffset*j + koffset*k;
-
-      // Reduced velocity of light
-      real reduced_c = this->reduced_c;
-      //printf("reduced=%e\n",reduced_c);
       
       // Primitive variables
       real vL[Phys::nvar];
@@ -76,9 +78,8 @@ void RiemannSolver<Phys>::HllRad(IdefixArray4D<real> &Flux) {
       K_speeds_Rad(lambdaL,vL,Xn,reduced_c);
       K_speeds_Rad(lambdaR,vR,Xn,reduced_c);
 
-      real speed_diff = this->hydro->radsource->Limit_speeds_Rad(i,j,k,dx[index]);
-      //printf("speed_diff=%e at i=%i, j=%i, k=%i\n",speed_diff,i,j,k);
- 
+      real speed_diff = rad_source.Limit_speeds_Rad(i,j,k,dx[index]);
+       
       real lambda_max_L = FMAX(lambdaL[0],lambdaL[1]);
       real lambda_max_R = FMAX(lambdaR[0],lambdaR[1]);
       real lambda_min_L = FMIN(lambdaL[0],lambdaL[1]);
