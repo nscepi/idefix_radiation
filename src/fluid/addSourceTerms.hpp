@@ -114,9 +114,9 @@ struct Fluid_AddSourceTermsFunctor {
       if(haveRotation) vphi += OmegaZ*x1(i);
       if constexpr(Phys::radiation){
         Fnorm2 = EXPAND(Vc(iFR,k,j,i)*Vc(iFR,k,j,i) , + Vc(iFPHI,k,j,i)*Vc(iFPHI,k,j,i), + Vc(iFZ,k,j,i)*Vc(iFZ,k,j,i));
-        inv_Fnorm2 = (Fnorm2 <= 1.e-40 ? ZERO_F : ONE_F / Fnorm2);
+        inv_Fnorm2 = (Fnorm2 <= 1.e-100 ? ZERO_F : ONE_F / Fnorm2);
         Er2 = Vc(ER,k,j,i)*Vc(ER,k,j,i);
-        f_param2 = (Er2 < 1.e-40 ? Fnorm2/(1.e-40) : Fnorm2/(Er2));
+        f_param2 = (Er2 < 1.e-100 ? Fnorm2/(1.e-100) : Fnorm2/(Er2));
         f_param2 = FMIN(f_param2,ONE_F);
         xi  = 3.+4.*f_param2;
         xi /= 5.+2.*std::sqrt(4.-3.*f_param2);
@@ -153,9 +153,9 @@ struct Fluid_AddSourceTermsFunctor {
       if(haveRotation) vphi += OmegaZ*x1(i);
       if constexpr(Phys::radiation){
         Fnorm2 = EXPAND(Vc(iFR,k,j,i)*Vc(iFR,k,j,i) , + Vc(iFPHI,k,j,i)*Vc(iFPHI,k,j,i), + Vc(iFZ,k,j,i)*Vc(iFZ,k,j,i));
-        inv_Fnorm2 = (Fnorm2 <= 1.e-40 ? ZERO_F : ONE_F / Fnorm2);
+        inv_Fnorm2 = (Fnorm2 <= 1.e-100 ? ZERO_F : ONE_F / Fnorm2);
         Er2 = Vc(ER,k,j,i)*Vc(ER,k,j,i);
-        f_param2 = (Er2 < 1.e-40 ? Fnorm2/(1.e-40) : Fnorm2/(Er2));
+        f_param2 = (Er2 < 1.e-100 ? Fnorm2/(1.e-100) : Fnorm2/(Er2));
         f_param2 = FMIN(f_param2,ONE_F);
         xi  = 3.+4.*f_param2;
         xi /= 5.+2.*std::sqrt(4.-3.*f_param2);
@@ -193,9 +193,9 @@ struct Fluid_AddSourceTermsFunctor {
       // Centrifugal
       if constexpr(Phys::radiation){
         Fnorm2 = EXPAND(Vc(iFR,k,j,i)*Vc(iFR,k,j,i) , + Vc(iFTH,k,j,i)*Vc(iFTH,k,j,i), + Vc(iFPHI,k,j,i)*Vc(iFPHI,k,j,i));
-        inv_Fnorm2 = (Fnorm2 <= 1.e-40 ? ZERO_F : ONE_F / Fnorm2);
+        inv_Fnorm2 = (Fnorm2 <= 1.e-100 ? ZERO_F : ONE_F / Fnorm2);
         Er2 = Vc(ER,k,j,i)*Vc(ER,k,j,i);
-        f_param2 = (Er2 < 1.e-40 ? Fnorm2/(1.e-40) : Fnorm2/(Er2));
+        f_param2 = (Er2 < 1.e-100 ? Fnorm2/(1.e-100) : Fnorm2/(Er2));
         f_param2 = FMIN(f_param2,ONE_F);
         xi  = 3.+4.*f_param2;
         xi /= 5.+2.*std::sqrt(4.-3.*f_param2);
