@@ -15,17 +15,24 @@ name="dump.0001.dmp"
 tolerance=1e-10
 
 def testMe(test):
-  test.configure()
-  test.compile()
-  inifiles=["idefix-hll-c1.ini","idefix-hll-c001.ini","idefix-hll-c00001.ini","idefix-hllc-c1.ini","idefix-hllc-c001.ini","idefix-hllc-c00001.ini"]
+
+  deffiles = ["definitions-cart3D.hpp","definitions-sph1D.hpp"]
+  inifiles=["idefix-hll-sph.ini","idefix-hll-cart.ini"]
 
   # loop on all the ini files for this test
-  for ini in inifiles:
-    test.run(inputFile=ini)
-    if test.init and not test.mpi:
-      test.makeReference(filename=name)
-    test.standardTest()
-    test.nonRegressionTest(filename=name,tolerance=tolerance)
+  for definition in deffiles:
+    if ("cart" in definition):
+      inifiles=["idefix-hll-cart.ini"]
+    elif ("sph" in definition):
+      inifiles=["idefix-hll-sph.ini"]
+    for ini in inifiles:
+      test.configure(definitionFile=definition)
+      test.compile()
+      test.run(inputFile=ini)
+      if test.init and not test.mpi:
+        test.makeReference(filename=name)
+      test.standardTest()
+      test.nonRegressionTest(filename=name,tolerance=tolerance)
 
 
 test=tst.idfxTest()

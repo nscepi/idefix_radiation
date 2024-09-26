@@ -1,20 +1,12 @@
 #include "idefix.hpp"
 #include "setup.hpp"
 
-real unit_velocity;
-real unit_length;
-real unit_density;
-
 
 // Default constructor
 // Initialisation routine. Can be used to allocate
 // Arrays or variables which are used later on
 Setup::Setup(Input &input, Grid &grid, DataBlock &data, Output &output)
 {
-
-  unit_velocity = input.Get<real>("Units","velocity",0);
-  unit_length = input.Get<real>("Units","length",0);
-  unit_density = input.Get<real>("Units","density",0);
 
   //output.EnrollUserDefVariables(&ComputeUserVars);
   // Set the function for userdefboundary
@@ -36,29 +28,37 @@ Setup::Setup(Input &input, Grid &grid, DataBlock &data, Output &output)
 void Setup::InitFlow(DataBlock &data) {
     // Create a host copy
     DataBlockHost d(data);
-    real C_kb = 1.38e-16;
-    real C_mp = 1.6726e-24;
-    real C_ar = 7.5646e-15;
+    real C_kb = idfx::units.k_B;
+    real C_mp = idfx::units.m_p;
+    real C_ar = idfx::units.ar;
     real mu = 1.;
-    real KELVIN = C_kb/(C_mp*mu);
-    real T0 = 1.e4;
+    real KELVIN = idfx::units.Kelvin*mu;
+    real T0 = 1.05e-7;
     real T;
     real w = 5.;
+    real r2;
 
+    real unit_density = idfx::units.density;
+    real unit_velocity = idfx::units.velocity;
+    real unit_length = idfx::units.length;
     real unit_time = unit_length/unit_velocity;
     real unit_energy = unit_density*unit_velocity*unit_velocity;
 
     for(int k = 0; k < d.np_tot[KDIR] ; k++) {
         for(int j = 0; j < d.np_tot[JDIR] ; j++) {
             for(int i = 0; i < d.np_tot[IDIR] ; i++) {
-              real r2 = d.x[IDIR](i)*d.x[IDIR](i)+d.x[JDIR](j)*d.x[JDIR](j)+d.x[KDIR](k)*d.x[KDIR](k);
+              if (GEOMETRY==CARTESIAN){
+                r2 = d.x[IDIR](i)*d.x[IDIR](i)+d.x[JDIR](j)*d.x[JDIR](j)+d.x[KDIR](k)*d.x[KDIR](k);
+              } else if (GEOMETRY==SPHERICAL) {
+                r2 = d.x[IDIR](i)*d.x[IDIR](i);
+              }
               d.Vc(RHO,k,j,i) = 1.;
-              d.Vc(PRS,k,j,i) = d.Vc(RHO,k,j,i)*unit_density*T0*KELVIN/(unit_energy);
+              d.Vc(PRS,k,j,i) = d.Vc(RHO,k,j,i)*T0/KELVIN;
               d.Vc(VX1,k,j,i) = 0.;
               d.Vc(VX2,k,j,i) = 0.;
               d.Vc(VX3,k,j,i) = 0.;
               T = T0*(1.+100.*std::exp(-r2/(w*w)));
-              d.RadVc[0](ER,k,j,i) = 4.*C_kb*std::pow(T,4)/unit_energy;
+              d.RadVc[0](ER,k,j,i) = C_ar*std::pow(T,4)/unit_energy;
               d.RadVc[0](FR1,k,j,i) = ZERO_F;
               d.RadVc[0](FR2,k,j,i) = ZERO_F;
               d.RadVc[0](FR3,k,j,i) = ZERO_F;
