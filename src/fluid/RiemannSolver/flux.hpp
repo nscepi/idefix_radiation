@@ -53,13 +53,13 @@ KOKKOS_INLINE_FUNCTION void K_Flux(real *KOKKOS_RESTRICT F, const real *KOKKOS_R
     real xi  = 3.+4.*f_param2;
     xi /= 5.+2.*std::sqrt(4.-3.*f_param2);
   
+    // Add momentum-like part of the radiation pressure tensor
     EXPAND ( F[FR1] = HALF_F*(3.*xi-1.)*V[ER]*V[FR1]*V[Xn]*inv_Fnorm2;  ,
              F[FR2] = HALF_F*(3.*xi-1.)*V[ER]*V[FR2]*V[Xn]*inv_Fnorm2;  ,
              F[FR3] = HALF_F*(3.*xi-1.)*V[ER]*V[FR3]*V[Xn]*inv_Fnorm2;  )
 
-    EXPAND ( F[FR1] += (Xn == 1 ? HALF_F*(1.-xi)*V[ER] : ZERO_F); , 
-             F[FR2] += (Xn == 2 ? HALF_F*(1.-xi)*V[ER] : ZERO_F); ,     
-             F[FR3] += (Xn == 3 ? HALF_F*(1.-xi)*V[ER] : ZERO_F); )
+    // Add pressure-like part of the radiation pressure tensor
+    F[Xn] += HALF_F*(1.-xi)*V[ER], 
 
     EXPAND ( F[FR1] *= reduced_c; , 
              F[FR2] *= reduced_c; ,     
