@@ -162,7 +162,7 @@ struct Fluid_AddSourceTermsFunctor {
 
         Prad = HALF_F*(1.-xi)*Vc(ER,k,j,i)*reduced_c;
     
-        Sm = 2.*Prad + HALF_F*(3.*xi-1.)*Vc(ER,k,j,i)*Vc(iFPHI,k,j,i)*Vc(iFPHI,k,j,i)*inv_Fnorm2*reduced_c);      
+        Sm = 2.*Prad + HALF_F*(3.*xi-1.)*Vc(ER,k,j,i)*Vc(iFPHI,k,j,i)*Vc(iFPHI,k,j,i)*inv_Fnorm2*reduced_c;      
       } else {
         Sm = Vc(RHO,k,j,i) * vphi*vphi;     // Centrifugal
       }
@@ -234,7 +234,7 @@ struct Fluid_AddSourceTermsFunctor {
        // Centrifugal
       if constexpr(Phys::radiation){
         Sm = EXPAND(ct*Prad, 
-                    + HALF_F*(3.*xi-1.)*Vc(ER,k,j,i)*Vc(iFTH,k,j,i)*Vc(iFR,k,j,i)*inv_Fnorm2*reduced_c,
+                    - HALF_F*(3.*xi-1.)*Vc(ER,k,j,i)*Vc(iFTH,k,j,i)*Vc(iFR,k,j,i)*inv_Fnorm2*reduced_c,
                     + ct*HALF_F*(3.*xi-1.)*Vc(ER,k,j,i)*Vc(iFPHI,k,j,i)*Vc(iFPHI,k,j,i)*inv_Fnorm2*reduced_c);
       } else {
         Sm = Vc(RHO,k,j,i) * (EXPAND( ZERO_F, - Vc(iVTH,k,j,i)*Vc(iVR,k,j,i), + ct*vphi*vphi));
