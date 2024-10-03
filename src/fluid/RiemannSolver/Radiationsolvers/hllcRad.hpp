@@ -15,6 +15,7 @@
 #include "convertConsToPrim.hpp"
 #include "speedRad.hpp"
 #include "lim_fluxRad.hpp"
+#include "radsource.hpp"
 
 // Compute Riemann fluxes from states using HLLC solver
 template <typename Phys>
@@ -35,6 +36,11 @@ void RiemannSolver<Phys>::HllcRad(IdefixArray4D<real> &Flux) {
 
   ExtrapolateToFaces<Phys,DIR> extrapol = *this->GetExtrapolator<DIR>();
 
+  // Reduced velocity of light
+  real reduced_c = this->reduced_c;
+
+  RadSource &rad_source = *(this->hydro->radsource);
+
   idefix_for("HLLC_Rad_Kernel",
              data->beg[KDIR],data->end[KDIR]+koffset,
              data->beg[JDIR],data->end[JDIR]+joffset,
@@ -44,14 +50,8 @@ void RiemannSolver<Phys>::HllcRad(IdefixArray4D<real> &Flux) {
       EXPAND( constexpr int Xn = DIR+MX1;                    ,
               constexpr int Xt = (DIR == IDIR ? MX2 : MX1);  ,
               constexpr int Xb = (DIR == KDIR ? MX2 : MX3);  )
-      
-      constexpr int ioffset = (DIR==IDIR ? 1 : 0);
-      constexpr int joffset = (DIR==JDIR ? 1 : 0);
-      constexpr int koffset = (DIR==KDIR ? 1 : 0);
-      
-      // Reduced velocity of light
-      real reduced_c = this->reduced_c;
-      
+      const int index = ioffset*i + joffset*j + koffset*k;
+
       // Primitive variables
       real vL[Phys::nvar];
       real vR[Phys::nvar];
@@ -78,6 +78,8 @@ void RiemannSolver<Phys>::HllcRad(IdefixArray4D<real> &Flux) {
       // 2-- Get the wave speed
       K_speeds_Rad(lambdaL,vL,Xn, reduced_c);
       K_speeds_Rad(lambdaR,vR,Xn, reduced_c);
+
+      real speed_diff = rad_source.Limit_speeds_Rad(i,j,k,dx[index]);
  
       real lambda_max_L = FMAX(lambdaL[0],lambdaL[1]);
       real lambda_max_R = FMAX(lambdaR[0],lambdaR[1]);
@@ -85,7 +87,9 @@ void RiemannSolver<Phys>::HllcRad(IdefixArray4D<real> &Flux) {
       real lambda_min_R = FMIN(lambdaR[0],lambdaR[1]);
       
       real SR = FMAX(lambda_max_L,lambda_max_R);
+      SR = FMIN(speed_diff,SR);
       real SL = FMIN(lambda_min_L,lambda_min_R);
+      SL = FMAX(-speed_diff,SL);
 
       real cmax  = FMAX(FABS(SL), FABS(SR));
 
