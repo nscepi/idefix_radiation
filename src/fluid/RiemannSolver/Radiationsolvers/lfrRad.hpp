@@ -35,6 +35,9 @@ void RiemannSolver<Phys>::LFRRad(IdefixArray4D<real> &Flux) {
 
   ExtrapolateToFaces<Phys,DIR> extrapol = *this->GetExtrapolator<DIR>();
 
+  // Reduced velocity of light
+  real reduced_c = this->reduced_c;
+
   idefix_for("LFR_Rad_Kernel",
              data->beg[KDIR],data->end[KDIR]+koffset,
              data->beg[JDIR],data->end[JDIR]+joffset,
@@ -42,9 +45,6 @@ void RiemannSolver<Phys>::LFRRad(IdefixArray4D<real> &Flux) {
     KOKKOS_LAMBDA (int k, int j, int i) {
       // Init the directions (should be in the kernel for proper optimisation by the compilers)
       constexpr int Xn = DIR+MX1;
-
-      // Reduced velocity of light
-      real reduced_c = this->reduced_c;
 
       // Primitive variables
       real vL[Phys::nvar];
