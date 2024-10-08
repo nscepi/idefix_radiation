@@ -25,6 +25,7 @@ void MySourceTerm(Hydro *hydro, const real t, const real dtin) {
   IdefixArray1D<real> x1=data->x[IDIR];
   IdefixArray1D<real> x1l=data->xl[IDIR];
   IdefixArray1D<real> x2l=data->xl[JDIR];
+  IdefixArray1D<real> x2=data->x[JDIR];
   IdefixArray3D<real> A1=data->A[IDIR];
   IdefixArray3D<real> A2=data->A[JDIR];
   IdefixArray3D<real> dV=data->dV;
@@ -53,6 +54,9 @@ void MySourceTerm(Hydro *hydro, const real t, const real dtin) {
   real rs = rsGlob;
   real Ts = TsGlob;
   real kappa_irr = kappairrGlob*unit_density*unit_length;
+  real R0 = R0Glob;
+  real h0 = h0Glob;
+  real hpow = hpowGlob;
 
   real flux_pre = M_PI*std::pow(rs/unit_length,2.)*idfx::units.ar*std::pow(Ts,4.)/unit_energy;
   
@@ -63,9 +67,15 @@ void MySourceTerm(Hydro *hydro, const real t, const real dtin) {
     data->beg[JDIR], data->end[JDIR],
     data->beg[IDIR], data->end[IDIR],
               KOKKOS_LAMBDA (int k, int j, int i) {
-              
+
+                //real R = FMAX(x1(i)*std::sin(x2(j)),1.);
+                //real z2 = std::pow(x1(i)*std::cos(x2(j)),2.);
+                //real H = h0*std::pow(R/R0,hpow);
+
                 real Fim = std::exp(-kappa_irr*tau(k,j,i-1))*A1(k,j,i)/std::pow(x1l(i),2.);
+                //real Fim = kappa_irr/(unit_density*unit_length)*A1(k,j,i)/std::pow(x1l(i),5.)*std::exp(-0.25*M_PI*z2/(H*H));
                 real Fip = std::exp(-kappa_irr*tau(k,j,i))*A1(k,j,i+1)/std::pow(x1l(i+1),2.);
+                //real Fip = kappa_irr/(unit_density*unit_length)*A1(k,j,i+1)/std::pow(x1l(i+1),5.)*std::exp(-0.25*M_PI*z2/(H*H));
 
                 real divF = flux_pre*(Fip-Fim)/dV(k,j,i);
 
@@ -315,6 +325,7 @@ void ComputeUserVars(DataBlock & data, UserDefVariablesContainer &variables) {
 
   IdefixHostArray1D<real> x1=d.x[IDIR];
   IdefixHostArray1D<real> x1l=d.xl[IDIR];
+  IdefixHostArray1D<real> x2=d.x[JDIR];
   IdefixHostArray1D<real> x2l=d.xl[JDIR];
   IdefixHostArray3D<real> A1=d.A[IDIR];
   IdefixHostArray3D<real> A2=d.A[JDIR];
@@ -332,6 +343,9 @@ void ComputeUserVars(DataBlock & data, UserDefVariablesContainer &variables) {
   real rs = rsGlob;
   real Ts = TsGlob;
   real kappa_irr = kappairrGlob;
+  real R0 = R0Glob;
+  real h0 = h0Glob;
+  real hpow = hpowGlob;
 
   real kappa_rad = kappa_irr*unit_density*unit_length;
   real flux_pre = M_PI*std::pow(rs/unit_length,2.)*idfx::units.ar*std::pow(Ts,4.)/unit_energy;
@@ -348,8 +362,14 @@ void ComputeUserVars(DataBlock & data, UserDefVariablesContainer &variables) {
     for(int j = d.beg[JDIR]; j < d.end[JDIR] ; j++) {
       for(int i = d.beg[IDIR]; i < d.end[IDIR] ; i++) {
         A1_out(k,j,i) = A1(k,j,i);
-        real Fim = std::exp(-kappa_rad*tau(k,j,i))/std::pow(x1l(i),2.);
-        real Fip = std::exp(-kappa_rad*tau(k,j,i+1))/std::pow(x1l(i+1),2.);
+        //real R = FMAX(x1(i)*std::sin(x2(j)),1.);
+        //real z2 = std::pow(x1(i)*std::cos(x2(j)),2.);
+        //real H = h0*std::pow(R/R0,hpow);
+
+        //real Fim = kappa_rad/(unit_density*unit_length)*A1(k,j,i)/std::pow(x1l(i),5.)*std::exp(-0.25*M_PI*z2/(H*H));
+        //real Fip = kappa_rad/(unit_density*unit_length)*A1(k,j,i+1)/std::pow(x1l(i+1),5.)*std::exp(-0.25*M_PI*z2/(H*H));
+        real Fim = std::exp(-kappa_rad*tau(k,j,i-1))/std::pow(x1l(i),2.);
+        real Fip = std::exp(-kappa_rad*tau(k,j,i))/std::pow(x1l(i+1),2.);
 
         divF(k,j,i) = (Fip*A1(k,j,i+1)-Fim*A1(k,j,i));
         divF(k,j,i) *= flux_pre;
@@ -382,7 +402,7 @@ Setup::Setup(Input &input, Grid &grid, DataBlock &data, Output &output)
 
   columnGlob = new Column(IDIR,1,RHO,&data);
 
-  //data.hydro->EnrollUserDefBoundary(&UserdefBoundary);
+  data.hydro->EnrollUserDefBoundary(&UserdefBoundary);
   //data.hydro->EnrollInternalBoundary(&InternalBoundary);
   data.hydro->EnrollUserSourceTerm(&MySourceTerm);
   data.hydro->EnrollFluxBoundary(&FluxBoundary);
@@ -392,7 +412,7 @@ Setup::Setup(Input &input, Grid &grid, DataBlock &data, Output &output)
   if(data.haveRadiation) {
     int nFrequencies = data.radiation.size();
     for(int n = 0 ; n < nFrequencies ; n++) {
-      //data.radiation[n]->EnrollUserDefBoundary(&UserdefBoundaryRad);
+      data.radiation[n]->EnrollUserDefBoundary(&UserdefBoundaryRad);
     }
   }
   //data.hydro->haveSourceTerms=false;

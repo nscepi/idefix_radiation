@@ -1,3 +1,4 @@
+#undef DEBUG
 #define     COMPONENTS      3
 #define     DIMENSIONS      2
 
