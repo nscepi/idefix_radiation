@@ -1,6 +1,7 @@
 #include "idefix.hpp"
 #include "setup.hpp"
 #include "column.hpp"
+#include "lookupTable.hpp"
 
 real R0Glob;
 real h0Glob;
@@ -58,24 +59,27 @@ void MySourceTerm(Hydro *hydro, const real t, const real dtin) {
   real h0 = h0Glob;
   real hpow = hpowGlob;
 
-  real flux_pre = M_PI*std::pow(rs/unit_length,2.)*idfx::units.ar*std::pow(Ts,4.)/unit_energy;
+  real flux_pre = std::pow(rs/unit_length,2.)*idfx::units.sigma_sb*std::pow(Ts,4.)/unit_energy/unit_velocity;
   
   columnGlob->ComputeColumn(hydro->Vc);
   tau = columnGlob->GetColumn();
+  //auto pre_flux = LookupTable<1>("irr_flux.dat",',');
+
   idefix_for("MySourceTerm",
     data->beg[KDIR], data->end[KDIR],
     data->beg[JDIR], data->end[JDIR],
     data->beg[IDIR], data->end[IDIR],
               KOKKOS_LAMBDA (int k, int j, int i) {
 
-                //real R = FMAX(x1(i)*std::sin(x2(j)),1.);
-                //real z2 = std::pow(x1(i)*std::cos(x2(j)),2.);
-                //real H = h0*std::pow(R/R0,hpow);
-
                 real Fim = std::exp(-kappa_irr*tau(k,j,i-1))*A1(k,j,i)/std::pow(x1l(i),2.);
-                //real Fim = kappa_irr/(unit_density*unit_length)*A1(k,j,i)/std::pow(x1l(i),5.)*std::exp(-0.25*M_PI*z2/(H*H));
                 real Fip = std::exp(-kappa_irr*tau(k,j,i))*A1(k,j,i+1)/std::pow(x1l(i+1),2.);
-                //real Fip = kappa_irr/(unit_density*unit_length)*A1(k,j,i+1)/std::pow(x1l(i+1),5.)*std::exp(-0.25*M_PI*z2/(H*H));
+                
+                //real logtau = std::log10(FMAX(tau(k,j,i-1)*unit_density*unit_length,1.e-15));
+                //printf("logtau=%e, tau=%e\n",logtau,tau(k,j,i-1)*unit_density*unit_length);
+                //real Fim = pre_flux.Get(&logtau)*A1(k,j,i)/std::pow(x1l(i),2.);
+                //logtau = std::log10(FMAX(tau(k,j,i)*unit_density*unit_length,1.e-15));
+                //printf("logtau=%e, tau=%e\n",logtau,tau(k,j,i-1)*unit_density*unit_length);
+                //real Fip = pre_flux.Get(&logtau)*A1(k,j,i+1)/std::pow(x1l(i+1),2.);
 
                 real divF = flux_pre*(Fip-Fim)/dV(k,j,i);
 
@@ -348,7 +352,7 @@ void ComputeUserVars(DataBlock & data, UserDefVariablesContainer &variables) {
   real hpow = hpowGlob;
 
   real kappa_rad = kappa_irr*unit_density*unit_length;
-  real flux_pre = M_PI*std::pow(rs/unit_length,2.)*idfx::units.ar*std::pow(Ts,4.)/unit_energy;
+  real flux_pre = std::pow(rs/unit_length,2.)*idfx::units.sigma_sb*std::pow(Ts,4.)/unit_energy/unit_velocity;
 
   // Make references to the user-defined arrays (variables is a container of IdefixHostArray3D)
   // Note that the labels should match the variable names in the input file
@@ -402,8 +406,8 @@ Setup::Setup(Input &input, Grid &grid, DataBlock &data, Output &output)
 
   columnGlob = new Column(IDIR,1,RHO,&data);
 
-  data.hydro->EnrollUserDefBoundary(&UserdefBoundary);
-  //data.hydro->EnrollInternalBoundary(&InternalBoundary);
+  //data.hydro->EnrollUserDefBoundary(&UserdefBoundary);
+  data.hydro->EnrollInternalBoundary(&InternalBoundary);
   data.hydro->EnrollUserSourceTerm(&MySourceTerm);
   data.hydro->EnrollFluxBoundary(&FluxBoundary);
   output.EnrollUserDefVariables(&ComputeUserVars);
@@ -412,7 +416,7 @@ Setup::Setup(Input &input, Grid &grid, DataBlock &data, Output &output)
   if(data.haveRadiation) {
     int nFrequencies = data.radiation.size();
     for(int n = 0 ; n < nFrequencies ; n++) {
-      data.radiation[n]->EnrollUserDefBoundary(&UserdefBoundaryRad);
+      //data.radiation[n]->EnrollUserDefBoundary(&UserdefBoundaryRad);
     }
   }
   //data.hydro->haveSourceTerms=false;
