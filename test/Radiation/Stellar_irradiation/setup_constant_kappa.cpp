@@ -14,6 +14,7 @@ real gammaGlob;
 real rsGlob;
 real TsGlob;
 real kappaGlob;
+real kappairrGlob;
 
 Column *columnGlob;
 
@@ -54,15 +55,14 @@ void MySourceTerm(Hydro *hydro, const real t, const real dtin) {
   real csiso = std::sqrt(C_kb*T0/(mu*C_amu));
   real rs = rsGlob;
   real Ts = TsGlob;
+  real kappa_irr = kappairrGlob*unit_density*unit_length;
   real R0 = R0Glob;
   real h0 = h0Glob;
   real hpow = hpowGlob;
 
-  
-  // Usertable kappa
+  //Constant kappa
   real flux_pre = std::pow(rs/unit_length,2.)*idfx::units.sigma_sb*std::pow(Ts,4.)/unit_energy/unit_velocity;
-  auto irr_flux = LookupTable<1>("irr_flux.dat",',');
-
+  
   columnGlob->ComputeColumn(hydro->Vc);
   tau = columnGlob->GetColumn();
 
@@ -72,14 +72,15 @@ void MySourceTerm(Hydro *hydro, const real t, const real dtin) {
     data->beg[IDIR], data->end[IDIR],
               KOKKOS_LAMBDA (int k, int j, int i) {
 
-                // Usertable kappa
-                real logtaum = std::log10(FMAX(tau(k,j,i-1)*unit_density*unit_length,1.e-12));
-                real Fim = pow(10.,irr_flux.Get(&logtaum))*A1(k,j,i)/std::pow(x1l(i),2.);
-                real logtaup = std::log10(FMAX(tau(k,j,i)*unit_density*unit_length,1.e-12));
-                real Fip = pow(10.,irr_flux.Get(&logtaup))*A1(k,j,i+1)/std::pow(x1l(i+1),2.);
+                // Constant kappa
+                real Fim = std::exp(-kappa_irr*tau(k,j,i-1))*A1(k,j,i)/std::pow(x1l(i),2.);
+                real Fip = std::exp(-kappa_irr*tau(k,j,i))*A1(k,j,i+1)/std::pow(x1l(i+1),2.);
                 real divF = flux_pre*(Fip-Fim)/dV(k,j,i);
 
                 //printf("divF/Uc(ENG,k,j,i)=%e Uc(ENG,k,j,i)=%e divF=%e at i %i j %i k %i\n",divF/Uc(ENG,k,j,i),Uc(ENG,k,j,i),divF,i,j,k);
+                //if (FABS(divF/Uc(ENG,k,j,i)) > InvDt(k,j,i)) {
+                //  printf("Add timestep constraint at i %i j %i k %i\n",i,j,k);
+               // }
                 InvDt(k,j,i) = InvDt(k,j,i) + FABS(divF/Uc(ENG,k,j,i));
                 
                 Uc(ENG,k,j,i) -= dt*divF;
@@ -337,27 +338,21 @@ void ComputeUserVars(DataBlock & data, UserDefVariablesContainer &variables) {
   IdefixHostArray3D<real> tau;
   IdefixHostArray3D<real> divF  = variables["divF"];
   IdefixHostArray3D<real> A1_out  = variables["A1"];
-  IdefixHostArray3D<real> irr  = variables["irr_flux"];
-  IdefixHostArray3D<real> kappa_p  = variables["kappa_p"];
-  IdefixHostArray3D<real> kappa_r  = variables["kappa_r"];
-
+ 
   real unit_density = idfx::units.density;
   real unit_velocity = idfx::units.velocity;
   real unit_length = idfx::units.length;
   real unit_energy = unit_density*unit_velocity*unit_velocity;
-  real KELVIN = idfx::units.Kelvin;
 
-  real mu = muGlob;
   real rs = rsGlob;
   real Ts = TsGlob;
+  real kappa_irr = kappairrGlob;
   real R0 = R0Glob;
   real h0 = h0Glob;
   real hpow = hpowGlob;
 
+  real kappa_rad = kappa_irr*unit_density*unit_length;
   real flux_pre = std::pow(rs/unit_length,2.)*idfx::units.sigma_sb*std::pow(Ts,4.)/unit_energy/unit_velocity;
-  auto irr_flux = LookupTable<1>("irr_flux.dat",',');
-  auto kappa_planck = LookupTable<1>("kappa_p.dat",',');
-  auto kappa_rosseland = LookupTable<1>("kappa_r.dat",',');
 
   // Make references to the user-defined arrays (variables is a container of IdefixHostArray3D)
   // Note that the labels should match the variable names in the input file
@@ -372,32 +367,19 @@ void ComputeUserVars(DataBlock & data, UserDefVariablesContainer &variables) {
       for(int i = d.beg[IDIR]; i < d.end[IDIR] ; i++) {
         A1_out(k,j,i) = A1(k,j,i);
 
-        real logtaum = std::log10(FMAX(tau(k,j,i-1)*unit_density*unit_length,1.e-12));
-        real Fim = std::pow(10.,irr_flux.Get(&logtaum))/std::pow(x1l(i),2.);
-        //printf("Fim=%e at i %i j %i k %i\n",Fim,i,j,k);
-        real logtaup = std::log10(FMAX(tau(k,j,i)*unit_density*unit_length,1.e-12));
-        real Fip = std::pow(10.,irr_flux.Get(&logtaup))/std::pow(x1l(i+1),2.);
-        //printf("Fip=%e at i %i j %i k %i\n",Fip,i,j,k);
+        real Fim = std::exp(-kappa_rad*tau(k,j,i-1))/std::pow(x1l(i),2.);
+        real Fip = std::exp(-kappa_rad*tau(k,j,i))/std::pow(x1l(i+1),2.);
 
         divF(k,j,i) = (Fip*A1(k,j,i+1)-Fim*A1(k,j,i));
         divF(k,j,i) *= flux_pre;
         divF(k,j,i) /= dV(k,j,i);
 
-        irr(k,j,i) = irr_flux.Get(&logtaum);
-        
-        real T = data.hydro->Vc(PRS,k,j,i)/(data.hydro->Vc(RHO,k,j,i))*KELVIN*mu;
-        real logT = std::log10(T);
-
-        kappa_p(k,j,i) = kappa_planck.Get(&logT);
-        kappa_r(k,j,i) = kappa_rosseland.Get(&logT);
       }
     }
   }
   Kokkos::deep_copy(variables["divF"], divF);
   Kokkos::deep_copy(variables["A1"], A1_out);
-  Kokkos::deep_copy(variables["irr_flux"], irr);
-  Kokkos::deep_copy(variables["kappa_p"], kappa_p);
-  Kokkos::deep_copy(variables["kappa_r"], kappa_r);
+
 }
 
 
@@ -418,6 +400,7 @@ Setup::Setup(Input &input, Grid &grid, DataBlock &data, Output &output)
   rsGlob=input.Get<real>("Setup","rs",0);
   TsGlob=input.Get<real>("Setup","Ts",0);
   //kappaGlob = input.Get<real>("Rad","kappa",1);
+  kappairrGlob = input.Get<real>("Rad","kappa_irr",0);
 
   columnGlob = new Column(IDIR,1,RHO,&data);
 
