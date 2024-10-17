@@ -11,14 +11,6 @@
 #include "lookupTable.hpp"
 
 
-real kappa_p_userdef(real logT){
-  return -2.56940715e-02*std::pow(logT,9.) + 6.30188178e-01*std::pow(logT,8.) - 6.53702498e+00*std::pow(logT,7.) + 3.73578070e+01*std::pow(logT,6.) - 1.28551105e+02*std::pow(logT,5.) + 2.73957344e+02*std::pow(logT,4.) - 3.59150803e+02*std::pow(logT,3.) + 2.78011990e+02*std::pow(logT,2.) - 1.13021565e+02*std::pow(logT,1.) + 1.76150448e+01*std::pow(logT,0.);
-}
-
-real kappa_r_userdef(real logT){
-  return -1.60534470e-02*std::pow(logT,9.) + 3.85108582e-01*std::pow(logT,8.) -3.88152799e+00*std::pow(logT,7.) + 2.13635983e+01*std::pow(logT,6.) - 6.99940874e+01*std::pow(logT,5.) + 1.40054251e+02*std::pow(logT,4.) - 1.69791255e+02*std::pow(logT,3.) + 1.19768227e+02*std::pow(logT,2.) - 4.26659397e+01*std::pow(logT,1.) + 4.66921103e+00*std::pow(logT,0.);
-}
-
 void RadSource::AddRadSource(const real dt) {
   idfx::pushRegion("RadSource::AddRadSource");
 
