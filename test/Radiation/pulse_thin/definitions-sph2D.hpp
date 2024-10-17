@@ -2,6 +2,5 @@
 #define     DIMENSIONS      2
 
 #define     GEOMETRY        SPHERICAL
-#define     RADIATION
 
 #define     SMALL_ER         1.e-16
