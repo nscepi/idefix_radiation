@@ -10,6 +10,15 @@
 #include "units.hpp"
 #include "lookupTable.hpp"
 
+
+real kappa_p_userdef(real logT){
+  return -2.56940715e-02*std::pow(logT,9.) + 6.30188178e-01*std::pow(logT,8.) - 6.53702498e+00*std::pow(logT,7.) + 3.73578070e+01*std::pow(logT,6.) - 1.28551105e+02*std::pow(logT,5.) + 2.73957344e+02*std::pow(logT,4.) - 3.59150803e+02*std::pow(logT,3.) + 2.78011990e+02*std::pow(logT,2.) - 1.13021565e+02*std::pow(logT,1.) + 1.76150448e+01*std::pow(logT,0.);
+}
+
+real kappa_r_userdef(real logT){
+  return -1.60534470e-02*std::pow(logT,9.) + 3.85108582e-01*std::pow(logT,8.) -3.88152799e+00*std::pow(logT,7.) + 2.13635983e+01*std::pow(logT,6.) - 6.99940874e+01*std::pow(logT,5.) + 1.40054251e+02*std::pow(logT,4.) - 1.69791255e+02*std::pow(logT,3.) + 1.19768227e+02*std::pow(logT,2.) - 4.26659397e+01*std::pow(logT,1.) + 4.66921103e+00*std::pow(logT,0.);
+}
+
 void RadSource::AddRadSource(const real dt) {
   idfx::pushRegion("RadSource::AddRadSource");
 
@@ -38,9 +47,9 @@ void RadSource::AddRadSource(const real dt) {
   real unit_time = unit_length/unit_velocity;
   real unit_energy = unit_density*unit_velocity*unit_velocity;
   // Max iteration for fixed-point solver
-  int MAX_ITER = 200;
+  int MAX_ITER = 1000;
   // Tolerance on ER and ENG for fixed-point solver
-  real tol = 1.e-3;
+  real tol = 1.e-4;
 
   EquationOfState eos = *(this->eos);
 
@@ -113,14 +122,13 @@ void RadSource::AddRadSource(const real dt) {
           Mnorm_old = Mnorm;
         
           real T = VGas[PRS]/(VGas[RHO])*KELVIN*mu;
-          real logT = std::log10(T);
           if (kappa_type == Type::kramers){
             kappa_p = kappa_0*(VGas[RHO]*unit_density/rho_0)*std::pow(T/T_0,-3.5);
             kappa_r = kappa_p;
           } else if (kappa_type == Type::usertable){
+            real logT = std::log10(T);
             kappa_p = k_p.Get(&logT);
             kappa_r = k_r.Get(&logT);
-            //printf("T=%e,kappa_p=%e\n",T,kappa);
           }
           real kk_red = s*reduced_c * unit_velocity * dt * unit_time * kappa_p * VGas[RHO]*unit_density;
           real xx_red = s*reduced_c * unit_velocity * dt * unit_time * (xi_rad + kappa_r) * VGas[RHO]*unit_density;
@@ -247,7 +255,13 @@ real RadSource::Limit_speeds_Rad(int i, int j, int k, real dx) const{
   } else if (kappa_type == Type::kramers){
     real T = VcGas(PRS,k,j,i)/(VcGas(RHO,k,j,i))*KELVIN*mu;
     kappa = kappa_0*std::pow(VcGas(RHO,k,j,i)*unit_density/rho_0,2.)*std::pow(T/T_0,-3.5);
+  } else if (kappa_type == Type::usertable){
+    real T = VcGas(PRS,k,j,i)/(VcGas(RHO,k,j,i))*KELVIN*mu;
+    real logT = std::log10(T);
+    auto k_p = this->kappa_planck;
+    kappa = k_p.Get(&logT);
   }
+
   real tau = VcGas(RHO,k,j,i)*idfx::units.density*(kappa+xi_rad)*dx*idfx::units.length;
 
   return 4./(3.*tau)*this->reduced_c;
