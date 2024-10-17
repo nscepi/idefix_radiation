@@ -166,5 +166,8 @@ void Fluid<Phys>::ShowConfig() {
   if(haveDrag) {
     drag->ShowConfig();
   }
+  if constexpr(Phys::radiation) {
+    radsource->ShowConfig();
+  }
 }
 #endif //FLUID_SHOWCONFIG_HPP_

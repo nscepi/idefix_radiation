@@ -24,7 +24,7 @@ void RadSource::AddRadSource(const real dt) {
   real kappa_0 = this->kappa_0;
   real rho_0 = this->rho_0;
   real T_0 = this->T_0;
-  real xi_rad = this->xi_rad;
+  real xi_0 = this->xi_0;
   real reduced_c = this->reduced_c;
   real gamma = this->gamma;
   real mu = this->mu;
@@ -39,14 +39,15 @@ void RadSource::AddRadSource(const real dt) {
   real unit_time = unit_length/unit_velocity;
   real unit_energy = unit_density*unit_velocity*unit_velocity;
   // Max iteration for fixed-point solver
-  int MAX_ITER = 1000;
+  int MAX_ITER = 200;
   // Tolerance on ER and ENG for fixed-point solver
-  real tol = 1.e-4;
+  real tol = 1.e-3;
 
   EquationOfState eos = *(this->eos);
 
-  auto k_p = this->kappa_planck;
-  auto k_r = this->kappa_ross;
+  auto kp1D = this->kappa_planck_1D;
+  auto kr1D = this->kappa_ross_1D;
+  auto xi1D = this->xi_1D;
   
   idefix_for("RadSource",0,data->np_tot[KDIR],0,data->np_tot[JDIR],0,data->np_tot[IDIR],
     KOKKOS_LAMBDA (int k, int j, int i) {
@@ -73,15 +74,15 @@ void RadSource::AddRadSource(const real dt) {
       real UGas[DefaultPhysics::nvar];
       real VGas[DefaultPhysics::nvar];
       
-      real kappa_p;
-      real kappa_r;
-
-      // Constant to stabilize implicit step
-      real s = 1.;
+      real kappa_p,kappa_r,xi;
 
       if (kappa_type == Type::constant){
         kappa_p = kappa_0;
         kappa_r = kappa_0;
+      }
+
+      if (xi_type == Type::constant){
+        xi = xi_0;
       }
 
       for(int nv = 0 ; nv < RadiationPhysics::nvar ; nv++) {
@@ -119,11 +120,16 @@ void RadSource::AddRadSource(const real dt) {
             kappa_r = kappa_p;
           } else if (kappa_type == Type::usertable){
             real logT = std::log10(T);
-            kappa_p = k_p.Get(&logT);
-            kappa_r = k_r.Get(&logT);
+            kappa_p = kp1D.Get(&logT);
+            kappa_r = kr1D.Get(&logT);
           }
-          real kk_red = s*reduced_c * unit_velocity * dt * unit_time * kappa_p * VGas[RHO]*unit_density;
-          real xx_red = s*reduced_c * unit_velocity * dt * unit_time * (xi_rad + kappa_r) * VGas[RHO]*unit_density;
+          if (xi_type == Type::usertable){
+            real logT = std::log10(T);
+            xi = xi1D.Get(&logT);
+          }
+
+          real kk_red = reduced_c * unit_velocity * dt * unit_time * kappa_p * VGas[RHO]*unit_density;
+          real xx_red = reduced_c * unit_velocity * dt * unit_time * (xi + kappa_r) * VGas[RHO]*unit_density;
 
           URad[ER] = Er_hyp +  kk_red*C_ar*std::pow(T,4.)/unit_energy;
           URad[ER] /= 1. + kk_red;
@@ -173,13 +179,16 @@ void RadSource::AddRadSource(const real dt) {
             kappa_p = kappa_0*(VGas[RHO]*unit_density/rho_0)*std::pow(T/T_0,-3.5);
             kappa_r = kappa_p;
           } else if (kappa_type == Type::usertable){
-            kappa_p = k_p.Get(&logT);
-            kappa_r = k_r.Get(&logT);
-            //printf("T=%e,kappa_p=%e\n",T,kappa);
+            kappa_p = kp1D.Get(&logT);
+            kappa_r = kr1D.Get(&logT);
+          }
+          if (xi_type == Type::usertable){
+            real logT = std::log10(T);
+            xi = xi1D.Get(&logT);
           }
 
           real kk =  C_c * dt * unit_time * kappa_p * VGas[RHO]*unit_density;
-          real xx =  dt * unit_time * (xi_rad + kappa_r) * VGas[RHO]*unit_density;
+          real xx =  dt * unit_time * (xi + kappa_r) * VGas[RHO]*unit_density;
 
           // Stop if UGas <= 0
           if ((Egas_hyp +  kk*(URad[ER]-C_ar*std::pow(T,4)/unit_energy))<=ZERO_F) {
@@ -238,10 +247,12 @@ real RadSource::Limit_speeds_Rad(int i, int j, int k, real dx) const{
   auto VcGas = this->VcGas;
   real kappa_0 = this->kappa_0;
   auto kappa_type = this->kappa_type;
-  real xi_rad = this->xi_rad;
+  real xi_0 = this->xi_0;
   real mu =this->mu;
   real KELVIN = idfx::units.Kelvin;
-  real kappa;
+  real kappa,xi;
+
+  // Compute kappa
   if (kappa_type == Type::constant){
     kappa = kappa_0;
   } else if (kappa_type == Type::kramers){
@@ -250,26 +261,50 @@ real RadSource::Limit_speeds_Rad(int i, int j, int k, real dx) const{
   } else if (kappa_type == Type::usertable){
     real T = VcGas(PRS,k,j,i)/(VcGas(RHO,k,j,i))*KELVIN*mu;
     real logT = std::log10(T);
-    auto k_p = this->kappa_planck;
+    auto k_p = this->kappa_planck_1D;
     kappa = k_p.Get(&logT);
   }
 
-  real tau = VcGas(RHO,k,j,i)*idfx::units.density*(kappa+xi_rad)*dx*idfx::units.length;
+  // Compute xi
+  if (xi_type == Type::constant){
+    xi = xi_0;
+  } else if (xi_type == Type::usertable){
+    real T = VcGas(PRS,k,j,i)/(VcGas(RHO,k,j,i))*KELVIN*mu;
+    real logT = std::log10(T);
+    auto xi1D = this->xi_1D;
+    xi = xi1D.Get(&logT);
+  }
 
+  // Compute optical depth across one cell
+  real tau = VcGas(RHO,k,j,i)*idfx::units.density*(kappa+xi)*dx*idfx::units.length;
+
+  // return characteristic velocity of radiative diffusion 
   return 4./(3.*tau)*this->reduced_c;
 }
 
 void RadSource::ShowConfig() {
-  idfx::cout << "RadSource: Using ";
+  idfx::cout << "RadSource: kappa is ";
   switch(kappa_type) {
     case Type::constant:
-      idfx::cout << "constant kappa in source term integration";
+      idfx::cout << "constant." << std::endl;
       break;
     case Type::kramers:
-      idfx::cout << "kappa in kramers form in source term integration";
+      idfx::cout << "from kramers' law." << std::endl;
       break;
     case Type::usertable:
-      idfx::cout << "kappa from table provided by user in source term integration";
+      idfx::cout << "from a user table." << std::endl;
+      break;
+  }
+  idfx::cout << "RadSource: xi is ";
+  switch(xi_type) {
+    case Type::constant:
+      idfx::cout << "constant." << std::endl;
+      break;
+    case Type::kramers:
+      idfx::cout << "!!! from kramers' law, which is not allowed !!!" << std::endl;
+      break;
+    case Type::usertable:
+      idfx::cout << "from a user table." << std::endl;
       break;
   }
 }

@@ -31,13 +31,14 @@ class RadSource {
   IdefixArray4D<real> VcGas;  // Gas primitive quantities
   IdefixArray3D<real> InvDt;  // The InvDt of current radiation multigroup
   Type kappa_type;
+  Type xi_type;
   
  private:
   DataBlock* data;
   real kappa_0;
+  real xi_0;
   real rho_0;
   real T_0;
-  real xi_rad;
   real kappa_irr;
   real reduced_c;
   real gamma;
@@ -56,8 +57,14 @@ class RadSource {
   EquationOfState *eos;
 
   // Planck and Rosseland opacities 
-  LookupTable<1> kappa_planck;
-  LookupTable<1> kappa_ross;
+  int kappa_ndim;
+  int xi_ndim;
+  std::string kappap_file;
+  std::string kappar_file;
+  std::string xi_file;
+  LookupTable<1> kappa_planck_1D;
+  LookupTable<1> kappa_ross_1D;
+  LookupTable<1> xi_1D;
 
   // Instance of Unit Class
   idfx::Units *units;
@@ -97,8 +104,32 @@ RadSource::RadSource(Input &input, Fluid<Phys> *hydroin):
   this->mu = this->eos->GetMu();
 
   if(input.CheckEntry(BlockName,"xi")>=0) {
+    // Fetch the opacity coefficient for the current radiation group.
     const int n = hydroin->instanceNumber;
-    this->xi_rad = input.Get<real>(BlockName,"xi",n);
+
+    std::string xiType = input.Get<std::string>(BlockName,"xi",0);
+    if(xiType.compare("constant") == 0) {
+      this->xi_type = Type::constant;
+      this->xi_0 = input.Get<real>(BlockName,"xi",n+1);
+    } else if(xiType.compare("usertable") == 0) {
+      this->xi_type = Type::usertable;
+      this->xi_ndim = input.Get<int>(BlockName,"kappa",n+1);
+      this->xi_file = input.Get<std::string>(BlockName,"xi",n+2);
+      if (input.Get<int>(BlockName,"xi",n+1) == 1){
+        this-> xi_1D = LookupTable<1>(this->xi_file,',');
+      } else {
+        std::stringstream msg;
+        msg << "Only 1 dimension for scattering opacity tables are currently accepted." << std::endl;
+        IDEFIX_ERROR(msg);
+      }
+    } else {
+      std::stringstream msg;
+      msg << "Unknown xi type \"" <<  xiType
+          << "\" in your input file." << std::endl
+          << "Allowed values are: constant, usertable." << std::endl;
+
+      IDEFIX_ERROR(msg);
+    }
   }
 
   if(input.CheckEntry(BlockName,"kappa_irr")>=0) {
@@ -110,22 +141,32 @@ RadSource::RadSource(Input &input, Fluid<Phys> *hydroin):
     // Fetch the opacity coefficient for the current radiation group.
     const int n = hydroin->instanceNumber;
 
-    std::string KappaType = input.Get<std::string>(BlockName,"kappa",0);
-    if(KappaType.compare("constant") == 0) {
+    std::string kappaType = input.Get<std::string>(BlockName,"kappa",0);
+    if(kappaType.compare("constant") == 0) {
       this->kappa_type = Type::constant;
       this->kappa_0 = input.Get<real>(BlockName,"kappa",n+1);
-    } else if(KappaType.compare("kramers") == 0) {
+    } else if(kappaType.compare("kramers") == 0) {
       this->kappa_0 = input.Get<real>(BlockName,"kappa",n+1);
       this->kappa_type = Type::kramers;
       this->rho_0 = input.Get<real>(BlockName,"kappa",n+2);
       this->T_0 = input.Get<real>(BlockName,"kappa",n+3);
-    } else if(KappaType.compare("usertable") == 0) {
+    } else if(kappaType.compare("usertable") == 0) {
       this->kappa_type = Type::usertable;
-      this-> kappa_planck = LookupTable<1>("kappa_p.dat",',');
-      this-> kappa_ross = LookupTable<1>("kappa_r.dat",',');
+      this->kappa_ndim = input.Get<int>(BlockName,"kappa",n+1);
+      this->kappap_file = input.Get<std::string>(BlockName,"kappa",n+2);
+      this->kappar_file = input.Get<std::string>(BlockName,"kappa",n+3);
+      if (input.Get<int>(BlockName,"kappa",n+1) == 1){
+        this-> kappa_planck_1D = LookupTable<1>(this->kappap_file,',');
+        this-> kappa_ross_1D = LookupTable<1>(this->kappar_file,',');
+      } else {
+        std::stringstream msg;
+        msg << "Only 1 dimension for absorption opacity tables are currently accepted." << std::endl;
+        IDEFIX_ERROR(msg);
+      }
+      
     } else {
       std::stringstream msg;
-      msg << "Unknown kappa type \"" <<  KappaType
+      msg << "Unknown kappa type \"" <<  kappaType
           << "\" in your input file." << std::endl
           << "Allowed values are: constant, kramers, usertable." << std::endl;
 
