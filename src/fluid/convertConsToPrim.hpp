@@ -72,7 +72,7 @@ KOKKOS_INLINE_FUNCTION void K_ConsToPrim(real Vc[], real Uc[], const EquationOfS
       // Check pressure positivity
       if(Vc[PRS]<= ZERO_F) {
         if (Uc[ENG]<=0.){
-          printf("Uc[ENG]=%e kin=%e VX1=%e VX2=%e VX3=%e RHO=%e PRS=%e\n",Uc[ENG],kin,Vc[VX1],Vc[VX2],Vc[VX3],Vc[RHO],Vc[PRS]);
+          //printf("Uc[ENG]=%e kin=%e VX1=%e VX2=%e VX3=%e RHO=%e PRS=%e\n",Uc[ENG],kin,Vc[VX1],Vc[VX2],Vc[VX3],Vc[RHO],Vc[PRS]);
           throw std::runtime_error("ENG=0 in ConsToPrim");
         }
         #ifdef SMALL_PRESSURE_TEMPERATURE

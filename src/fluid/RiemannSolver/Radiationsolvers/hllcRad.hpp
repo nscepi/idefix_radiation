@@ -213,7 +213,7 @@ void RiemannSolver<Phys>::HllcRad(IdefixArray4D<real> &Flux) {
             real delta;
             // Ensure posivity on delta for stability of the HLLC solver
             if ((b*b - 4.0*a*c < ZERO_F)){
-              printf("delta<0 in HLLC solver! at i=%i,j=%i,k=%i \n",i,j,k);
+              //printf("delta<0 in HLLC solver! at i=%i,j=%i,k=%i \n",i,j,k);
               delta = ZERO_F;
             } else {
               delta = b*b - 4.0*a*c;
@@ -241,7 +241,7 @@ void RiemannSolver<Phys>::HllcRad(IdefixArray4D<real> &Flux) {
               for(int nv = 0 ; nv < Phys::nvar; nv++) {
                   Flux(nv,k,j,i) = fluxL[nv] + SL*(usL[nv] - uL[nv]);
                   if (std::isnan(Flux(nv,k,j,i))){
-                    printf("SR = %e, SL=%e, vR[ER]=%e, vL[ER]=%e, uR[ER]=%e, uL[ER]=%e, uR[FX1]=%e, uL[FX1]=%e, usR[ER]=%e, usL[ER]=%e,  usR[FX1]=%e, usL[FX1]=%e, ps=%e, us=%e, b*b - 4.0*a*c=%e, AR=%e, AL=%e, BR=%e, BL=%e\n",SR,SL,vR[ER],vL[ER],uR[ER],uL[ER],uR[Xn],uL[Xn],usR[ER],usL[ER],usR[Xn],usL[Xn],ps,us,b*b - 4.0*a*c,AR,AL,BR,BL);
+                    //printf("SR = %e, SL=%e, vR[ER]=%e, vL[ER]=%e, uR[ER]=%e, uL[ER]=%e, uR[FX1]=%e, uL[FX1]=%e, usR[ER]=%e, usL[ER]=%e,  usR[FX1]=%e, usL[FX1]=%e, ps=%e, us=%e, b*b - 4.0*a*c=%e, AR=%e, AL=%e, BR=%e, BL=%e\n",SR,SL,vR[ER],vL[ER],uR[ER],uL[ER],uR[Xn],uL[Xn],usR[ER],usL[ER],usR[Xn],usL[Xn],ps,us,b*b - 4.0*a*c,AR,AL,BR,BL);
                     throw std::runtime_error("Nan in HLLC us>0 part of solver.");
                   }
               }
@@ -250,7 +250,7 @@ void RiemannSolver<Phys>::HllcRad(IdefixArray4D<real> &Flux) {
               for(int nv = 0 ; nv < Phys::nvar; nv++) {
                   Flux(nv,k,j,i) = fluxR[nv] + SR*(usR[nv] - uR[nv]);
                   if (std::isnan(Flux(nv,k,j,i))){
-                    printf("SR = %e, SL=%e, vR[ER]=%e, vL[ER]=%e, uR[ER]=%e, uL[ER]=%e, uR[FX1]=%e, uL[FX1]=%e, usR[ER]=%e, usL[ER]=%e,  usR[FX1]=%e, usL[FX1]=%e, ps=%e, us=%e, b*b - 4.0*a*c=%e, AR=%e, AL=%e, BR=%e, BL=%e\n",SR,SL,vR[ER],vL[ER],uR[ER],uL[ER],uR[Xn],uL[Xn],usR[ER],usL[ER],usR[Xn],usL[Xn],ps,us,b*b - 4.0*a*c,AR,AL,BR,BL);
+                    //printf("SR = %e, SL=%e, vR[ER]=%e, vL[ER]=%e, uR[ER]=%e, uL[ER]=%e, uR[FX1]=%e, uL[FX1]=%e, usR[ER]=%e, usL[ER]=%e,  usR[FX1]=%e, usL[FX1]=%e, ps=%e, us=%e, b*b - 4.0*a*c=%e, AR=%e, AL=%e, BR=%e, BL=%e\n",SR,SL,vR[ER],vL[ER],uR[ER],uL[ER],uR[Xn],uL[Xn],usR[ER],usL[ER],usR[Xn],usL[Xn],ps,us,b*b - 4.0*a*c,AR,AL,BR,BL);
                     throw std::runtime_error("Nan in HLLC us<0 part of solver.");
                   }
               }

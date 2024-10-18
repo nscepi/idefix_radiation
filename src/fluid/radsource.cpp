@@ -21,12 +21,12 @@ void RadSource::AddRadSource(const real dt) {
   auto InvDt = this->InvDt;
   
   const Type kappa_type = this->kappa_type;
+  const Type xi_type = this->xi_type;
   real kappa_0 = this->kappa_0;
   real rho_0 = this->rho_0;
   real T_0 = this->T_0;
   real xi_0 = this->xi_0;
   real reduced_c = this->reduced_c;
-  real gamma = this->gamma;
   real mu = this->mu;
 
   const real C_c = idfx::units.c;
@@ -68,7 +68,6 @@ void RadSource::AddRadSource(const real dt) {
       real m3gas_hyp = UcGas(MX3,k,j,i);
 
       real URad[RadiationPhysics::nvar];
-      real VRad[RadiationPhysics::nvar];
       real Er_old, Fnorm_old, Egas_old, Mnorm_old;
 
       real UGas[DefaultPhysics::nvar];
@@ -87,7 +86,6 @@ void RadSource::AddRadSource(const real dt) {
 
       for(int nv = 0 ; nv < RadiationPhysics::nvar ; nv++) {
         URad[nv] = UcRad(nv,k,j,i);
-        VRad[nv] = VcRad(nv,k,j,i);
       }
 
       for(int nv = 0 ; nv < DefaultPhysics::nvar ; nv++) {
@@ -140,7 +138,7 @@ void RadSource::AddRadSource(const real dt) {
 
           // Change value of s if UGas <= 0
           if ((Etot - URad[ER]*C_c/(reduced_c*unit_velocity))<=ZERO_F) {
-            printf("UGas[ENG]=%e URad[ER]*c/c_red=%e Etot=%e at i=%i j=%i and k=%i at iteration %i with Egas=%e and Erad*c/c_red=%e at iteration 0\n",UGas[ENG],URad[ER]*C_c/(reduced_c*unit_velocity),Etot,i,j,k,count,UcGas(ENG,k,j,i),UcRad(ER,k,j,i)*C_c/(reduced_c*unit_velocity));
+            //printf("UGas[ENG]=%e URad[ER]*c/c_red=%e Etot=%e at i=%i j=%i and k=%i at iteration %i with Egas=%e and Erad*c/c_red=%e at iteration 0\n",UGas[ENG],URad[ER]*C_c/(reduced_c*unit_velocity),Etot,i,j,k,count,UcGas(ENG,k,j,i),UcRad(ER,k,j,i)*C_c/(reduced_c*unit_velocity));
             throw std::runtime_error("ENG=0 in Radsource");
             //URad[ER] = (Etot -UGas[ENG])*reduced_c;
             //s *= 0.1;
@@ -161,7 +159,7 @@ void RadSource::AddRadSource(const real dt) {
           err3 = std::abs(1.-UGas[ENG]/Egas_old);
           err4 = std::abs(1.-Mnorm/Mnorm_old);
           count += 1;
-          if (count == MAX_ITER - 1) printf("MAX_ITER reached at i %i j %i k %i\n",i,j,k);
+          //if (count == MAX_ITER - 1) printf("MAX_ITER reached at i %i j %i k %i\n",i,j,k);
         } 
       
       // If E_rad > E_gas iterate on hydro field
@@ -192,7 +190,7 @@ void RadSource::AddRadSource(const real dt) {
 
           // Stop if UGas <= 0
           if ((Egas_hyp +  kk*(URad[ER]-C_ar*std::pow(T,4)/unit_energy))<=ZERO_F) {
-            printf("UGas[ENG]=%e URad[ER]*c/c_red=%e Etot=%e at i=%i j=%i and k=%i at iteration %i with Egas=%e and Erad*c/c_red=%e at iteration 0\n",UGas[ENG],URad[ER]*C_c/(reduced_c*unit_velocity),Etot,i,j,k,count,UcGas(ENG,k,j,i),UcRad(ER,k,j,i)*C_c/(reduced_c*unit_velocity));
+            //printf("UGas[ENG]=%e URad[ER]*c/c_red=%e Etot=%e at i=%i j=%i and k=%i at iteration %i with Egas=%e and Erad*c/c_red=%e at iteration 0\n",UGas[ENG],URad[ER]*C_c/(reduced_c*unit_velocity),Etot,i,j,k,count,UcGas(ENG,k,j,i),UcRad(ER,k,j,i)*C_c/(reduced_c*unit_velocity));
             throw std::runtime_error("EGas=0 in Radsource");
             UGas[ENG] = 1.e-6;
           } else {
@@ -208,7 +206,7 @@ void RadSource::AddRadSource(const real dt) {
 
           // Stop if URad <= 0
           if (URad[ER]<=ZERO_F) {
-            printf("UGas[ENG]=%e URad[ER]*c/c_red=%e Etot=%e  at i=%i j=%i and k=%i at iteration %i with Egas=%e and Erad*c/c_red=%e at iteration 0\n",UGas[ENG],URad[ER]/reduced_c,Etot,i,j,k,count,UcGas(ENG,k,j,i),UcRad(ER,k,j,i)/reduced_c);
+            //printf("UGas[ENG]=%e URad[ER]*c/c_red=%e Etot=%e  at i=%i j=%i and k=%i at iteration %i with Egas=%e and Erad*c/c_red=%e at iteration 0\n",UGas[ENG],URad[ER]/reduced_c,Etot,i,j,k,count,UcGas(ENG,k,j,i),UcRad(ER,k,j,i)/reduced_c);
             throw std::runtime_error("ERad=0 in Radsource");
           }
 
@@ -225,7 +223,7 @@ void RadSource::AddRadSource(const real dt) {
           err3 = std::abs(1.-URad[ER]/Er_old);
           err4 = std::abs(1.-Fnorm/Fnorm_old);
           count += 1;
-          if (count == MAX_ITER - 1) printf("MAX_ITER reached at i %i j %i k %i\n",i,j,k);
+          //if (count == MAX_ITER - 1) printf("MAX_ITER reached at i %i j %i k %i\n",i,j,k);
         }
       }
 
