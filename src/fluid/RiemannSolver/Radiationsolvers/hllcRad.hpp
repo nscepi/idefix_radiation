@@ -202,7 +202,8 @@ void RiemannSolver<Phys>::HllcRad(IdefixArray4D<real> &Flux) {
                 Flux(nv,k,j,i) /= dS;
                 //printf("dS=%e at i=%i\n",dS,i);
                 if (std::isnan(Flux(nv,k,j,i))){
-                  throw std::runtime_error("Nan in HLL part of solver.");
+                  //throw std::runtime_error("Nan in HLL part of solver.");
+                  Kokkos::abort("Nan in HLL part of solver.");
                 }
             }
 
@@ -242,7 +243,8 @@ void RiemannSolver<Phys>::HllcRad(IdefixArray4D<real> &Flux) {
                   Flux(nv,k,j,i) = fluxL[nv] + SL*(usL[nv] - uL[nv]);
                   if (std::isnan(Flux(nv,k,j,i))){
                     //printf("SR = %e, SL=%e, vR[ER]=%e, vL[ER]=%e, uR[ER]=%e, uL[ER]=%e, uR[FX1]=%e, uL[FX1]=%e, usR[ER]=%e, usL[ER]=%e,  usR[FX1]=%e, usL[FX1]=%e, ps=%e, us=%e, b*b - 4.0*a*c=%e, AR=%e, AL=%e, BR=%e, BL=%e\n",SR,SL,vR[ER],vL[ER],uR[ER],uL[ER],uR[Xn],uL[Xn],usR[ER],usL[ER],usR[Xn],usL[Xn],ps,us,b*b - 4.0*a*c,AR,AL,BR,BL);
-                    throw std::runtime_error("Nan in HLLC us>0 part of solver.");
+                    //throw std::runtime_error("Nan in HLLC us>0 part of solver.");
+                    Kokkos::abort("Nan in HLLC us>0 part of solver.");
                   }
               }
             } else {
@@ -251,7 +253,8 @@ void RiemannSolver<Phys>::HllcRad(IdefixArray4D<real> &Flux) {
                   Flux(nv,k,j,i) = fluxR[nv] + SR*(usR[nv] - uR[nv]);
                   if (std::isnan(Flux(nv,k,j,i))){
                     //printf("SR = %e, SL=%e, vR[ER]=%e, vL[ER]=%e, uR[ER]=%e, uL[ER]=%e, uR[FX1]=%e, uL[FX1]=%e, usR[ER]=%e, usL[ER]=%e,  usR[FX1]=%e, usL[FX1]=%e, ps=%e, us=%e, b*b - 4.0*a*c=%e, AR=%e, AL=%e, BR=%e, BL=%e\n",SR,SL,vR[ER],vL[ER],uR[ER],uL[ER],uR[Xn],uL[Xn],usR[ER],usL[ER],usR[Xn],usL[Xn],ps,us,b*b - 4.0*a*c,AR,AL,BR,BL);
-                    throw std::runtime_error("Nan in HLLC us<0 part of solver.");
+                    //throw std::runtime_error("Nan in HLLC us<0 part of solver.");
+                    Kokkos::abort("Nan in HLLC us<0 part of solver.")
                   }
               }
             }    
