@@ -73,9 +73,9 @@ void MySourceTerm(Hydro *hydro, const real t, const real dtin) {
               KOKKOS_LAMBDA (int k, int j, int i) {
 
                 // Usertable kappa
-                real logtaum = std::log10(FMAX(tau(k,j,i-1)*unit_density*unit_length,1.e-12));
+                real logtaum = std::log10(FMAX(tau(k,j,i-1)*unit_density*unit_length,1.e-15));
                 real Fim = pow(10.,irr_flux.Get(&logtaum))*A1(k,j,i)/std::pow(x1l(i),2.);
-                real logtaup = std::log10(FMAX(tau(k,j,i)*unit_density*unit_length,1.e-12));
+                real logtaup = std::log10(FMAX(tau(k,j,i)*unit_density*unit_length,1.e-15));
                 real Fip = pow(10.,irr_flux.Get(&logtaup))*A1(k,j,i+1)/std::pow(x1l(i+1),2.);
                 real divF = flux_pre*(Fip-Fim)/dV(k,j,i);
 
@@ -372,10 +372,10 @@ void ComputeUserVars(DataBlock & data, UserDefVariablesContainer &variables) {
       for(int i = d.beg[IDIR]; i < d.end[IDIR] ; i++) {
         A1_out(k,j,i) = A1(k,j,i);
 
-        real logtaum = std::log10(FMAX(tau(k,j,i-1)*unit_density*unit_length,1.e-12));
+        real logtaum = std::log10(FMAX(tau(k,j,i-1)*unit_density*unit_length,1.e-15));
         real Fim = std::pow(10.,irr_flux.Get(&logtaum))/std::pow(x1l(i),2.);
         //printf("Fim=%e at i %i j %i k %i\n",Fim,i,j,k);
-        real logtaup = std::log10(FMAX(tau(k,j,i)*unit_density*unit_length,1.e-12));
+        real logtaup = std::log10(FMAX(tau(k,j,i)*unit_density*unit_length,1.e-15));
         real Fip = std::pow(10.,irr_flux.Get(&logtaup))/std::pow(x1l(i+1),2.);
         //printf("Fip=%e at i %i j %i k %i\n",Fip,i,j,k);
 
