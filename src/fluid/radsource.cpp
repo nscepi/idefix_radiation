@@ -139,7 +139,7 @@ void RadSource::AddRadSource(const real dt) {
           // Change value of s if UGas <= 0
           if ((Etot - URad[ER]*C_c/(reduced_c*unit_velocity))<=ZERO_F) {
             //printf("UGas[ENG]=%e URad[ER]*c/c_red=%e Etot=%e at i=%i j=%i and k=%i at iteration %i with Egas=%e and Erad*c/c_red=%e at iteration 0\n",UGas[ENG],URad[ER]*C_c/(reduced_c*unit_velocity),Etot,i,j,k,count,UcGas(ENG,k,j,i),UcRad(ER,k,j,i)*C_c/(reduced_c*unit_velocity));
-            throw std::runtime_error("ENG=0 in Radsource");
+            throw std::runtime_error(std::string("ENG=0 in Radsource"));
             //URad[ER] = (Etot -UGas[ENG])*reduced_c;
             //s *= 0.1;
             //continue;
@@ -191,7 +191,7 @@ void RadSource::AddRadSource(const real dt) {
           // Stop if UGas <= 0
           if ((Egas_hyp +  kk*(URad[ER]-C_ar*std::pow(T,4)/unit_energy))<=ZERO_F) {
             //printf("UGas[ENG]=%e URad[ER]*c/c_red=%e Etot=%e at i=%i j=%i and k=%i at iteration %i with Egas=%e and Erad*c/c_red=%e at iteration 0\n",UGas[ENG],URad[ER]*C_c/(reduced_c*unit_velocity),Etot,i,j,k,count,UcGas(ENG,k,j,i),UcRad(ER,k,j,i)*C_c/(reduced_c*unit_velocity));
-            throw std::runtime_error("EGas=0 in Radsource");
+            throw std::runtime_error(std::string("EGas=0 in Radsource"));
             UGas[ENG] = 1.e-6;
           } else {
             UGas[ENG] = Egas_hyp +  kk*(URad[ER]-C_ar*std::pow(T,4)/unit_energy);
@@ -207,7 +207,7 @@ void RadSource::AddRadSource(const real dt) {
           // Stop if URad <= 0
           if (URad[ER]<=ZERO_F) {
             //printf("UGas[ENG]=%e URad[ER]*c/c_red=%e Etot=%e  at i=%i j=%i and k=%i at iteration %i with Egas=%e and Erad*c/c_red=%e at iteration 0\n",UGas[ENG],URad[ER]/reduced_c,Etot,i,j,k,count,UcGas(ENG,k,j,i),UcRad(ER,k,j,i)/reduced_c);
-            throw std::runtime_error("ERad=0 in Radsource");
+            throw std::runtime_error(std::string("ERad=0 in Radsource"));
           }
 
           EXPAND( URad[FR1] = (m1tot - UGas[MX1])*reduced_c;,
