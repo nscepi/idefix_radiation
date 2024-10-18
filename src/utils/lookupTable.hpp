@@ -103,7 +103,7 @@ class LookupTable {
             }
             count++;
             //if (count > 100) throw std::runtime_error("Dichotomy in LookupTable did not work");
-          /if (count > 100) Kokkos::abort("Dichotomy in LookupTable did not work");
+          if (count > 100) Kokkos::abort("Dichotomy in LookupTable did not work");
           }
           
           // Brut force method
