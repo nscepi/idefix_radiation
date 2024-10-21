@@ -249,9 +249,11 @@ real RadSource::Limit_speeds_Rad(int i, int j, int k, real dx) const{
   auto VcGas = this->VcGas;
   real kappa_0 = this->kappa_0;
   auto kappa_type = this->kappa_type;
+  real unit_density = this->unit_density;
+  real unit_length = this->unit_length;
   real xi_0 = this->xi_0;
   real mu =this->mu;
-  real KELVIN = idfx::units.Kelvin;
+  real KELVIN = this->Kelvin;
   real kappa,xi;
 
   // Compute kappa
@@ -278,7 +280,7 @@ real RadSource::Limit_speeds_Rad(int i, int j, int k, real dx) const{
   }
 
   // Compute optical depth across one cell
-  real tau = VcGas(RHO,k,j,i)*idfx::units.density*(kappa+xi)*dx*idfx::units.length;
+  real tau = VcGas(RHO,k,j,i)*unit_density*(kappa+xi)*dx*unit_length;
 
   // return characteristic velocity of radiative diffusion 
   return 4./(3.*tau)*this->reduced_c;

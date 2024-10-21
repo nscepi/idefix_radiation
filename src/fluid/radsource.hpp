@@ -103,6 +103,14 @@ RadSource::RadSource(Input &input, Fluid<Phys> *hydroin):
   // Mean molecular weight
   this->mu = this->eos->GetMu();
 
+  // Units
+  if(input.CheckEntry(BlockName,"Units")>=0) {
+    this->unit_length = idfx::units.length;
+    this->unit_velocity = idfx::units.velocity;
+    this->unit_density = idfx::units.density;
+    this->Kelvin = idfx::units.Kelvin ;
+  }
+
   if(input.CheckEntry(BlockName,"xi")>=0) {
     // Fetch the opacity coefficient for the current radiation group.
     const int n = hydroin->instanceNumber;
