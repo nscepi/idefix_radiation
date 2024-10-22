@@ -23,7 +23,47 @@ class RadSource {
   RadSource(Input &, Fluid<Phys> *);
   void ShowConfig();                    // print configuration
   void AddRadSource(const real);
-  real Limit_speeds_Rad(int,int,int,real) const;
+  
+  KOKKOS_INLINE_FUNCTION real Limit_speeds_Rad(int i, int j, int k, real dx) const {
+    auto VcGas = this->VcGas;
+    real kappa_0 = this->kappa_0;
+    auto kappa_type = this->kappa_type;
+    real unit_density = this->unit_density;
+    real unit_length = this->unit_length;
+    real xi_0 = this->xi_0;
+    real mu =this->mu;
+    real KELVIN = this->Kelvin;
+    real kappa,xi;
+
+    // Compute kappa
+    if (kappa_type == Type::constant){
+      kappa = kappa_0;
+    } else if (kappa_type == Type::kramers){
+      real T = VcGas(PRS,k,j,i)/(VcGas(RHO,k,j,i))*KELVIN*mu;
+      kappa = kappa_0*std::pow(VcGas(RHO,k,j,i)*unit_density/rho_0,2.)*std::pow(T/T_0,-3.5);
+    } else if (kappa_type == Type::usertable){
+      real T = VcGas(PRS,k,j,i)/(VcGas(RHO,k,j,i))*KELVIN*mu;
+      real logT = std::log10(T);
+      auto k_p = this->kappa_planck_1D;
+      kappa = k_p.Get(&logT);
+    }
+
+    // Compute xi
+    if (xi_type == Type::constant){
+      xi = xi_0;
+    } else if (xi_type == Type::usertable){
+      real T = VcGas(PRS,k,j,i)/(VcGas(RHO,k,j,i))*KELVIN*mu;
+      real logT = std::log10(T);
+      auto xi1D = this->xi_1D;
+      xi = xi1D.Get(&logT);
+    }
+
+    // Compute optical depth across one cell
+    real tau = VcGas(RHO,k,j,i)*unit_density*(kappa+xi)*dx*unit_length;
+
+    // return characteristic velocity of radiative diffusion 
+    return 4./(3.*tau)*this->reduced_c;
+  };
 
   IdefixArray4D<real> UcRad;  // Radiation conservative quantities
   IdefixArray4D<real> UcGas;  // Gas conservative quantities
@@ -48,6 +88,7 @@ class RadSource {
   real C_c;
   real C_ar;
 
+  // Can I use instance of Unit Class below instead?
   real unit_length;
   real unit_velocity;
   real unit_density;
@@ -188,4 +229,5 @@ RadSource::RadSource(Input &input, Fluid<Phys> *hydroin):
 
   idfx::popRegion();
 }
+
 #endif // FLUID_RADSOURCE_HPP_
