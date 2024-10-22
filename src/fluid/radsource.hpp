@@ -100,9 +100,7 @@ class RadSource {
   // Planck and Rosseland opacities 
   int kappa_ndim;
   int xi_ndim;
-  std::string kappap_file;
-  std::string kappar_file;
-  std::string xi_file;
+  
   LookupTable<1> kappa_planck_1D;
   LookupTable<1> kappa_ross_1D;
   LookupTable<1> xi_1D;
@@ -163,9 +161,9 @@ RadSource::RadSource(Input &input, Fluid<Phys> *hydroin):
     } else if(xiType.compare("usertable") == 0) {
       this->xi_type = Type::usertable;
       this->xi_ndim = input.Get<int>(BlockName,"kappa",n+1);
-      this->xi_file = input.Get<std::string>(BlockName,"xi",n+2);
+      std::string xi_file = input.Get<std::string>(BlockName,"xi",n+2);
       if (input.Get<int>(BlockName,"xi",n+1) == 1){
-        this-> xi_1D = LookupTable<1>(this->xi_file,',');
+        this->xi_1D = LookupTable<1>(xi_file,',');
       } else {
         std::stringstream msg;
         msg << "Only 1 dimension for scattering opacity tables are currently accepted." << std::endl;
@@ -202,11 +200,11 @@ RadSource::RadSource(Input &input, Fluid<Phys> *hydroin):
     } else if(kappaType.compare("usertable") == 0) {
       this->kappa_type = Type::usertable;
       this->kappa_ndim = input.Get<int>(BlockName,"kappa",n+1);
-      this->kappap_file = input.Get<std::string>(BlockName,"kappa",n+2);
-      this->kappar_file = input.Get<std::string>(BlockName,"kappa",n+3);
+      std::string kappap_file = input.Get<std::string>(BlockName,"kappa",n+2);
+      std::string kappar_file = input.Get<std::string>(BlockName,"kappa",n+3);
       if (input.Get<int>(BlockName,"kappa",n+1) == 1){
-        this-> kappa_planck_1D = LookupTable<1>(this->kappap_file,',');
-        this-> kappa_ross_1D = LookupTable<1>(this->kappar_file,',');
+        this->kappa_planck_1D = LookupTable<1>(kappap_file,',');
+        this->kappa_ross_1D = LookupTable<1>(kappar_file,',');
       } else {
         std::stringstream msg;
         msg << "Only 1 dimension for absorption opacity tables are currently accepted." << std::endl;
