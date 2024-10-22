@@ -3,53 +3,21 @@
 
 
 real csisoGlob;
-real unit_velocity;
-real unit_length;
-real unit_density;
+real ERLGlob, ERRGlob,FR1LGlob,FR1RGlob,FR2LGlob,FR2RGlob,RhoGlob,VX1Glob,VX2Glob;
 
 Setup::Setup(Input &input, Grid &grid, DataBlock &data, Output &output)
 {
+  csisoGlob = input.Get<real>("Hydro","csiso",1);
+  ERLGlob = input.Get<real>("Setup","ERL",0);
+  ERRGlob = input.Get<real>("Setup","ERR",0);
+  FR1LGlob = input.Get<real>("Setup","FR1L",0);
+  FR1RGlob = input.Get<real>("Setup","FR1R",0);
+  FR2LGlob = input.Get<real>("Setup","FR2L",0);
+  FR2RGlob = input.Get<real>("Setup","FR2R",0);
+  RhoGlob = input.Get<real>("Setup","RHO",0);
+  VX1Glob = input.Get<real>("Setup","VX1",0);
+  VX2Glob = input.Get<real>("Setup","VX2",0);
 
-  unit_velocity = input.Get<real>("Units","velocity",0);
-  unit_length = input.Get<real>("Units","length",0);
-  unit_density = input.Get<real>("Units","density",0);
-
-  //output.EnrollUserDefVariables(&ComputeUserVars);
-  // Set the function for userdefboundary
-  if(data.haveRadiation) {
-    int nFrequencies = data.radiation.size();
-    //for(int n = 0 ; n < nFrequencies ; n++) {
-    //  data.radiation[n]->EnrollUserDefBoundary(&UserdefBoundaryRad);
-    //}
-    //data.hydro->EnrollUserDefBoundary(&UserdefBoundary);
-    //data.hydro->EnrollInternalBoundary(&InternalBoundary);
-
-  }
-  //csisoGlob = input.Get<real>("Hydro","csiso",0);
-  csisoGlob = 0.0001;
-}
-
-void InternalBoundary(Fluid<DefaultPhysics> *hydro, const real t) {
-  IdefixArray4D<real> Vc = hydro->Vc;
-  auto *data = hydro->data;
-  IdefixArray1D<real> x1 = data->x[IDIR];
-  IdefixArray1D<real> x2 = data->x[JDIR];
-  int iend;
-  real csiso = csisoGlob;
-
-  iend = data->beg[IDIR];
-  idefix_for("InternalBoundaryFunc",
-    0, data->np_tot[KDIR],
-    0, data->np_tot[JDIR],
-    iend, data->np_tot[IDIR],
-    KOKKOS_LAMBDA (int k, int j, int i) {
-          Vc(RHO,k,j,i) = 1.;
-          Vc(VX1,k,j,i) = 0.;
-          Vc(VX2,k,j,i) = 0.;
-          Vc(PRS,k,j,i) = Vc(RHO,k,j,i)*csiso*csiso;
-      
-    });
-  
 }
 
 // This routine initialize the flow
@@ -59,28 +27,35 @@ void InternalBoundary(Fluid<DefaultPhysics> *hydro, const real t) {
 void Setup::InitFlow(DataBlock &data) {
     // Create a host copy
     DataBlockHost d(data);
+
+    real ERL = ERLGlob;
+    real ERR= ERRGlob;
+    real FR1L = FR1LGlob;
+    real FR1R= FR1RGlob;
+    real FR2L = FR2LGlob;
+    real FR2R= FR2RGlob;
     real csiso = csisoGlob;
-
-    real unit_time = unit_length/unit_velocity;
-    real unit_energy = unit_density*unit_velocity*unit_velocity;
-
+    real rho0 = RhoGlob;
+    real vx1_0 = VX1Glob;
+    real vx2_0 = VX2Glob;
+    
     for(int k = 0; k < d.np_tot[KDIR] ; k++) {
         for(int j = 0; j < d.np_tot[JDIR] ; j++) {
             for(int i = 0; i < d.np_tot[IDIR] ; i++) {
               
-              d.Vc(RHO,k,j,i) = 0.1;
-              d.Vc(VX1,k,j,i) = 0.;
-              d.Vc(VX2,k,j,i) = 0.;
-              d.Vc(PRS,k,j,i) = d.Vc(RHO,k,j,i)*csiso*csiso;
+              d.Vc(RHO,k,j,i) = rho0;
+              d.Vc(VX1,k,j,i) = vx1_0;
+              d.Vc(VX2,k,j,i) = vx2_0;
+              d.Vc(PRS,k,j,i) = rho0*csiso*csiso;
         
               if (d.x[IDIR](i) < 0.){
-                  d.RadVc[0](ER,k,j,i) = 1.;
-                  d.RadVc[0](FR1,k,j,i) = ZERO_F;
-                  d.RadVc[0](FR2,k,j,i) = 0.5;
+                  d.RadVc[0](ER,k,j,i) = ERL;
+                  d.RadVc[0](FR1,k,j,i) = FR1L;
+                  d.RadVc[0](FR2,k,j,i) = FR2L;
               } else {
-                d.RadVc[0](ER,k,j,i) = 1.;
-                d.RadVc[0](FR1,k,j,i) = ZERO_F;
-                d.RadVc[0](FR2,k,j,i) = ZERO_F;
+                d.RadVc[0](ER,k,j,i) = ERR;
+                d.RadVc[0](FR1,k,j,i) = FR1R;
+                d.RadVc[0](FR2,k,j,i) = FR2R;
               }
             }
         }
@@ -111,50 +86,5 @@ void ComputeUserVars(DataBlock & data, UserDefVariablesContainer &variables) {
   }
 }
 
-void UserdefBoundaryRad(Fluid<RadiationPhysics> *radiation, int dir, BoundarySide side, real t) {
-  IdefixArray4D<real> Vc = radiation->Vc;
-  auto *data = radiation->data;
-  IdefixArray1D<real> x1 = data->x[IDIR];
-  IdefixArray1D<real> x2 = data->x[JDIR];
-  if(dir==IDIR) {
-    int ibeg,iend;
-    if(side == left) {
-      ibeg = 0;
-      iend = data->beg[IDIR];
-      idefix_for("UserDefBoundaryRad",
-        0, data->np_tot[KDIR],
-        0, data->np_tot[JDIR],
-        ibeg, iend,
-        KOKKOS_LAMBDA (int k, int j, int i) {
-          Vc(ER,k,j,i) = 1.e6;
-          Vc(FR1,k,j,i) = 1.e6;
-          Vc(FR2,k,j,i) = 0.;
-        });
-    }
-  }
-}
-
-void UserdefBoundary(Fluid<DefaultPhysics> *hydro, int dir, BoundarySide side, real t) {
-  IdefixArray4D<real> Vc = hydro->Vc;
-  auto *data = hydro->data;
-  IdefixArray1D<real> x1 = data->x[IDIR];
-  IdefixArray1D<real> x2 = data->x[JDIR];
-  if(dir==IDIR) {
-    int ibeg,iend;
-    if(side == left) {
-      ibeg = 0;
-      iend = data->beg[IDIR];
-      idefix_for("UserDefBoundary",
-        0, data->np_tot[KDIR],
-        0, data->np_tot[JDIR],
-        ibeg, iend,
-        KOKKOS_LAMBDA (int k, int j, int i) {
-          Vc(RHO,k,j,i) = 1.;
-          Vc(VX1,k,j,i) = 0.;
-          Vc(VX2,k,j,i) = 0.;
-        });
-    }
-  }
-}
 
 
