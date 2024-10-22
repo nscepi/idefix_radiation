@@ -17,7 +17,7 @@ tolerance=1e-10
 def testMe(test):
   test.configure()
   test.compile()
-  inifiles=["idefix-hll.ini","idefix-hllc.ini"]
+  inifiles=["idefix-hll-1.ini","idefix-hll-2.ini","idefix-hllc-1.ini","idefix-hllc-2.ini"]
 
   # loop on all the ini files for this test
   for ini in inifiles:
