@@ -34,13 +34,10 @@ void InternalBoundary(Fluid<DefaultPhysics> *hydro, const real t) {
   auto *data = hydro->data;
   IdefixArray1D<real> x1 = data->x[IDIR];
   IdefixArray1D<real> x2 = data->x[JDIR];
-  int ibeg,iend,nxi,iref;
-  real csiso = 0.000001;
+  int iend;
+  real csiso = csisoGlob;
 
-  ibeg = 0;
   iend = data->beg[IDIR];
-  nxi = data->np_int[IDIR];
-  iref = iend;
   idefix_for("InternalBoundaryFunc",
     0, data->np_tot[KDIR],
     0, data->np_tot[JDIR],
@@ -62,7 +59,7 @@ void InternalBoundary(Fluid<DefaultPhysics> *hydro, const real t) {
 void Setup::InitFlow(DataBlock &data) {
     // Create a host copy
     DataBlockHost d(data);
-    real csiso = 0.000001;
+    real csiso = csisoGlob;
 
     real unit_time = unit_length/unit_velocity;
     real unit_energy = unit_density*unit_velocity*unit_velocity;
@@ -122,7 +119,6 @@ void UserdefBoundaryRad(Fluid<RadiationPhysics> *radiation, int dir, BoundarySid
   if(dir==IDIR) {
     int ighost,ibeg,iend;
     if(side == left) {
-      ighost = data->beg[IDIR];
       ibeg = 0;
       iend = data->beg[IDIR];
       idefix_for("UserDefBoundaryRad",
@@ -146,7 +142,6 @@ void UserdefBoundary(Fluid<DefaultPhysics> *hydro, int dir, BoundarySide side, r
   if(dir==IDIR) {
     int ighost,ibeg,iend;
     if(side == left) {
-      ighost = data->beg[IDIR];
       ibeg = 0;
       iend = data->beg[IDIR];
       idefix_for("UserDefBoundary",
