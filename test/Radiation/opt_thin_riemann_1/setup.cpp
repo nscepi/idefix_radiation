@@ -117,7 +117,7 @@ void UserdefBoundaryRad(Fluid<RadiationPhysics> *radiation, int dir, BoundarySid
   IdefixArray1D<real> x1 = data->x[IDIR];
   IdefixArray1D<real> x2 = data->x[JDIR];
   if(dir==IDIR) {
-    int ighost,ibeg,iend;
+    int ibeg,iend;
     if(side == left) {
       ibeg = 0;
       iend = data->beg[IDIR];
@@ -140,7 +140,7 @@ void UserdefBoundary(Fluid<DefaultPhysics> *hydro, int dir, BoundarySide side, r
   IdefixArray1D<real> x1 = data->x[IDIR];
   IdefixArray1D<real> x2 = data->x[JDIR];
   if(dir==IDIR) {
-    int ighost,ibeg,iend;
+    int ibeg,iend;
     if(side == left) {
       ibeg = 0;
       iend = data->beg[IDIR];
