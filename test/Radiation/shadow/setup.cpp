@@ -24,9 +24,8 @@ void UserdefBoundaryRad(Fluid<RadiationPhysics> *radiation, int dir, BoundarySid
   IdefixArray1D<real> x1 = data->x[IDIR];
   IdefixArray1D<real> x2 = data->x[JDIR];
   if(dir==IDIR) {
-    int ighost,ibeg,iend;
+    int ibeg,iend;
     if(side == left) {
-      ighost = data->beg[IDIR];
       ibeg = 0;
       iend = data->beg[IDIR];
       idefix_for("UserDefBoundaryRad",
@@ -36,7 +35,7 @@ void UserdefBoundaryRad(Fluid<RadiationPhysics> *radiation, int dir, BoundarySid
         KOKKOS_LAMBDA (int k, int j, int i) {
           Vc(ER,k,j,i) = C_ar*std::pow(Tinj,4)/unit_energy;
           Vc(FR1,k,j,i) = Vc(ER,k,j,i);
-          Vc(FR2,k,j,i) = 0.;
+          Vc(FR2,k,j,i) = ZERO_F;
         });
     }
   }
@@ -97,8 +96,8 @@ void Setup::InitFlow(DataBlock &data) {
               real delta = 10.*(d.x[IDIR](i)*d.x[IDIR](i)/x02+d.x[JDIR](j)*d.x[JDIR](j)/y02-1.);
               d.Vc(RHO,k,j,i) = rho0+(rho1-rho0)/(1.+std::exp(delta));
               d.Vc(PRS,k,j,i) = d.Vc(RHO,k,j,i)*T0/KELVIN;
-              d.Vc(VX1,k,j,i) = 0.;
-              d.Vc(VX2,k,j,i) = 0.;
+              d.Vc(VX1,k,j,i) = ZERO_F;
+              d.Vc(VX2,k,j,i) = ZERO_F;
               d.RadVc[0](ER,k,j,i) = C_ar*std::pow(T0,4)/unit_energy;
               d.RadVc[0](FR1,k,j,i) = ZERO_F;
               d.RadVc[0](FR2,k,j,i) = ZERO_F;
