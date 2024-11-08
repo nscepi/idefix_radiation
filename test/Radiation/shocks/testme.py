@@ -17,7 +17,8 @@ tolerance=1e-10
 def testMe(test):
   test.configure()
   test.compile()
-  inifiles=["idefix-hll-c1.ini","idefix-hll-c001.ini","idefix-hll-c00001.ini","idefix-hllc-c1.ini","idefix-hllc-c001.ini","idefix-hllc-c00001.ini"]
+  inifiles = ["idefix-hll-c1_sub.ini","idefix-hll-c001_sub.ini","idefix-hll-c00001_sub.ini","idefix-hllc-c1_sub.ini","idefix-hllc-c001_sub.ini","idefix-hllc-c00001_sub.ini"]
+  inifiles += ["idefix-hll-c1_super.ini","idefix-hll-c001_super.ini","idefix-hll-c00001_super.ini","idefix-hllc-c1_super.ini","idefix-hllc-c001_super.ini","idefix-hllc-c00001_super.ini"]
 
   # loop on all the ini files for this test
   for ini in inifiles:
