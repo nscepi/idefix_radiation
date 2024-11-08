@@ -16,17 +16,6 @@ Setup::Setup(Input &input, Grid &grid, DataBlock &data, Output &output)
   wGlob = input.Get<real>("Setup","w",0);
   rho0Glob = input.Get<real>("Setup","rho0",0);
   muGlob = input.Get<real>("Hydro","mu",0);
-  //output.EnrollUserDefVariables(&ComputeUserVars);
-  // Set the function for userdefboundary
-  if(data.haveRadiation) {
-    int nFrequencies = data.radiation.size();
-    //for(int n = 0 ; n < nFrequencies ; n++) {
-    //  data.radiation[n]->EnrollUserDefBoundary(&UserdefBoundaryRad);
-    //}
-    //data.hydro->EnrollUserDefBoundary(&UserdefBoundary);
-    //data.hydro->EnrollInternalBoundary(&InternalBoundary);
-
-  }
 }
 
 // This routine initialize the flow
