@@ -28,13 +28,14 @@ class RadSource {
     auto VcGas = this->VcGas;
     real kappa_0 = this->kappa_0;
     auto kappa_type = this->kappa_type;
-    real unit_density = this->unit_density;
-    real unit_length = this->unit_length;
     real xi_0 = this->xi_0;
     real mu =this->mu;
-    real KELVIN = this->Kelvin;
     real kappa,xi;
 
+    real unit_density = this->unit_density;
+    real unit_length = this->unit_length;
+    real KELVIN = this->Kelvin;
+    
     // Compute kappa
     if (kappa_type == Type::constant){
       kappa = kappa_0;
@@ -88,7 +89,7 @@ class RadSource {
   real C_c;
   real C_ar;
 
-  // Can I use instance of Unit Class below instead?
+  // Units
   real unit_length;
   real unit_velocity;
   real unit_density;
@@ -104,9 +105,6 @@ class RadSource {
   LookupTable<1> kappa_planck_1D;
   LookupTable<1> kappa_ross_1D;
   LookupTable<1> xi_1D;
-
-  // Instance of Unit Class
-  idfx::Units *units;
 
 };
 
@@ -143,12 +141,10 @@ RadSource::RadSource(Input &input, Fluid<Phys> *hydroin):
   this->mu = this->eos->GetMu();
 
   // Units
-  if(input.CheckEntry(BlockName,"Units")>=0) {
-    this->unit_length = idfx::units.length;
-    this->unit_velocity = idfx::units.velocity;
-    this->unit_density = idfx::units.density;
-    this->Kelvin = idfx::units.Kelvin ;
-  }
+  this->unit_length = idfx::units.length;
+  this->unit_velocity = idfx::units.velocity;
+  this->unit_density = idfx::units.density;
+  this->Kelvin = idfx::units.Kelvin ;
 
   if(input.CheckEntry(BlockName,"xi")>=0) {
     // Fetch the opacity coefficient for the current radiation group.
