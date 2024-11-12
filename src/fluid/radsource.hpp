@@ -156,7 +156,7 @@ RadSource::RadSource(Input &input, Fluid<Phys> *hydroin):
       this->xi_0 = input.Get<real>(BlockName,"xi",n+1);
     } else if(xiType.compare("usertable") == 0) {
       this->xi_type = Type::usertable;
-      this->xi_ndim = input.Get<int>(BlockName,"kappa",n+1);
+      this->xi_ndim = input.Get<int>(BlockName,"xi",n+1);
       std::string xi_file = input.Get<std::string>(BlockName,"xi",n+2);
       if (input.Get<int>(BlockName,"xi",n+1) == 1){
         this->xi_1D = LookupTable<1>(xi_file,',');
