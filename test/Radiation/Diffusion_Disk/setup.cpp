@@ -29,12 +29,10 @@ void MySourceTerm(Hydro *hydro, const real t, const real dtin) {
   real unit_time = unit_length/unit_velocity;
   real unit_energy = unit_density*unit_velocity*unit_velocity;
 
-  real epsilon = epsilonGlob;
   real alpha = alphaGlob;
   real R = RGlob*C_au;
   real mu = muGlob;
   real T0 = T0Glob;
-  real gamma = gammaGlob;
   real dt=dtin;
   real Omega_K = std::sqrt(C_G*C_Msol/(R*R*R));
   //real csiso = epsilon*R*Omega_K;
@@ -58,7 +56,6 @@ void UserdefBoundaryRad(Fluid<RadiationPhysics> *radiation, int dir, BoundarySid
   IdefixArray4D<real> Vc = radiation->Vc;
   auto *data = radiation->data;
 
-  real C_c = idfx::units.c;
   real C_ar = idfx::units.ar;
   real T0 = T0Glob;
 
@@ -107,8 +104,6 @@ void UserdefBoundary(Fluid<DefaultPhysics> *hydro, int dir, BoundarySide side, r
   auto *data = hydro->data;
   IdefixArray1D<real> x1 = data->x[IDIR];
   IdefixArray1D<real> x2 = data->x[JDIR];
-
-  real rhomin = rhominGlob;
 
   if(dir==IDIR) {
     int ighost,nxi,iend,ibeg;
@@ -197,8 +192,8 @@ Setup::Setup(Input &input, Grid &grid, DataBlock &data, Output &output)
   rho0Glob = input.Get<real>("Setup","rho0",0);
   rhominGlob = input.Get<real>("Setup","rhomin",0);
   T0Glob = input.Get<real>("Setup","T0",0);
-  gammaGlob=data.hydro->eos->GetGamma();
-  muGlob=data.hydro->eos->GetMu();
+  gammaGlob=input.Get<real>("Hydro","gamma",0);
+  muGlob=input.Get<real>("Hydro","mu",0);
 
   data.hydro->EnrollUserDefBoundary(&UserdefBoundary);
   data.hydro->EnrollUserSourceTerm(&MySourceTerm);
@@ -240,7 +235,6 @@ void Setup::InitFlow(DataBlock &data) {
     real rhomin = rhominGlob;
     real T0 = T0Glob;
     real mu = muGlob;
-    real gamma = gammaGlob;
     real Omega_K = std::pow(C_G*C_Msol/(R*R*R),0.5);
     real csiso = epsilon*R*Omega_K;
     real H2 = std::pow(epsilon*R,2.);
@@ -254,12 +248,8 @@ void Setup::InitFlow(DataBlock &data) {
               d.Vc(RHO,k,j,i) = (rho0*std::exp(-0.5*x2/H2)+rhomin)/unit_density;
               d.Vc(PRS,k,j,i) = d.Vc(RHO,k,j,i)*unit_density*C_kb*T0/(mu*C_amu)/unit_energy;
               d.Vc(VX1,k,j,i) = 0.;
-              d.Vc(VX2,k,j,i) = 0.;
-              d.Vc(VX3,k,j,i) = 0.;
               d.RadVc[0](ER,k,j,i) = C_ar*std::pow(T0,4.)/unit_energy;
               d.RadVc[0](FR1,k,j,i) = ZERO_F;
-              d.RadVc[0](FR2,k,j,i) = ZERO_F;
-              d.RadVc[0](FR3,k,j,i) = ZERO_F;
             }
         }
     }
