@@ -16,6 +16,7 @@ real TsGlob;
 real kappaGlob;
 
 Column *columnGlob;
+LookupTable<1> *irrfluxGlob;
 
 void MySourceTerm(Hydro *hydro, const real t, const real dtin) {
   auto *data = hydro->data;
@@ -48,11 +49,10 @@ void MySourceTerm(Hydro *hydro, const real t, const real dtin) {
   real csiso = std::sqrt(C_kb*T0/(mu*C_amu));
   real rs = rsGlob;
   real Ts = TsGlob;
-
-  
+    
   // Usertable kappa
+  LookupTable<1> irr_flux = *(irrfluxGlob);
   real flux_pre = std::pow(rs/unit_length,2.)*idfx::units.sigma_sb*std::pow(Ts,4.)/unit_energy/unit_velocity;
-  auto irr_flux = LookupTable<1>("irr_flux.dat",',');
 
   columnGlob->ComputeColumn(hydro->Vc);
   tau = columnGlob->GetColumn();
@@ -259,9 +259,9 @@ Setup::Setup(Input &input, Grid &grid, DataBlock &data, Output &output)
   gammaGlob=data.hydro->eos->GetGamma();
   rsGlob=input.Get<real>("Setup","rs",0);
   TsGlob=input.Get<real>("Setup","Ts",0);
-  //kappaGlob = input.Get<real>("Rad","kappa",1);
 
   columnGlob = new Column(IDIR,1,RHO,&data);
+  irrfluxGlob = new LookupTable<1>("irr_flux.dat",',');
 
   data.hydro->EnrollInternalBoundary(&InternalBoundary);
   data.hydro->EnrollUserSourceTerm(&MySourceTerm);
