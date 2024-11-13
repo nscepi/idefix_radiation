@@ -34,13 +34,8 @@ void MySourceTerm(Hydro *hydro, const real t, const real dtin) {
 
   IdefixArray3D<real> tau;
 
-  real C_G = idfx::units.G;
-  real C_Msol = idfx::units.M_sun;
-  real C_au = idfx::units.au;
   real C_kb = idfx::units.k_B;
   real C_amu = idfx::units.u;
-  real C_h = idfx::units.h;
-  real C_c = idfx::units.c;
 
   real unit_density = idfx::units.density;
   real unit_velocity = idfx::units.velocity;
@@ -50,15 +45,11 @@ void MySourceTerm(Hydro *hydro, const real t, const real dtin) {
 
   real mu = muGlob;
   real T0 = T0Glob;
-  real gamma = gammaGlob;
   real dt=dtin;
   real csiso = std::sqrt(C_kb*T0/(mu*C_amu));
   real rs = rsGlob;
   real Ts = TsGlob;
   real kappa_irr = kappairrGlob*unit_density*unit_length;
-  real R0 = R0Glob;
-  real h0 = h0Glob;
-  real hpow = hpowGlob;
 
   //Constant kappa
   real flux_pre = std::pow(rs/unit_length,2.)*idfx::units.sigma_sb*std::pow(Ts,4.)/unit_energy/unit_velocity;
@@ -142,7 +133,8 @@ void FluxBoundary(Fluid<DefaultPhysics> *hydro, int dir, BoundarySide side, cons
 
 void UserdefBoundaryRad(Fluid<RadiationPhysics> *radiation, int dir, BoundarySide side, real t) {
   auto *data = radiation->data;
-
+  real C_ar = idfx::units.ar;
+  real unit_energy = idfx::units.density*idfx::units.velocity*idfx::units.velocity;
   
   if( (dir==IDIR) && (side == left)) {
         IdefixArray4D<real> Vc = radiation->Vc;
@@ -186,12 +178,11 @@ void UserdefBoundaryRad(Fluid<RadiationPhysics> *radiation, int dir, BoundarySid
         int jref = data->beg[JDIR];
         int offset = -1;
         int jghost = data->nghost[JDIR];
-        real unit_energy = idfx::units.density*idfx::units.velocity*idfx::units.velocity;
         real Tmin = T0Glob;
 
         radiation->boundary->BoundaryFor("UserDefX2Rad",dir,side,
             KOKKOS_LAMBDA (int k, int j, int i) {
-                Vc(ER,k,j,i) = idfx::units.ar*std::pow(Tmin,4.)/unit_energy;
+                Vc(ER,k,j,i) = C_ar*std::pow(Tmin,4.)/unit_energy;
                 Vc(FR1,k,j,i) = Vc(FR1,k,2*jref-j+offset,i);
                 Vc(FR2,k,j,i) = -Vc(FR2,k,2*jref-j+offset,i);        
                 Vc(FR3,k,j,i) = -Vc(FR3,k,2*jref-j+offset,i);
@@ -203,14 +194,12 @@ void UserdefBoundaryRad(Fluid<RadiationPhysics> *radiation, int dir, BoundarySid
         IdefixArray4D<real> Vc = radiation->Vc;
 
         int jref = data->end[JDIR]-1;
-        int offset = 1;
         int jghost = data->end[JDIR]-1;
-        real unit_energy = idfx::units.density*idfx::units.velocity*idfx::units.velocity;
         real Tmin = T0Glob;
 
         radiation->boundary->BoundaryFor("UserDefX2Rad",dir,side,
             KOKKOS_LAMBDA (int k, int j, int i) {
-                Vc(ER,k,j,i) = idfx::units.ar*std::pow(Tmin,4.)/unit_energy;
+                Vc(ER,k,j,i) = C_ar*std::pow(Tmin,4.)/unit_energy;
                 Vc(FR1,k,j,i) = Vc(FR1,k,2*jref-j,i);
                 Vc(FR2,k,j,i) = -Vc(FR2,k,2*jref-j,i);                 
                 Vc(FR3,k,j,i) = -Vc(FR3,k,2*jref-j,i);
@@ -335,7 +324,9 @@ void ComputeUserVars(DataBlock & data, UserDefVariablesContainer &variables) {
   IdefixHostArray3D<real> A2=d.A[JDIR];
   IdefixHostArray3D<real> dV=d.dV;
  
-  IdefixHostArray3D<real> tau;
+  IdefixArray3D<real> tau;
+  IdefixArray4D<real> Vc=(&data)->hydro->Vc;
+
   IdefixHostArray3D<real> divF  = variables["divF"];
   IdefixHostArray3D<real> A1_out  = variables["A1"];
  
@@ -347,9 +338,6 @@ void ComputeUserVars(DataBlock & data, UserDefVariablesContainer &variables) {
   real rs = rsGlob;
   real Ts = TsGlob;
   real kappa_irr = kappairrGlob;
-  real R0 = R0Glob;
-  real h0 = h0Glob;
-  real hpow = hpowGlob;
 
   real kappa_rad = kappa_irr*unit_density*unit_length;
   real flux_pre = std::pow(rs/unit_length,2.)*idfx::units.sigma_sb*std::pow(Ts,4.)/unit_energy/unit_velocity;
@@ -357,18 +345,18 @@ void ComputeUserVars(DataBlock & data, UserDefVariablesContainer &variables) {
   // Make references to the user-defined arrays (variables is a container of IdefixHostArray3D)
   // Note that the labels should match the variable names in the input file
 
-  columnGlob->ComputeColumn(data.hydro->Vc);
-  Kokkos::deep_copy(variables["tau"], columnGlob->GetColumn());
+  columnGlob->ComputeColumn(Vc);
+  tau = columnGlob->GetColumn();
+  Kokkos::deep_copy(variables["tau"], tau);
   Kokkos::deep_copy(variables["dV"], dV);
 
-  tau = columnGlob->GetColumn();
   for(int k = d.beg[KDIR]; k < d.end[KDIR] ; k++) {
     for(int j = d.beg[JDIR]; j < d.end[JDIR] ; j++) {
       for(int i = d.beg[IDIR]; i < d.end[IDIR] ; i++) {
         A1_out(k,j,i) = A1(k,j,i);
 
-        real Fim = std::exp(-kappa_rad*tau(k,j,i-1))/std::pow(x1l(i),2.);
-        real Fip = std::exp(-kappa_rad*tau(k,j,i))/std::pow(x1l(i+1),2.);
+        real Fim = std::exp(-kappa_rad*variables["tau"](k,j,i-1))/std::pow(x1l(i),2.);
+        real Fip = std::exp(-kappa_rad*variables["tau"](k,j,i))/std::pow(x1l(i+1),2.);
 
         divF(k,j,i) = (Fip*A1(k,j,i+1)-Fim*A1(k,j,i));
         divF(k,j,i) *= flux_pre;
@@ -431,13 +419,6 @@ void Setup::InitFlow(DataBlock &data) {
     // Create a host copy
     DataBlockHost d(data);
 
-    int direction = IDIR;
-    int sign = 0;
-    int variable = RHO;
-    
-    real C_au = idfx::units.au;
-    real C_G = idfx::units.G;
-    real C_Msol = idfx::units.M_sun;
     real C_kb = idfx::units.k_B;
     real C_ar = idfx::units.ar;
     real C_amu = idfx::units.u;
@@ -455,7 +436,6 @@ void Setup::InitFlow(DataBlock &data) {
     real rhomin = rhominGlob;
     real T0 = T0Glob;
     real mu = muGlob;
-    real gamma = gammaGlob;
     
 
     for(int k = 0; k < d.np_tot[KDIR] ; k++) {
