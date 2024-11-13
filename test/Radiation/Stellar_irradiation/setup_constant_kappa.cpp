@@ -131,150 +131,6 @@ void FluxBoundary(Fluid<DefaultPhysics> *hydro, int dir, BoundarySide side, cons
 
 }
 
-void UserdefBoundaryRad(Fluid<RadiationPhysics> *radiation, int dir, BoundarySide side, real t) {
-  auto *data = radiation->data;
-  real C_ar = idfx::units.ar;
-  real unit_energy = idfx::units.density*idfx::units.velocity*idfx::units.velocity;
-  
-  if( (dir==IDIR) && (side == left)) {
-        IdefixArray4D<real> Vc = radiation->Vc;
-
-        int ighost = data->nghost[IDIR];
-        radiation->boundary->BoundaryFor("UserDefX1Rad",dir,side,
-            KOKKOS_LAMBDA (int k, int j, int i) {
-                Vc(ER,k,j,i) = Vc(ER,k,j,ighost);
-                if (Vc(FR1,k,j,i) > ZERO_F){
-                  Vc(FR1,k,j,i) = ZERO_F;
-                } else {
-                  Vc(FR1,k,j,i) = Vc(FR1,k,j,ighost);
-                }
-                Vc(FR2,k,j,i) = Vc(FR2,k,j,ighost);
-                Vc(FR3,k,j,i) = Vc(FR3,k,j,ighost);
-
-            });
-    }
-
-    if( (dir==IDIR) && (side == right)) {
-        IdefixArray4D<real> Vc = radiation->Vc;
-
-        int ighost = data->end[IDIR]-1;
-        radiation->boundary->BoundaryFor("UserDefX1Rad",dir,side,
-            KOKKOS_LAMBDA (int k, int j, int i) {
-                Vc(ER,k,j,i) = Vc(ER,k,j,ighost);
-                if (Vc(FR1,k,j,i) < ZERO_F){
-                  Vc(FR1,k,j,i) = ZERO_F;
-                } else {
-                  Vc(FR1,k,j,i) = Vc(FR1,k,j,ighost);
-                }                
-                Vc(FR2,k,j,i) = Vc(FR2,k,j,ighost);
-                Vc(FR3,k,j,i) = Vc(FR3,k,j,ighost);
-
-            });
-    }
-
-    if( (dir==JDIR) && (side == left)) {
-        IdefixArray4D<real> Vc = radiation->Vc;
-
-        int jref = data->beg[JDIR];
-        int offset = -1;
-        int jghost = data->nghost[JDIR];
-        real Tmin = T0Glob;
-
-        radiation->boundary->BoundaryFor("UserDefX2Rad",dir,side,
-            KOKKOS_LAMBDA (int k, int j, int i) {
-                Vc(ER,k,j,i) = C_ar*std::pow(Tmin,4.)/unit_energy;
-                Vc(FR1,k,j,i) = Vc(FR1,k,2*jref-j+offset,i);
-                Vc(FR2,k,j,i) = -Vc(FR2,k,2*jref-j+offset,i);        
-                Vc(FR3,k,j,i) = -Vc(FR3,k,2*jref-j+offset,i);
-
-            });
-    }
-
-    if( (dir==JDIR) && (side == right)) {
-        IdefixArray4D<real> Vc = radiation->Vc;
-
-        int jref = data->end[JDIR]-1;
-        int jghost = data->end[JDIR]-1;
-        real Tmin = T0Glob;
-
-        radiation->boundary->BoundaryFor("UserDefX2Rad",dir,side,
-            KOKKOS_LAMBDA (int k, int j, int i) {
-                Vc(ER,k,j,i) = C_ar*std::pow(Tmin,4.)/unit_energy;
-                Vc(FR1,k,j,i) = Vc(FR1,k,2*jref-j,i);
-                Vc(FR2,k,j,i) = -Vc(FR2,k,2*jref-j,i);                 
-                Vc(FR3,k,j,i) = -Vc(FR3,k,2*jref-j,i);
-            });
-    }
-
-}
-
-// User-defined boundaries hydro
-void UserdefBoundary(Hydro *hydro, int dir, BoundarySide side, real t) {
-    auto *data = hydro->data;
-    if( (dir==IDIR) && (side == left)) {
-        IdefixArray4D<real> Vc = hydro->Vc;
-
-        int ighost = data->nghost[IDIR];
-
-        hydro->boundary->BoundaryFor("UserDefX1",dir,side,
-            KOKKOS_LAMBDA (int k, int j, int i) {
-                Vc(RHO,k,j,i) = Vc(RHO,k,j,ighost);
-                Vc(PRS,k,j,i) = Vc(PRS,k,j,ighost);
-                Vc(VX1,k,j,i) = ZERO_F;
-                Vc(VX2,k,j,i) = ZERO_F;
-                Vc(VX3,k,j,i) = ZERO_F;
-
-            });
-    }
-
-    if( (dir==IDIR) && (side == right)) {
-        IdefixArray4D<real> Vc = hydro->Vc;
-
-        int ighost = data->end[IDIR]-1;
-
-        hydro->boundary->BoundaryFor("UserDefX1",dir,side,
-            KOKKOS_LAMBDA (int k, int j, int i) {
-                Vc(RHO,k,j,i) = Vc(RHO,k,j,ighost);
-                Vc(PRS,k,j,i) = Vc(PRS,k,j,ighost);
-                Vc(VX1,k,j,i) = ZERO_F;
-                Vc(VX2,k,j,i) = ZERO_F;
-                Vc(VX3,k,j,i) = ZERO_F;
-
-            });
-    }
-
-    if( (dir==JDIR) && (side == left)) {
-        IdefixArray4D<real> Vc = hydro->Vc;
-
-        int jghost = data->nghost[JDIR];
-
-        hydro->boundary->BoundaryFor("UserDefX2",dir,side,
-            KOKKOS_LAMBDA (int k, int j, int i) {
-                Vc(RHO,k,j,i) = Vc(RHO,k,jghost,i);
-                Vc(PRS,k,j,i) = Vc(PRS,k,jghost,i);
-                Vc(VX1,k,j,i) = ZERO_F;
-                Vc(VX2,k,j,i) = ZERO_F;
-                Vc(VX3,k,j,i) = ZERO_F;
-
-            });
-    }
-
-    if( (dir==JDIR) && (side == right)) {
-        IdefixArray4D<real> Vc = hydro->Vc;
-
-        int jghost = data->end[JDIR]-1;
-
-        hydro->boundary->BoundaryFor("UserDefX2",dir,side,
-            KOKKOS_LAMBDA (int k, int j, int i) {
-                Vc(RHO,k,j,i) = Vc(RHO,k,jghost,i);
-                Vc(PRS,k,j,i) = Vc(PRS,k,jghost,i);
-                Vc(VX1,k,j,i) = ZERO_F;
-                Vc(VX2,k,j,i) = ZERO_F;
-                Vc(VX3,k,j,i) = ZERO_F;
-            });
-    }
-}
-
 void InternalBoundary(Hydro *hydro, const real t) {
   auto *data = hydro->data;
   IdefixArray4D<real> Vc = hydro->Vc;
@@ -392,20 +248,10 @@ Setup::Setup(Input &input, Grid &grid, DataBlock &data, Output &output)
 
   columnGlob = new Column(IDIR,1,RHO,&data);
 
-  //data.hydro->EnrollUserDefBoundary(&UserdefBoundary);
   data.hydro->EnrollInternalBoundary(&InternalBoundary);
   data.hydro->EnrollUserSourceTerm(&MySourceTerm);
   data.hydro->EnrollFluxBoundary(&FluxBoundary);
   output.EnrollUserDefVariables(&ComputeUserVars);
-
-  // Set the function for userdefboundary
-  if(data.haveRadiation) {
-    int nFrequencies = data.radiation.size();
-    for(int n = 0 ; n < nFrequencies ; n++) {
-      //data.radiation[n]->EnrollUserDefBoundary(&UserdefBoundaryRad);
-    }
-  }
-  //data.hydro->haveSourceTerms=false;
 }
 
 Setup::~Setup() {
