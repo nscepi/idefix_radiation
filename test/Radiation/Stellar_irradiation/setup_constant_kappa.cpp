@@ -243,8 +243,7 @@ Setup::Setup(Input &input, Grid &grid, DataBlock &data, Output &output)
   gammaGlob=data.hydro->eos->GetGamma();
   rsGlob=input.Get<real>("Setup","rs",0);
   TsGlob=input.Get<real>("Setup","Ts",0);
-  //kappaGlob = input.Get<real>("Rad","kappa",1);
-  kappairrGlob = input.Get<real>("Rad","kappa_irr",0);
+  kappairrGlob = input.Get<real>("Setup","kappa_irr",0);
 
   columnGlob = new Column(IDIR,1,RHO,&data);
 

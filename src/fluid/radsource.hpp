@@ -80,7 +80,6 @@ class RadSource {
   real xi_0;
   real rho_0;
   real T_0;
-  real kappa_irr;
   real reduced_c;
   real gamma;
   real mu;
@@ -173,11 +172,6 @@ RadSource::RadSource(Input &input, Fluid<Phys> *hydroin):
 
       IDEFIX_ERROR(msg);
     }
-  }
-
-  if(input.CheckEntry(BlockName,"kappa_irr")>=0) {
-    const int n = hydroin->instanceNumber;
-    this->kappa_irr = input.Get<real>(BlockName,"kappa_irr",n);
   }
 
   if(input.CheckEntry(BlockName,"kappa")>=0) {
