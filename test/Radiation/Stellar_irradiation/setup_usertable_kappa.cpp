@@ -217,21 +217,21 @@ void ComputeUserVars(DataBlock & data, UserDefVariablesContainer &variables) {
         A1_out(k,j,i) = A1(k,j,i);
 
         real logtaum = std::log10(FMAX(variables["tau"](k,j,i-1)*unit_density*unit_length,1.e-15));
-        real Fim = std::pow(10.,irr_flux.Get(&logtaum))/std::pow(x1l(i),2.);
+        real Fim = std::pow(10.,irr_flux.GetHost(&logtaum))/std::pow(x1l(i),2.);
         real logtaup = std::log10(FMAX(variables["tau"](k,j,i)*unit_density*unit_length,1.e-15));
-        real Fip = std::pow(10.,irr_flux.Get(&logtaup))/std::pow(x1l(i+1),2.);
+        real Fip = std::pow(10.,irr_flux.GetHost(&logtaup))/std::pow(x1l(i+1),2.);
 
         divF(k,j,i) = (Fip*A1(k,j,i+1)-Fim*A1(k,j,i));
         divF(k,j,i) *= flux_pre;
         divF(k,j,i) /= dV(k,j,i);
 
-        irr(k,j,i) = irr_flux.Get(&logtaum);
+        irr(k,j,i) = irr_flux.GetHost(&logtaum);
         
-        real T = data.hydro->Vc(PRS,k,j,i)/(data.hydro->Vc(RHO,k,j,i))*KELVIN*mu;
+        real T = d.Vc(PRS,k,j,i)/(d.Vc(RHO,k,j,i))*KELVIN*mu;
         real logT = std::log10(T);
 
-        kappa_p(k,j,i) = kappa_planck.Get(&logT);
-        kappa_r(k,j,i) = kappa_rosseland.Get(&logT);
+        kappa_p(k,j,i) = kappa_planck.GetHost(&logT);
+        kappa_r(k,j,i) = kappa_rosseland.GetHost(&logT);
       }
     }
   }
