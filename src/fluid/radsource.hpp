@@ -26,9 +26,8 @@ class RadSource {
   
   KOKKOS_INLINE_FUNCTION real Limit_speeds_Rad(int i, int j, int k, real dx) const {
     auto VcGas = this->VcGas;
-    real kappa_0 = this->kappa_0;
     auto kappa_type = this->kappa_type;
-    real xi_0 = this->xi_0;
+    auto xi_type = this->xi_type;
     real mu =this->mu;
     real kappa,xi;
 
@@ -38,10 +37,10 @@ class RadSource {
     
     // Compute kappa
     if (kappa_type == Type::constant){
-      kappa = kappa_0;
+      kappa = this->kappa_0;
     } else if (kappa_type == Type::kramers){
       real T = VcGas(PRS,k,j,i)/(VcGas(RHO,k,j,i))*KELVIN*mu;
-      kappa = kappa_0*std::pow(VcGas(RHO,k,j,i)*unit_density/rho_0,2.)*std::pow(T/T_0,-3.5);
+      kappa = this->kappa_0*std::pow(VcGas(RHO,k,j,i)*unit_density/this->rho_0,2.)*std::pow(T/this->T_0,-3.5);
     } else if (kappa_type == Type::usertable){
       real T = VcGas(PRS,k,j,i)/(VcGas(RHO,k,j,i))*KELVIN*mu;
       real logT = std::log10(T);
@@ -51,7 +50,7 @@ class RadSource {
 
     // Compute xi
     if (xi_type == Type::constant){
-      xi = xi_0;
+      xi = this->xi_0;
     } else if (xi_type == Type::usertable){
       real T = VcGas(PRS,k,j,i)/(VcGas(RHO,k,j,i))*KELVIN*mu;
       real logT = std::log10(T);
