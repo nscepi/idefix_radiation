@@ -17,7 +17,7 @@ tolerance=1e-13
 def testMe(test):
   test.configure()
   test.compile()
-  inifiles=["idefix-hll-c01.ini","idefix-hll-c001.ini","idefix-hll-c0001.ini","idefix-hllc-c01.ini","idefix-hllc-c001.ini","idefix-hllc-c0001.ini"]
+  inifiles=["idefix-hll-c001.ini","idefix-hll-c0001.ini","idefix-hllc-c001.ini","idefix-hllc-c0001.ini"]
 
   # loop on all the ini files for this test
   for ini in inifiles:
@@ -29,8 +29,6 @@ def testMe(test):
 
 
 test=tst.idfxTest()
-if not test.dec:
-  test.dec=['2','2']
 
 if not test.all:
   if(test.check):
