@@ -17,13 +17,72 @@
 
 class RadSource {
  public:
-  enum class Type{constant,kramers,usertable};
+  enum class Type_opac{constant,kramers,usertable};
+  enum class Type_isolver{full_implicit,fixed_point_rad,fixed_point_gas};
   // Different types of implementation for the radiation source terms.
   template <typename Phys>
   RadSource(Input &, Fluid<Phys> *);
   void ShowConfig();                    // print configuration
   void AddRadSource(const real);
+  void Source_full_implicit(const real);
+  void Source_fixed_point_rad(const real);
+  void Source_fixed_point_gas(const real);
   
+  IdefixArray4D<real> UcRad;  // Radiation conservative quantities
+  IdefixArray4D<real> UcGas;  // Gas conservative quantities
+  IdefixArray4D<real> VcRad;  // Radiation primitive quantities
+  IdefixArray4D<real> VcGas;  // Gas primitive quantities
+  IdefixArray3D<real> InvDt;  // The InvDt of current radiation multigroup
+  Type_opac kappa_type;
+  Type_opac xi_type;
+  
+  
+  KOKKOS_INLINE_FUNCTION void K_kappa_p(int i, int j, int k, real* kappa_p) const {
+     // Compute kappa_p
+    if (this->kappa_type == Type_opac::constant){
+      real temp = this->kappa_0;
+      *kappa_p = temp;
+    } else if (this->kappa_type == Type_opac::kramers){
+      real T = this->VcGas(PRS,k,j,i)/(this->VcGas(RHO,k,j,i))*this->Kelvin*this->mu;
+      real temp = kappa_0*std::pow(this->VcGas(RHO,k,j,i)*idfx::units.density/rho_0,2.)*std::pow(T/T_0,-3.5);
+      *kappa_p = temp;
+    } else if (this->kappa_type == Type_opac::usertable){
+      real T = this->VcGas(PRS,k,j,i)/(this->VcGas(RHO,k,j,i))*this->Kelvin*this->mu;
+      real logT = std::log10(T);
+      auto k_p = this->kappa_planck_1D;
+      real temp = k_p.Get(&logT);
+      *kappa_p = temp;
+    }
+  }
+
+  KOKKOS_INLINE_FUNCTION void K_kappa_r(int i, int j, int k, real* kappa_r) const {
+     // Compute kappa_r
+    if (kappa_type == Type_opac::constant){
+      *kappa_r = this->kappa_0;
+    } else if (kappa_type == Type_opac::kramers){
+      real T = this->VcGas(PRS,k,j,i)/(VcGas(RHO,k,j,i))*this->Kelvin*this->mu;
+      *kappa_r = kappa_0*std::pow(this->VcGas(RHO,k,j,i)*idfx::units.density/rho_0,2.)*std::pow(T/T_0,-3.5);
+    } else if (kappa_type == Type_opac::usertable){
+      real T = this->VcGas(PRS,k,j,i)/(this->VcGas(RHO,k,j,i))*this->Kelvin*this->mu;
+      real logT = std::log10(T);
+      auto k_r = this->kappa_ross_1D;
+      *kappa_r = k_r.Get(&logT);
+    }
+  }
+
+  KOKKOS_INLINE_FUNCTION void K_xi(int i, int j, int k, real* xi) const {
+    // Compute xi
+    if (xi_type == Type_opac::constant){
+      *xi = this->xi_0;
+    } else if (xi_type == Type_opac::usertable){
+      real T = this->VcGas(PRS,k,j,i)/(this->VcGas(RHO,k,j,i))*this->Kelvin*this->mu;
+      real logT = std::log10(T);
+      auto xi1D = this->xi_1D;
+      *xi = xi1D.Get(&logT);
+    }
+  }
+
+
   KOKKOS_INLINE_FUNCTION real Limit_speeds_Rad(int i, int j, int k, real dx) const {
     auto VcGas = this->VcGas;
     real kappa_0 = this->kappa_0;
@@ -36,28 +95,8 @@ class RadSource {
     real unit_length = this->unit_length;
     real KELVIN = this->Kelvin;
     
-    // Compute kappa
-    if (kappa_type == Type::constant){
-      kappa = kappa_0;
-    } else if (kappa_type == Type::kramers){
-      real T = VcGas(PRS,k,j,i)/(VcGas(RHO,k,j,i))*KELVIN*mu;
-      kappa = kappa_0*std::pow(VcGas(RHO,k,j,i)*unit_density/rho_0,2.)*std::pow(T/T_0,-3.5);
-    } else if (kappa_type == Type::usertable){
-      real T = VcGas(PRS,k,j,i)/(VcGas(RHO,k,j,i))*KELVIN*mu;
-      real logT = std::log10(T);
-      auto k_p = this->kappa_planck_1D;
-      kappa = k_p.Get(&logT);
-    }
-
-    // Compute xi
-    if (xi_type == Type::constant){
-      xi = xi_0;
-    } else if (xi_type == Type::usertable){
-      real T = VcGas(PRS,k,j,i)/(VcGas(RHO,k,j,i))*KELVIN*mu;
-      real logT = std::log10(T);
-      auto xi1D = this->xi_1D;
-      xi = xi1D.Get(&logT);
-    }
+    K_kappa_p(i,j,k,&kappa);
+    K_xi(i,j,k,&xi);
 
     // Compute optical depth across one cell
     real tau = VcGas(RHO,k,j,i)*unit_density*(kappa+xi)*dx*unit_length;
@@ -66,14 +105,6 @@ class RadSource {
     return 4./(3.*tau)*this->reduced_c;
   };
 
-  IdefixArray4D<real> UcRad;  // Radiation conservative quantities
-  IdefixArray4D<real> UcGas;  // Gas conservative quantities
-  IdefixArray4D<real> VcRad;  // Radiation primitive quantities
-  IdefixArray4D<real> VcGas;  // Gas primitive quantities
-  IdefixArray3D<real> InvDt;  // The InvDt of current radiation multigroup
-  Type kappa_type;
-  Type xi_type;
-  
  private:
   DataBlock* data;
   real kappa_0;
@@ -104,6 +135,9 @@ class RadSource {
   LookupTable<1> kappa_planck_1D;
   LookupTable<1> kappa_ross_1D;
   LookupTable<1> xi_1D;
+
+  //Solver for source terms
+  Type_isolver source_solver;
 
 };
 
@@ -151,10 +185,10 @@ RadSource::RadSource(Input &input, Fluid<Phys> *hydroin):
 
     std::string xiType = input.Get<std::string>(BlockName,"xi",0);
     if(xiType.compare("constant") == 0) {
-      this->xi_type = Type::constant;
+      this->xi_type = Type_opac::constant;
       this->xi_0 = input.Get<real>(BlockName,"xi",n+1);
     } else if(xiType.compare("usertable") == 0) {
-      this->xi_type = Type::usertable;
+      this->xi_type = Type_opac::usertable;
       this->xi_ndim = input.Get<int>(BlockName,"xi",n+1);
       std::string xi_file = input.Get<std::string>(BlockName,"xi",n+2);
       if (input.Get<int>(BlockName,"xi",n+1) == 1){
@@ -180,15 +214,15 @@ RadSource::RadSource(Input &input, Fluid<Phys> *hydroin):
 
     std::string kappaType = input.Get<std::string>(BlockName,"kappa",0);
     if(kappaType.compare("constant") == 0) {
-      this->kappa_type = Type::constant;
+      this->kappa_type = Type_opac::constant;
       this->kappa_0 = input.Get<real>(BlockName,"kappa",n+1);
     } else if(kappaType.compare("kramers") == 0) {
       this->kappa_0 = input.Get<real>(BlockName,"kappa",n+1);
-      this->kappa_type = Type::kramers;
+      this->kappa_type = Type_opac::kramers;
       this->rho_0 = input.Get<real>(BlockName,"kappa",n+2);
       this->T_0 = input.Get<real>(BlockName,"kappa",n+3);
     } else if(kappaType.compare("usertable") == 0) {
-      this->kappa_type = Type::usertable;
+      this->kappa_type = Type_opac::usertable;
       this->kappa_ndim = input.Get<int>(BlockName,"kappa",n+1);
       std::string kappap_file = input.Get<std::string>(BlockName,"kappa",n+2);
       std::string kappar_file = input.Get<std::string>(BlockName,"kappa",n+3);
@@ -214,6 +248,31 @@ RadSource::RadSource(Input &input, Fluid<Phys> *hydroin):
   } else {
     IDEFIX_ERROR("A [Rad] block is required in your input file to define the radiation source terms.");
   }
+
+  if(input.CheckEntry(BlockName,"source")>=0) {
+    // Fetch the opacity coefficient for the current radiation group.
+    const int n = hydroin->instanceNumber;
+
+    std::string sourceType = input.Get<std::string>(BlockName,"source",0);
+    if(sourceType.compare("full_implicit") == 0) {
+      this->source_solver = Type_isolver::full_implicit;
+    } else if(sourceType.compare("fixed_point_rad") == 0) {
+      this->source_solver = Type_isolver::fixed_point_rad;
+    } else if(sourceType.compare("fixed_point_gas") == 0) {
+      this->source_solver = Type_isolver::fixed_point_gas;      
+    } else {
+      std::stringstream msg;
+      msg << "Unknown solver for source terms \"" <<  sourceType
+          << "\" in your input file." << std::endl
+          << "Allowed values are: full_implicit, fixed_point_rad, fixed_point_gas." << std::endl;
+
+      IDEFIX_ERROR(msg);
+    }
+
+  } else {
+    IDEFIX_ERROR("A [Rad] block is required in your input file to define the radiation source terms.");
+  }
+
 
   idfx::popRegion();
 }
