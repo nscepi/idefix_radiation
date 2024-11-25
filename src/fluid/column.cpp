@@ -113,7 +113,6 @@ void Column::ComputeColumn(IdefixArray4D<real> in) {
       int dst,src;
       MPI_Cart_shift(this->ColumnComm,0, 1, &src, &dst);
       int size = localSum.extent(0)*localSum.extent(1);
-      auto localSum = this->localSum;
       if(MPIrank>0) {
         MPI_Status status;
         // Get the cumulative sum from previous processes
