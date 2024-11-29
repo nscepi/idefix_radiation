@@ -1,5 +1,7 @@
 #include "column.hpp"
 #include "loop.hpp"
+#include "dataBlock.hpp"
+
 
 Column::Column(int dir, int sign, int variable, DataBlock *data) : direction(dir), sign(sign), variable(variable) {
   idfx::pushRegion("Column::Column");
