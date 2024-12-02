@@ -67,14 +67,15 @@ void MySourceTerm(Hydro *hydro, const real t, const real dtin) {
                 real Fim = std::exp(-kappa_irr*tau(k,j,i-1))*A1(k,j,i)/std::pow(x1l(i),2.);
                 real Fip = std::exp(-kappa_irr*tau(k,j,i))*A1(k,j,i+1)/std::pow(x1l(i+1),2.);
                 real divF = flux_pre*(Fip-Fim)/dV(k,j,i);
+                //printf("divF=%e at i=%i and j=%i in MyUserDef\n",divF,i,j);
 
                 //printf("divF/Uc(ENG,k,j,i)=%e Uc(ENG,k,j,i)=%e divF=%e at i %i j %i k %i\n",divF/Uc(ENG,k,j,i),Uc(ENG,k,j,i),divF,i,j,k);
                 //if (FABS(divF/Uc(ENG,k,j,i)) > InvDt(k,j,i)) {
                 //  printf("Add timestep constraint at i %i j %i k %i\n",i,j,k);
                // }
-                InvDt(k,j,i) = InvDt(k,j,i) + FABS(divF/Uc(ENG,k,j,i));
+                //InvDt(k,j,i) = InvDt(k,j,i) + FABS(divF/Uc(ENG,k,j,i));
                 
-                Uc(ENG,k,j,i) -= dt*divF;
+                //Uc(ENG,k,j,i) -= dt*divF;
   });
 }
 
@@ -248,7 +249,7 @@ Setup::Setup(Input &input, Grid &grid, DataBlock &data, Output &output)
   columnGlob = new Column(IDIR,1,RHO,&data);
 
   data.hydro->EnrollInternalBoundary(&InternalBoundary);
-  data.hydro->EnrollUserSourceTerm(&MySourceTerm);
+  //data.hydro->EnrollUserSourceTerm(&MySourceTerm);
   data.hydro->EnrollFluxBoundary(&FluxBoundary);
   output.EnrollUserDefVariables(&ComputeUserVars);
 }

@@ -9,7 +9,7 @@
 #include "physics.hpp"
 #include "units.hpp"
 #include "lookupTable.hpp"
-
+#include "column.hpp"
 
 void RadSource::Source_full_implicit(const real dt) {
   idfx::pushRegion("RadSource::Source_full_implicit");
@@ -34,15 +34,19 @@ void RadSource::Source_full_implicit(const real dt) {
   real unit_length = idfx::units.length;
   real unit_density = idfx::units.density;
   real KELVIN = idfx::units.Kelvin;
-  real unit_time = unit_length/unit_velocity;
-  real unit_energy = unit_density*unit_velocity*unit_velocity;
+  real unit_time = idfx::units.time;
+  real unit_energy = idfx::units.energy;
 
   EquationOfState eos = *(this->eos);
+
+  // Irradiation source
+  IrrFlux(dt);
+  GetdivF();
 
   idefix_for("RadSource",0,data->np_tot[KDIR],0,data->np_tot[JDIR],0,data->np_tot[IDIR],
     KOKKOS_LAMBDA (int k, int j, int i) {
   
-      real Etot = UcGas(ENG,k,j,i)+UcRad(ER,k,j,i)*C_c/(reduced_c*unit_velocity);
+      real Etot = UcGas(ENG,k,j,i)+UcRad(ER,k,j,i)*C_c/(reduced_c*unit_velocity)-divF(k,j,i)*dt*unit_time/unit_energy;
       real m1tot = UcGas(MX1,k,j,i)+UcRad(FR1,k,j,i)/reduced_c;
       real m2tot = UcGas(MX2,k,j,i)+UcRad(FR2,k,j,i)/reduced_c;
       real m3tot = UcGas(MX3,k,j,i)+UcRad(FR3,k,j,i)/reduced_c;
@@ -87,7 +91,10 @@ void RadSource::Source_full_implicit(const real dt) {
       real M10 = -kk;
 
       real S0 = Er_hyp*unit_energy - 3.*kk_red*C_ar*T3*T;
-      real S1 = VGas[RHO]*unit_density*C_cv*T/(gamma-1.) + 3.*kk*C_ar*T3*T;
+      real S1 = VGas[RHO]*unit_density*C_cv*T/(gamma-1.) + 3.*kk*C_ar*T3*T - divF(k,j,i)*dt*unit_time;
+      //printf("divF=%e in full_implicit at i=%i and j=%i\n",divF(k,j,i),i,j);                
+
+      //real S1 = VGas[RHO]*unit_density*C_cv*T/(gamma-1.) + 3.*kk*C_ar*T3*T;
 
       real det = M00*M11 - M01*M10;
 
@@ -466,3 +473,36 @@ void RadSource::AddRadSource(const real dt) {
 
   idfx::popRegion();
 }
+
+void RadSource::IrrFlux(const real dt) {
+  idfx::pushRegion("RadSource::Irrflux");
+  
+  auto divFlux = this->divF;  
+
+  column_rho->ComputeColumn(this->VcGas);
+  tau = column_rho->GetColumn();
+  real kirr = kappa_irr*idfx::units.density*idfx::units.length; 
+
+  if(irr_type==Type_irr::constant) {
+    real flux_pre = std::pow(rs/idfx::units.length,2.)*idfx::units.sigma_sb*std::pow(Ts,4.)/idfx::units.length;
+    
+    idefix_for("constant_irr_source",
+    data->beg[KDIR], data->end[KDIR],
+    data->beg[JDIR], data->end[JDIR],
+    data->beg[IDIR], data->end[IDIR],
+    KOKKOS_LAMBDA (int k, int j, int i) {
+
+                // Constant kappa
+                real Fim = std::exp(-kirr*tau(k,j,i-1))*data->A[IDIR](k,j,i)/std::pow(data->xl[IDIR](i),2.);
+                real Fip = std::exp(-kirr*tau(k,j,i))*data->A[IDIR](k,j,i+1)/std::pow(data->xl[IDIR](i+1),2.);
+                divFlux(k,j,i) = flux_pre*(Fip-Fim)/data->dV(k,j,i);
+                //printf("divF=%e in irrFlux at i=%i and j=%i\n",divFlux(k,j,i),i,j);                
+    });
+
+  } else if (irr_type==Type_irr::usertable) {
+
+  }
+
+  idfx::popRegion();
+
+} 
