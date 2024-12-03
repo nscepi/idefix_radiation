@@ -43,7 +43,7 @@ void RadSource::Source_full_implicit(const real dt) {
   IrrFlux(dt);
   GetdivF();
 
-  idefix_for("RadSource",0,data->np_tot[KDIR],0,data->np_tot[JDIR],0,data->np_tot[IDIR],
+  idefix_for("RadSource_full_implicit",0,data->np_tot[KDIR],0,data->np_tot[JDIR],0,data->np_tot[IDIR],
     KOKKOS_LAMBDA (int k, int j, int i) {
   
       real Etot = UcGas(ENG,k,j,i)+UcRad(ER,k,j,i)*C_c/(reduced_c*unit_velocity)-divF(k,j,i)*dt*unit_time/unit_energy;
@@ -92,9 +92,6 @@ void RadSource::Source_full_implicit(const real dt) {
 
       real S0 = Er_hyp*unit_energy - 3.*kk_red*C_ar*T3*T;
       real S1 = VGas[RHO]*unit_density*C_cv*T/(gamma-1.) + 3.*kk*C_ar*T3*T - divF(k,j,i)*dt*unit_time;
-      //printf("divF=%e in full_implicit at i=%i and j=%i\n",divF(k,j,i),i,j);                
-
-      //real S1 = VGas[RHO]*unit_density*C_cv*T/(gamma-1.) + 3.*kk*C_ar*T3*T;
 
       real det = M00*M11 - M01*M10;
 
@@ -164,8 +161,8 @@ void RadSource::Source_fixed_point_rad(const real dt) {
   real unit_length = idfx::units.length;
   real unit_density = idfx::units.density;
   real KELVIN = idfx::units.Kelvin;
-  real unit_time = unit_length/unit_velocity;
-  real unit_energy = unit_density*unit_velocity*unit_velocity;
+  real unit_time = idfx::units.time;
+  real unit_energy = idfx::units.energy;
   // Max iteration for fixed-point solver
   int MAX_ITER = 200;
   // Tolerance on ER and ENG for fixed-point solver
@@ -173,9 +170,17 @@ void RadSource::Source_fixed_point_rad(const real dt) {
 
   EquationOfState eos = *(this->eos);
 
-  idefix_for("RadSource",0,data->np_tot[KDIR],0,data->np_tot[JDIR],0,data->np_tot[IDIR],
+    // Irradiation source
+  IrrFlux(dt);
+  GetdivF();
+
+  idefix_for("RadSource_fixed_point_rad",0,data->np_tot[KDIR],0,data->np_tot[JDIR],0,data->np_tot[IDIR],
     KOKKOS_LAMBDA (int k, int j, int i) {
   
+      // Add heating due to irradiation flux
+      InvDt(k,j,i) += FABS(unit_time*divF(k,j,i)/unit_energy/UcGas(ENG,k,j,i));
+      UcGas(ENG,k,j,i) -= dt*unit_time*divF(k,j,i)/unit_energy;
+
       real Etot = UcGas(ENG,k,j,i)+UcRad(ER,k,j,i)*C_c/(reduced_c*unit_velocity);
       real m1tot = UcGas(MX1,k,j,i)+UcRad(FR1,k,j,i)/reduced_c;
       real m2tot = UcGas(MX2,k,j,i)+UcRad(FR2,k,j,i)/reduced_c;
@@ -227,7 +232,6 @@ void RadSource::Source_fixed_point_rad(const real dt) {
         K_kappa_r(i,j,k,&kappa_r);
         K_xi(i,j,k,&xi);
 
-
         real kk_red = reduced_c * unit_velocity * dt * unit_time * kappa_p * VGas[RHO]*unit_density;
         real xx_red = reduced_c * unit_velocity * dt * unit_time * (xi + kappa_r) * VGas[RHO]*unit_density;
 
@@ -258,7 +262,6 @@ void RadSource::Source_fixed_point_rad(const real dt) {
         err4 = std::abs(1.-Mnorm/Mnorm_old);
         count += 1;
       } 
-      
 
       for(int nv = 0 ; nv < RadiationPhysics::nvar ; nv++) {
         UcRad(nv,k,j,i) = URad[nv];
@@ -482,9 +485,10 @@ void RadSource::IrrFlux(const real dt) {
   column_rho->ComputeColumn(this->VcGas);
   tau = column_rho->GetColumn();
   real kirr = kappa_irr*idfx::units.density*idfx::units.length; 
+  real flux_pre = std::pow(rs/idfx::units.length,2.)*idfx::units.sigma_sb*std::pow(Ts,4.)/idfx::units.length;
 
+  // Constant kappa
   if(irr_type==Type_irr::constant) {
-    real flux_pre = std::pow(rs/idfx::units.length,2.)*idfx::units.sigma_sb*std::pow(Ts,4.)/idfx::units.length;
     
     idefix_for("constant_irr_source",
     data->beg[KDIR], data->end[KDIR],
@@ -492,15 +496,27 @@ void RadSource::IrrFlux(const real dt) {
     data->beg[IDIR], data->end[IDIR],
     KOKKOS_LAMBDA (int k, int j, int i) {
 
-                // Constant kappa
                 real Fim = std::exp(-kirr*tau(k,j,i-1))*data->A[IDIR](k,j,i)/std::pow(data->xl[IDIR](i),2.);
                 real Fip = std::exp(-kirr*tau(k,j,i))*data->A[IDIR](k,j,i+1)/std::pow(data->xl[IDIR](i+1),2.);
                 divFlux(k,j,i) = flux_pre*(Fip-Fim)/data->dV(k,j,i);
-                //printf("divF=%e in irrFlux at i=%i and j=%i\n",divFlux(k,j,i),i,j);                
     });
 
+  // Usertable kappa
   } else if (irr_type==Type_irr::usertable) {
+    
+    idefix_for("usertable_irr_source",
+    data->beg[KDIR], data->end[KDIR],
+    data->beg[JDIR], data->end[JDIR],
+    data->beg[IDIR], data->end[IDIR],
+              KOKKOS_LAMBDA (int k, int j, int i) {
 
+                real logtaum = std::log10(FMAX(tau(k,j,i-1)*unit_density*unit_length,1.e-15));
+                real Fim = pow(10.,irr_1D.Get(&logtaum))*data->A[IDIR](k,j,i)/std::pow(data->xl[IDIR](i),2.);
+                real logtaup = std::log10(FMAX(tau(k,j,i)*unit_density*unit_length,1.e-15));
+                real Fip = pow(10.,irr_1D.Get(&logtaup))*data->A[IDIR](k,j,i+1)/std::pow(data->xl[IDIR](i+1),2.);
+                divFlux(k,j,i)  = flux_pre*(Fip-Fim)/data->dV(k,j,i);
+                //printf("divFlux=%e at i=%i and j=%i\n",divFlux(k,j,i),i,j);
+    });
   }
 
   idfx::popRegion();
