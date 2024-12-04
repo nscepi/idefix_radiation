@@ -37,9 +37,8 @@ class RadSource {
   IdefixArray4D<real> VcGas;  // Gas primitive quantities
   IdefixArray3D<real> InvDt;  // The InvDt of current radiation multigroup
   
-  
+  // Compute kappa_p
   KOKKOS_INLINE_FUNCTION void K_kappa_p(int i, int j, int k, real* kappa_p) const {
-     // Compute kappa_p
     if (this->kappa_type == Type_opac::constant){
       real temp = this->kappa_0;
       *kappa_p = temp;
@@ -55,9 +54,9 @@ class RadSource {
       *kappa_p = temp;
     }
   }
-
+  
+  // Compute kappa_r
   KOKKOS_INLINE_FUNCTION void K_kappa_r(int i, int j, int k, real* kappa_r) const {
-     // Compute kappa_r
     if (kappa_type == Type_opac::constant){
       *kappa_r = this->kappa_0;
     } else if (kappa_type == Type_opac::kramers){
@@ -71,8 +70,8 @@ class RadSource {
     }
   }
 
+  // Compute xi
   KOKKOS_INLINE_FUNCTION void K_xi(int i, int j, int k, real* xi) const {
-    // Compute xi
     if (xi_type == Type_opac::constant){
       *xi = this->xi_0;
     } else if (xi_type == Type_opac::usertable){
@@ -83,7 +82,7 @@ class RadSource {
     }
   }
 
-
+  // Compute limiting diffusion speed for Riemann solver in opt. thick media
   KOKKOS_INLINE_FUNCTION real Limit_speeds_Rad(int i, int j, int k, real dx) const {
     auto VcGas = this->VcGas;
     real kappa_0 = this->kappa_0;
@@ -176,8 +175,8 @@ RadSource::RadSource(Input &input, Fluid<Phys> *hydroin):
                       VcGas{hydroin->data->hydro->Vc},
                       InvDt{hydroin->InvDt} {
   idfx::pushRegion("RadSource::RadSource");
+  
   // Save the parent hydro object
-
   this->data = hydroin->data;
   this->eos = hydroin->data->hydro->eos.get();
 

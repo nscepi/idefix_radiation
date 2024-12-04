@@ -50,39 +50,43 @@ void RadSource::Source_full_implicit(const real dt) {
   idefix_for("RadSource_full_implicit",0,data->np_tot[KDIR],0,data->np_tot[JDIR],0,data->np_tot[IDIR],
     KOKKOS_LAMBDA (int k, int j, int i) {
   
-      real Etot = UcGas(ENG,k,j,i)+UcRad(ER,k,j,i)*C_c/(reduced_c*unit_velocity);
-      if (irr_flag){  
-        Etot -= divF(k,j,i)*dt*unit_time/unit_energy;
-      }
-
-      real m1tot = UcGas(MX1,k,j,i)+UcRad(FR1,k,j,i)/reduced_c;
-      real m2tot = UcGas(MX2,k,j,i)+UcRad(FR2,k,j,i)/reduced_c;
-      real m3tot = UcGas(MX3,k,j,i)+UcRad(FR3,k,j,i)/reduced_c;
-      
-      real Er_hyp = UcRad(ER,k,j,i);
-      real Fr1_hyp = UcRad(FR1,k,j,i);
-      real Fr2_hyp = UcRad(FR2,k,j,i);
-      real Fr3_hyp = UcRad(FR3,k,j,i);
-
       real URad[RadiationPhysics::nvar];
-
       real UGas[DefaultPhysics::nvar];
       real VGas[DefaultPhysics::nvar];
-      
+
       for(int nv = 0 ; nv < RadiationPhysics::nvar ; nv++) {
         URad[nv] = UcRad(nv,k,j,i);
       }
-
       for(int nv = 0 ; nv < DefaultPhysics::nvar ; nv++) {
         UGas[nv] = UcGas(nv,k,j,i);
         VGas[nv] = VcGas(nv,k,j,i);
       }
+
+      // Compute total modified energy
+      real Etot = UGas[ENG]+URad[ER]*C_c/(reduced_c*unit_velocity);
+      
+      // Add irradiation heating if needed
+      if (irr_flag){  
+        Etot -= divF(k,j,i)*dt*unit_time/unit_energy;
+      }
+      
+      // Compute total modified momentum
+      real m1tot = UGas[MX1]+URad[FR1]/reduced_c;
+      real m2tot = UGas[MX2]+URad[FR2]/reduced_c;
+      real m3tot = UGas[MX3]+URad[FR3]/reduced_c;
+      
+      // Store conserved variables after hyperbolic step
+      real Er_hyp = URad[ER];
+      real Fr1_hyp = URad[FR1];
+      real Fr2_hyp = URad[FR2];
+      real Fr3_hyp = URad[FR3];
 
       real Fnorm = std::sqrt(EXPAND(URad[FR1]*URad[FR1] , + URad[FR2]*URad[FR2], + URad[FR3]*URad[FR3]));
         
       real T = VGas[PRS]/(VGas[RHO])*KELVIN*mu;
       real T3 = std::pow(T,3);
 
+      // Compute opacities
       real kappa_p,kappa_r,xi;
       K_kappa_p(i,j,k,&kappa_p);
       K_kappa_r(i,j,k,&kappa_r);
@@ -93,17 +97,22 @@ void RadSource::Source_full_implicit(const real dt) {
       real xx_red = reduced_c * unit_velocity * dt * unit_time * (xi + kappa_r) * VGas[RHO]*unit_density;
       real xx = C_c * dt * unit_time * (xi + kappa_r) * VGas[RHO]*unit_density;
 
+      // Define matrix to invert
       real M00 = ONE_F + kk_red;
       real M11 = VGas[RHO]*unit_density*C_cv/(gamma-1.) + 4.*kk*C_ar*T3;
       real M01 = -4.*kk_red*C_ar*T3;
       real M10 = -kk;
 
+      // Define right-hand side of system
       real S0 = Er_hyp*unit_energy - 3.*kk_red*C_ar*T3*T;
       real S1 = VGas[RHO]*unit_density*C_cv*T/(gamma-1.) + 3.*kk*C_ar*T3*T;
+
+      // Add irradiation heating to RHS if needed
       if (irr_flag){
         S1 -= divF(k,j,i)*dt*unit_time;
       }
-
+ 
+      // Invert system
       real det = M00*M11 - M01*M10;
 
       real Minv00 = M11/det;
@@ -114,6 +123,7 @@ void RadSource::Source_full_implicit(const real dt) {
       real Er_new = Minv00*S0 + Minv01*S1;
       real T_new = Minv10*S0 + Minv11*S1;
 
+      // Update conservative variables
       URad[ER] = Er_new/unit_energy;
       EXPAND( URad[FR1] = Fr1_hyp/(1.+xx_red);,
               URad[FR2] = Fr2_hyp/(1.+xx_red);,
@@ -130,6 +140,7 @@ void RadSource::Source_full_implicit(const real dt) {
               UGas[MX2] = m2tot - URad[FR2]/reduced_c;,
               UGas[MX3] = m3tot - URad[FR3]/reduced_c;)
 
+      // Update primitive  variables
       K_ConsToPrim<DefaultPhysics>(VGas, UGas, &eos);
 
       for(int nv = 0 ; nv < RadiationPhysics::nvar ; nv++) {
@@ -192,41 +203,44 @@ void RadSource::Source_fixed_point_rad(const real dt) {
   idefix_for("RadSource_fixed_point_rad",0,data->np_tot[KDIR],0,data->np_tot[JDIR],0,data->np_tot[IDIR],
     KOKKOS_LAMBDA (int k, int j, int i) {
   
-      // Add heating due to irradiation flux
+      // Add heating due to irradiation flux if needed
       if (irr_flag){
+        // Limit time step relative to characteristic time of irradiation heating
         InvDt(k,j,i) += FABS(unit_time*divF(k,j,i)/unit_energy/UcGas(ENG,k,j,i));
         UcGas(ENG,k,j,i) -= dt*unit_time*divF(k,j,i)/unit_energy;
       }
 
-      real Etot = UcGas(ENG,k,j,i)+UcRad(ER,k,j,i)*C_c/(reduced_c*unit_velocity);
-      real m1tot = UcGas(MX1,k,j,i)+UcRad(FR1,k,j,i)/reduced_c;
-      real m2tot = UcGas(MX2,k,j,i)+UcRad(FR2,k,j,i)/reduced_c;
-      real m3tot = UcGas(MX3,k,j,i)+UcRad(FR3,k,j,i)/reduced_c;
-      
-      real Er_hyp = UcRad(ER,k,j,i);
-      real Fr1_hyp = UcRad(FR1,k,j,i);
-      real Fr2_hyp = UcRad(FR2,k,j,i);
-      real Fr3_hyp = UcRad(FR3,k,j,i);
-
-      real Egas_hyp = UcGas(ENG,k,j,i);
-      real m1gas_hyp = UcGas(MX1,k,j,i);
-      real m2gas_hyp = UcGas(MX2,k,j,i);
-      real m3gas_hyp = UcGas(MX3,k,j,i);
-
-      real URad[RadiationPhysics::nvar];
-      real Er_old, Fnorm_old, Egas_old, Mnorm_old;
-
       real UGas[DefaultPhysics::nvar];
       real VGas[DefaultPhysics::nvar];
-      
+      real URad[RadiationPhysics::nvar];
+
       for(int nv = 0 ; nv < RadiationPhysics::nvar ; nv++) {
         URad[nv] = UcRad(nv,k,j,i);
       }
 
       for(int nv = 0 ; nv < DefaultPhysics::nvar ; nv++) {
-        UGas[nv] = UcGas(nv,k,j,i);
+        UGas[nv] = UcGas(nv,k,j,i); 
         VGas[nv] = VcGas(nv,k,j,i);
       }
+      
+      // Compute total modified energy and momentum
+      real Etot = UGas[ENG]+URad[ER]*C_c/(reduced_c*unit_velocity);
+      real m1tot = UGas[MX1]+URad[FR1]/reduced_c;
+      real m2tot = UGas[MX2]+URad[FR2]/reduced_c;
+      real m3tot = UGas[MX3]+URad[FR3]/reduced_c;
+      
+      // Store conservative variables after hydro step
+      real Er_hyp = URad[ER];
+      real Fr1_hyp = URad[FR1];
+      real Fr2_hyp = URad[FR2];
+      real Fr3_hyp = URad[FR3];
+
+      real Egas_hyp = UGas[ENG];
+      real m1gas_hyp = UGas[MX1];
+      real m2gas_hyp = UGas[MX2];
+      real m3gas_hyp = UGas[MX3];
+
+      real Er_old, Fnorm_old, Egas_old, Mnorm_old;      
     
       real err1= 1.;
       real err2= 1.;
@@ -237,6 +251,7 @@ void RadSource::Source_fixed_point_rad(const real dt) {
       real Fnorm = std::sqrt(EXPAND(URad[FR1]*URad[FR1] , + URad[FR2]*URad[FR2], + URad[FR3]*URad[FR3]));
       real Mnorm = std::sqrt(EXPAND(UGas[MX1]*UGas[MX1] , + UGas[MX2]*UGas[MX2], + UGas[MX3]*UGas[MX3]));
 
+      // Iterate on radiative variables
       while (((err1>tol) || (err2>tol) || (err3>tol) || (err4>tol)) && (count < MAX_ITER)){
 
         Er_old = URad[ER];
@@ -244,6 +259,7 @@ void RadSource::Source_fixed_point_rad(const real dt) {
         Egas_old = UGas[ENG];
         Mnorm_old = Mnorm;
 
+        // Compute opacities
         real kappa_p,kappa_r,xi;
         K_kappa_p(i,j,k,&kappa_p);
         K_kappa_r(i,j,k,&kappa_r);
@@ -252,7 +268,10 @@ void RadSource::Source_fixed_point_rad(const real dt) {
         real kk_red = reduced_c * unit_velocity * dt * unit_time * kappa_p * VGas[RHO]*unit_density;
         real xx_red = reduced_c * unit_velocity * dt * unit_time * (xi + kappa_r) * VGas[RHO]*unit_density;
 
+        // Compute new temperature
         real T = VGas[PRS]/(VGas[RHO])*KELVIN*mu;
+
+        // "Implicit" step on radiation conservative variables
         URad[ER] = Er_hyp +  kk_red*C_ar*std::pow(T,4.)/unit_energy;
         URad[ER] /= 1. + kk_red;
         EXPAND( URad[FR1] = Fr1_hyp/(1.+xx_red);,
@@ -260,19 +279,21 @@ void RadSource::Source_fixed_point_rad(const real dt) {
                 URad[FR3] = Fr3_hyp/(1.+xx_red);)
         Fnorm = std::sqrt(EXPAND(URad[FR1]*URad[FR1] , + URad[FR2]*URad[FR2], + URad[FR3]*URad[FR3]));
 
+        // Update gas conservative variables
         if ((Etot - URad[ER]*C_c/(reduced_c*unit_velocity))<=ZERO_F) {
           Kokkos::abort("ENG=0 in Radsource");
         } else {
           UGas[ENG] = Etot - URad[ER]*C_c/(reduced_c*unit_velocity);
         }
-
         EXPAND( UGas[MX1] = m1tot - URad[FR1]/reduced_c;,
                 UGas[MX2] = m2tot - URad[FR2]/reduced_c;,
                 UGas[MX3] = m3tot - URad[FR3]/reduced_c;)
         Mnorm = std::sqrt(EXPAND(UGas[MX1]*UGas[MX1] , + UGas[MX2]*UGas[MX2], + UGas[MX3]*UGas[MX3]));
 
+        // Update gas primitive variables
         K_ConsToPrim<DefaultPhysics>(VGas, UGas, &eos);
 
+        // Compute errors and number of cycles
         err1 = std::abs(1.-URad[ER]/Er_old);
         err2 = std::abs(1.-Fnorm/Fnorm_old);
         err3 = std::abs(1.-UGas[ENG]/Egas_old);
@@ -532,7 +553,6 @@ void RadSource::IrrFlux(const real dt) {
                 real logtaup = std::log10(FMAX(tau(k,j,i)*unit_density*unit_length,1.e-15));
                 real Fip = pow(10.,irr_1D.Get(&logtaup))*data->A[IDIR](k,j,i+1)/std::pow(data->xl[IDIR](i+1),2.);
                 divFlux(k,j,i)  = flux_pre*(Fip-Fim)/data->dV(k,j,i);
-                //printf("divFlux=%e at i=%i and j=%i\n",divFlux(k,j,i),i,j);
     });
   }
 
