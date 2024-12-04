@@ -20,7 +20,6 @@ std::string kappatypeGlob;
 Column *columnGlob;
 LookupTable<1> *kappatableGlob;
 
-
 void FluxBoundary(Fluid<DefaultPhysics> *hydro, int dir, BoundarySide side, const real t) {
     idfx::pushRegion("FluxInternal");
 
@@ -103,6 +102,11 @@ void InternalBoundary(Hydro *hydro, const real t) {
               Vc(VX1,k,j,i) = 0.;
               Vc(VX2,k,j,i) = 0.;
               Vc(VX3,k,j,i) = 0.;
+
+              Uc(RHO,k,j,i) = (rho0*(R0/R)*std::exp(-0.25*M_PI*z2/(H*H))+rhomin)/unit_density;
+              Uc(VX1,k,j,i) = 0.;
+              Uc(VX2,k,j,i) = 0.;
+              Uc(VX3,k,j,i) = 0.;
             });
 
 }
@@ -146,6 +150,7 @@ void ComputeUserVars(DataBlock & data, UserDefVariablesContainer &variables) {
 
   columnGlob->ComputeColumn(Vc);
   tau = columnGlob->GetColumn();
+
   Kokkos::deep_copy(variables["tau"], tau);
   Kokkos::deep_copy(variables["dV"], dV);
 
@@ -219,6 +224,10 @@ Setup::Setup(Input &input, Grid &grid, DataBlock &data, Output &output)
   data.hydro->EnrollInternalBoundary(&InternalBoundary);
   data.hydro->EnrollFluxBoundary(&FluxBoundary);
   output.EnrollUserDefVariables(&ComputeUserVars);
+
+  // Compute tau in dumps to check error with or without MPI
+  auto temp_array = columnGlob->GetColumn();
+  data.dump->RegisterVariable(temp_array,"Tau");
 }
 
 Setup::~Setup() {
