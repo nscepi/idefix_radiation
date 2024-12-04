@@ -71,15 +71,15 @@ void RadSource::Source_full_implicit(const real dt) {
       }
       
       // Compute total modified momentum
-      real m1tot = UGas[MX1]+URad[FR1]/reduced_c;
-      real m2tot = UGas[MX2]+URad[FR2]/reduced_c;
-      real m3tot = UGas[MX3]+URad[FR3]/reduced_c;
+      EXPAND(real m1tot = UGas[MX1]+URad[FR1]/reduced_c;,
+             real m2tot = UGas[MX2]+URad[FR2]/reduced_c;,
+             real m3tot = UGas[MX3]+URad[FR3]/reduced_c;)
       
       // Store conserved variables after hyperbolic step
       real Er_hyp = URad[ER];
-      real Fr1_hyp = URad[FR1];
-      real Fr2_hyp = URad[FR2];
-      real Fr3_hyp = URad[FR3];
+      EXPAND(real Fr1_hyp = URad[FR1];,
+             real Fr2_hyp = URad[FR2];,
+             real Fr3_hyp = URad[FR3];)
 
       real Fnorm = std::sqrt(EXPAND(URad[FR1]*URad[FR1] , + URad[FR2]*URad[FR2], + URad[FR3]*URad[FR3]));
         
@@ -225,20 +225,20 @@ void RadSource::Source_fixed_point_rad(const real dt) {
       
       // Compute total modified energy and momentum
       real Etot = UGas[ENG]+URad[ER]*C_c/(reduced_c*unit_velocity);
-      real m1tot = UGas[MX1]+URad[FR1]/reduced_c;
-      real m2tot = UGas[MX2]+URad[FR2]/reduced_c;
-      real m3tot = UGas[MX3]+URad[FR3]/reduced_c;
+      EXPAND(real m1tot = UGas[MX1]+URad[FR1]/reduced_c;,
+             real m2tot = UGas[MX2]+URad[FR2]/reduced_c;,
+             real m3tot = UGas[MX3]+URad[FR3]/reduced_c;)
       
       // Store conservative variables after hydro step
       real Er_hyp = URad[ER];
-      real Fr1_hyp = URad[FR1];
-      real Fr2_hyp = URad[FR2];
-      real Fr3_hyp = URad[FR3];
+      EXPAND(real Fr1_hyp = URad[FR1];,
+             real Fr2_hyp = URad[FR2];,
+             real Fr3_hyp = URad[FR3];)
 
       real Egas_hyp = UGas[ENG];
-      real m1gas_hyp = UGas[MX1];
-      real m2gas_hyp = UGas[MX2];
-      real m3gas_hyp = UGas[MX3];
+      EXPAND(real m1gas_hyp = UGas[MX1];,
+             real m2gas_hyp = UGas[MX2];,
+             real m3gas_hyp = UGas[MX3];)
 
       real Er_old, Fnorm_old, Egas_old, Mnorm_old;      
     
