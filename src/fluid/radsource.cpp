@@ -181,17 +181,19 @@ void RadSource::Source_fixed_point_rad(const real dt) {
 
   EquationOfState eos = *(this->eos);
 
-    // Irradiation source
+  // Irradiation source
+  bool irr_flag=false;
   if (haveIrradiation){
     IrrFlux(dt);
     GetdivF();
+    irr_flag=true;
   }
 
   idefix_for("RadSource_fixed_point_rad",0,data->np_tot[KDIR],0,data->np_tot[JDIR],0,data->np_tot[IDIR],
     KOKKOS_LAMBDA (int k, int j, int i) {
   
       // Add heating due to irradiation flux
-      if (haveIrradiation){
+      if (irr_flag){
         InvDt(k,j,i) += FABS(unit_time*divF(k,j,i)/unit_energy/UcGas(ENG,k,j,i));
         UcGas(ENG,k,j,i) -= dt*unit_time*divF(k,j,i)/unit_energy;
       }
