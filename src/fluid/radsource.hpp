@@ -145,6 +145,9 @@ class RadSource {
   LookupTable<1> kappa_ross_1D;
   LookupTable<1> xi_1D;
 
+  // Have irradiation or not
+  bool haveIrradiation{false};
+
   // Dimension of irradiation flux table 
   int irr_ndim;
   
@@ -300,6 +303,7 @@ RadSource::RadSource(Input &input, Fluid<Phys> *hydroin):
 
   // Information on irradiation source term
   if(input.CheckEntry(BlockName,"irr")>=0) {
+    haveIrradiation = true;
     // Fetch the opacity coefficient for the current radiation group.
     const int n = hydroin->instanceNumber;
     
@@ -334,9 +338,8 @@ RadSource::RadSource(Input &input, Fluid<Phys> *hydroin):
 
       IDEFIX_ERROR(msg);
     }
-  } else {
-    IDEFIX_ERROR("An *irr* line in your [Rad] block is required in your input file to define the irradiation source terms.");
-  } 
+  }
+  
 
 
   idfx::popRegion();

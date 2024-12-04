@@ -40,13 +40,21 @@ void RadSource::Source_full_implicit(const real dt) {
   EquationOfState eos = *(this->eos);
 
   // Irradiation source
-  IrrFlux(dt);
-  GetdivF();
+  bool irr_flag=false;
+  if (haveIrradiation){
+    IrrFlux(dt);
+    GetdivF();
+    irr_flag=true;
+  }
 
   idefix_for("RadSource_full_implicit",0,data->np_tot[KDIR],0,data->np_tot[JDIR],0,data->np_tot[IDIR],
     KOKKOS_LAMBDA (int k, int j, int i) {
   
-      real Etot = UcGas(ENG,k,j,i)+UcRad(ER,k,j,i)*C_c/(reduced_c*unit_velocity)-divF(k,j,i)*dt*unit_time/unit_energy;
+      real Etot = UcGas(ENG,k,j,i)+UcRad(ER,k,j,i)*C_c/(reduced_c*unit_velocity);
+      if (irr_flag){  
+        Etot -= divF(k,j,i)*dt*unit_time/unit_energy;
+      }
+
       real m1tot = UcGas(MX1,k,j,i)+UcRad(FR1,k,j,i)/reduced_c;
       real m2tot = UcGas(MX2,k,j,i)+UcRad(FR2,k,j,i)/reduced_c;
       real m3tot = UcGas(MX3,k,j,i)+UcRad(FR3,k,j,i)/reduced_c;
@@ -91,7 +99,10 @@ void RadSource::Source_full_implicit(const real dt) {
       real M10 = -kk;
 
       real S0 = Er_hyp*unit_energy - 3.*kk_red*C_ar*T3*T;
-      real S1 = VGas[RHO]*unit_density*C_cv*T/(gamma-1.) + 3.*kk*C_ar*T3*T - divF(k,j,i)*dt*unit_time;
+      real S1 = VGas[RHO]*unit_density*C_cv*T/(gamma-1.) + 3.*kk*C_ar*T3*T;
+      if (irr_flag){
+        S1 -= divF(k,j,i)*dt*unit_time;
+      }
 
       real det = M00*M11 - M01*M10;
 
@@ -171,15 +182,19 @@ void RadSource::Source_fixed_point_rad(const real dt) {
   EquationOfState eos = *(this->eos);
 
     // Irradiation source
-  IrrFlux(dt);
-  GetdivF();
+  if (haveIrradiation){
+    IrrFlux(dt);
+    GetdivF();
+  }
 
   idefix_for("RadSource_fixed_point_rad",0,data->np_tot[KDIR],0,data->np_tot[JDIR],0,data->np_tot[IDIR],
     KOKKOS_LAMBDA (int k, int j, int i) {
   
       // Add heating due to irradiation flux
-      InvDt(k,j,i) += FABS(unit_time*divF(k,j,i)/unit_energy/UcGas(ENG,k,j,i));
-      UcGas(ENG,k,j,i) -= dt*unit_time*divF(k,j,i)/unit_energy;
+      if (haveIrradiation){
+        InvDt(k,j,i) += FABS(unit_time*divF(k,j,i)/unit_energy/UcGas(ENG,k,j,i));
+        UcGas(ENG,k,j,i) -= dt*unit_time*divF(k,j,i)/unit_energy;
+      }
 
       real Etot = UcGas(ENG,k,j,i)+UcRad(ER,k,j,i)*C_c/(reduced_c*unit_velocity);
       real m1tot = UcGas(MX1,k,j,i)+UcRad(FR1,k,j,i)/reduced_c;
