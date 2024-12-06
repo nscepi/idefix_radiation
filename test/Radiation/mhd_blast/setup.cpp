@@ -9,6 +9,7 @@ real wGlob;
 real prsinGlob;
 real prsoutGlob;
 real B0Glob;
+bool haveRadiationGlob = false;
 
 // Default constructor
 // Initialisation routine. Can be used to allocate
@@ -22,6 +23,9 @@ Setup::Setup(Input &input, Grid &grid, DataBlock &data, Output &output)
   prsoutGlob = input.Get<real>("Setup","prs_out",0);
   prsinGlob = input.Get<real>("Setup","prs_in",0);
   B0Glob = input.Get<real>("Setup","B0",0);
+  if (input.CheckBlock("Rad")) {
+    haveRadiationGlob = true;
+  }
 }
 
 // This routine initialize the flow
@@ -44,7 +48,7 @@ void Setup::InitFlow(DataBlock &data) {
 
     real unit_density = idfx::units.density;
     real unit_velocity = idfx::units.velocity;
-    real unit_energy = unit_density*unit_velocity*unit_velocity;
+    real unit_energy = idfx::units.energy;
 
     for(int k = 0; k < d.np_tot[KDIR] ; k++) {
         for(int j = 0; j < d.np_tot[JDIR] ; j++) {
@@ -60,9 +64,18 @@ void Setup::InitFlow(DataBlock &data) {
               d.Vc(VX1,k,j,i) = ZERO_F;
               d.Vc(VX2,k,j,i) = ZERO_F;
               d.Vc(VX3,k,j,i) = ZERO_F;
+              T = d.Vc(PRS,k,j,i)/d.Vc(RHO,k,j,i)*KELVIN;
+              if (haveRadiationGlob) {
+                d.RadVc[0](ER,k,j,i) = C_ar*std::pow(T,4)/unit_energy;
+                d.RadVc[0](FR1,k,j,i) = ZERO_F;
+                d.RadVc[0](FR2,k,j,i) = ZERO_F;
+                d.RadVc[0](FR3,k,j,i) = ZERO_F;
+              }
+              #if MHD == YES
               d.Vs(BX1s,k,j,i) = B0;
               d.Vs(BX2s,k,j,i) = 0.0;
-              d.Vs(BX3s,k,j,i) = 0.0;
+              d.Vc(BX3,k,j,i) = 0.0;
+              #endif
             }
         }
     }
