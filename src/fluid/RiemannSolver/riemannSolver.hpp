@@ -71,6 +71,8 @@ class RiemannSolver {
   template<int dir>
   ExtrapolateToFaces<Phys, dir>* GetExtrapolator();
 
+  std::unique_ptr<ShockFlattening<Phys>> shockFlattening;
+
  private:
   template <typename P, int dir, PLMLimiter L, int O>
   friend class ExtrapolateToFaces;
@@ -83,8 +85,6 @@ class RiemannSolver {
   DataBlock *data;
 
   Solver mySolver;
-
-  std::unique_ptr<ShockFlattening<Phys>> shockFlattening;
 
   // Because each direction is a different template, we can't use
   std::unique_ptr<ExtrapolateToFaces<Phys,IDIR>> slopeLimIDIR;
