@@ -367,6 +367,11 @@ void RadSource::Source_fixed_point_gas(const real dt) {
       real err4= 1.;
       int count = 0;
 
+      real kappa_p,kappa_r,xi;
+      K_kappa_p(i,j,k,&kappa_p);
+      K_kappa_r(i,j,k,&kappa_r);
+      K_xi(i,j,k,&xi);
+
       real Fnorm = std::sqrt(EXPAND(URad[FR1]*URad[FR1] , + URad[FR2]*URad[FR2], + URad[FR3]*URad[FR3]));
       real Mnorm = std::sqrt(EXPAND(UGas[MX1]*UGas[MX1] , + UGas[MX2]*UGas[MX2], + UGas[MX3]*UGas[MX3]));
 
@@ -376,11 +381,6 @@ void RadSource::Source_fixed_point_gas(const real dt) {
         Fnorm_old = Fnorm;
         Egas_old = UGas[ENG];
         Mnorm_old = Mnorm;
-
-        real kappa_p,kappa_r,xi;
-        K_kappa_p(i,j,k,&kappa_p);
-        K_kappa_r(i,j,k,&kappa_r);
-        K_xi(i,j,k,&xi);
         
         real kk =  C_c * dt * unit_time * kappa_p * VGas[RHO]*unit_density;
         real xx =  dt * unit_time * (xi + kappa_r) * VGas[RHO]*unit_density;
