@@ -44,7 +44,7 @@ class RadSource {
       *kappa_p = temp;
     } else if (this->kappa_type == Type_opac::kramers){
       real T = this->VcGas(PRS,k,j,i)/(this->VcGas(RHO,k,j,i))*this->Kelvin*this->mu;
-      real temp = kappa_0*std::pow(this->VcGas(RHO,k,j,i)*idfx::units.density/rho_0,2.)*std::pow(T/T_0,-3.5);
+      real temp = kappa_0*std::pow(this->VcGas(RHO,k,j,i)*this->unit_density/rho_0,2.)*std::pow(T/T_0,-3.5);
       *kappa_p = temp;
     } else if (this->kappa_type == Type_opac::usertable){
       real T = this->VcGas(PRS,k,j,i)/(this->VcGas(RHO,k,j,i))*this->Kelvin*this->mu;
@@ -61,7 +61,7 @@ class RadSource {
       *kappa_r = this->kappa_0;
     } else if (kappa_type == Type_opac::kramers){
       real T = this->VcGas(PRS,k,j,i)/(VcGas(RHO,k,j,i))*this->Kelvin*this->mu;
-      *kappa_r = kappa_0*std::pow(this->VcGas(RHO,k,j,i)*idfx::units.density/rho_0,2.)*std::pow(T/T_0,-3.5);
+      *kappa_r = kappa_0*std::pow(this->VcGas(RHO,k,j,i)*this->unit_density/rho_0,2.)*std::pow(T/T_0,-3.5);
     } else if (kappa_type == Type_opac::usertable){
       real T = this->VcGas(PRS,k,j,i)/(this->VcGas(RHO,k,j,i))*this->Kelvin*this->mu;
       real logT = std::log10(T);
@@ -85,15 +85,10 @@ class RadSource {
   // Compute limiting diffusion speed for Riemann solver in opt. thick media
   KOKKOS_INLINE_FUNCTION real Limit_speeds_Rad(int i, int j, int k, real dx) const {
     auto VcGas = this->VcGas;
-    real kappa_0 = this->kappa_0;
-    auto kappa_type = this->kappa_type;
-    real xi_0 = this->xi_0;
-    real mu =this->mu;
     real kappa,xi;
 
     real unit_density = this->unit_density;
     real unit_length = this->unit_length;
-    real KELVIN = this->Kelvin;
     
     K_kappa_p(i,j,k,&kappa);
     K_xi(i,j,k,&xi);

@@ -20,8 +20,6 @@ void RadSource::Source_full_implicit(const real dt) {
   auto VcRad = this->VcRad;
   auto InvDt = this->InvDt;
 
-  real rho_0 = this->rho_0;
-  real T_0 = this->T_0;
   real reduced_c = this->reduced_c;
   real mu = this->mu;
   real gamma = this->gamma;
@@ -31,7 +29,6 @@ void RadSource::Source_full_implicit(const real dt) {
   real C_cv = idfx::units.k_B/(idfx::units.u*mu);
 
   real unit_velocity = idfx::units.velocity;
-  real unit_length = idfx::units.length;
   real unit_density = idfx::units.density;
   real KELVIN = idfx::units.Kelvin;
   real unit_time = idfx::units.time;
@@ -43,7 +40,7 @@ void RadSource::Source_full_implicit(const real dt) {
   bool irr_flag=false;
   if (haveIrradiation){
     IrrFlux(dt);
-    GetdivF();
+    IdefixArray3D<real> divF = GetdivF();
     irr_flag=true;
   }
 
@@ -95,7 +92,6 @@ void RadSource::Source_full_implicit(const real dt) {
       real kk_red = reduced_c * unit_velocity * dt * unit_time * kappa_p * VGas[RHO]*unit_density;
       real kk = C_c * dt * unit_time * kappa_p * VGas[RHO]*unit_density;
       real xx_red = reduced_c * unit_velocity * dt * unit_time * (xi + kappa_r) * VGas[RHO]*unit_density;
-      real xx = C_c * dt * unit_time * (xi + kappa_r) * VGas[RHO]*unit_density;
 
       // Define matrix to invert
       real M00 = ONE_F + kk_red;
@@ -121,7 +117,7 @@ void RadSource::Source_full_implicit(const real dt) {
       real Minv10 = -M10/det;
 
       real Er_new = Minv00*S0 + Minv01*S1;
-      real T_new = Minv10*S0 + Minv11*S1;
+      //real T_new = Minv10*S0 + Minv11*S1;
 
       // Update conservative variables
       URad[ER] = Er_new/unit_energy;
@@ -167,12 +163,6 @@ void RadSource::Source_fixed_point_rad(const real dt) {
   auto VcRad = this->VcRad;
   auto InvDt = this->InvDt;
   
-  const Type_opac kappa_type = this->kappa_type;
-  const Type_opac xi_type = this->xi_type;
-  real kappa_0 = this->kappa_0;
-  real rho_0 = this->rho_0;
-  real T_0 = this->T_0;
-  real xi_0 = this->xi_0;
   real reduced_c = this->reduced_c;
   real mu = this->mu;
 
@@ -180,7 +170,6 @@ void RadSource::Source_fixed_point_rad(const real dt) {
   real C_ar = idfx::units.ar;
 
   real unit_velocity = idfx::units.velocity;
-  real unit_length = idfx::units.length;
   real unit_density = idfx::units.density;
   real KELVIN = idfx::units.Kelvin;
   real unit_time = idfx::units.time;
@@ -196,7 +185,7 @@ void RadSource::Source_fixed_point_rad(const real dt) {
   bool irr_flag=false;
   if (haveIrradiation){
     IrrFlux(dt);
-    GetdivF();
+    IdefixArray3D<real> divF = GetdivF();
     irr_flag=true;
   }
 
@@ -234,11 +223,6 @@ void RadSource::Source_fixed_point_rad(const real dt) {
       EXPAND(real Fr1_hyp = URad[FR1];,
              real Fr2_hyp = URad[FR2];,
              real Fr3_hyp = URad[FR3];)
-
-      real Egas_hyp = UGas[ENG];
-      EXPAND(real m1gas_hyp = UGas[MX1];,
-             real m2gas_hyp = UGas[MX2];,
-             real m3gas_hyp = UGas[MX3];)
 
       real Er_old, Fnorm_old, Egas_old, Mnorm_old;      
     
@@ -325,12 +309,6 @@ void RadSource::Source_fixed_point_gas(const real dt) {
   auto VcRad = this->VcRad;
   auto InvDt = this->InvDt;
   
-  const Type_opac kappa_type = this->kappa_type;
-  const Type_opac xi_type = this->xi_type;
-  real kappa_0 = this->kappa_0;
-  real rho_0 = this->rho_0;
-  real T_0 = this->T_0;
-  real xi_0 = this->xi_0;
   real reduced_c = this->reduced_c;
   real mu = this->mu;
 
