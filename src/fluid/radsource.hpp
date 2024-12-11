@@ -45,29 +45,26 @@ class RadSource {
     auto units=idfx::units;
     
     if (kappa_type == Type_opac::constant) {
-     kappa = this->kappa_0;
+      kappa = this->kappa_0;
     } else if (kappa_type == Type_opac::kramers) {
-    real kappa_0 = this->kappa_0;
-    real T_0 = this->T_0;
-    real rho_0 = this->rho_0;
-    real T = VcGas(PRS,k,j,i)/(VcGas(RHO,k,j,i))*units.Kelvin*this->mu;
-    kappa = kappa_0*std::pow(VcGas(RHO,k,j,i)*units.density/rho_0,2.)*std::pow(T/T_0,-3.5);
+      real T = VcGas(PRS,k,j,i)/(VcGas(RHO,k,j,i))*this->unit_Kelvin*this->mu;
+      kappa = this->kappa_0*std::pow(VcGas(RHO,k,j,i)*this->unit_density/this->rho_0,2.)*std::pow(T/this->T_0,-3.5);
     } else if (kappa_type == Type_opac::usertable) {
-      real T = VcGas(PRS,k,j,i)/(VcGas(RHO,k,j,i))*units.Kelvin*this->mu;
+      real T = VcGas(PRS,k,j,i)/(VcGas(RHO,k,j,i))*this->unit_Kelvin*this->mu;
       real logT = std::log10(T);
       kappa = this->kappa_planck_1D.Get(&logT);
     }
 
     if (xi_type == Type_opac::constant) {
-     xi = this->xi_0;
+      xi = this->xi_0;
     } else if (xi_type == Type_opac::usertable) {
-      real T = VcGas(PRS,k,j,i)/(VcGas(RHO,k,j,i))*units.Kelvin*this->mu;
+      real T = VcGas(PRS,k,j,i)/(VcGas(RHO,k,j,i))*this->unit_Kelvin*this->mu;
       real logT = std::log10(T);
       xi = this->xi_1D.Get(&logT);
     }
 
     // Compute optical depth across one cell
-    real tau = VcGas(RHO,k,j,i)*units.density*(kappa+xi)*dx*units.length;
+    real tau = VcGas(RHO,k,j,i)*this->unit_density*(kappa+xi)*dx*this->unit_length;
 
     // return characteristic velocity of radiative diffusion 
     return 4./(3.*tau)*this->reduced_c;
@@ -121,6 +118,12 @@ class RadSource {
   Type_opac kappa_type;
   Type_opac xi_type;
   Type_irr irr_type;
+
+  //Units
+  real unit_density = idfx::units.density;
+  real unit_length = idfx::units.length;
+  real unit_Kelvin = idfx::units.Kelvin;
+  
 
 };
 
