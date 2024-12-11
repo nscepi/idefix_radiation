@@ -37,68 +37,26 @@ class RadSource {
   IdefixArray4D<real> VcGas;  // Gas primitive quantities
   IdefixArray3D<real> InvDt;  // The InvDt of current radiation multigroup
   
-  // Compute kappa_p
-  KOKKOS_INLINE_FUNCTION void K_KappaP(int i, int j, int k, real* kappa_p) const {
-    auto units = idfx::units;
-
-    if (this->kappa_type == Type_opac::constant){
-      real temp = this->kappa_0;
-      *kappa_p = temp;
-    } else if (this->kappa_type == Type_opac::kramers){
-      real T = this->VcGas(PRS,k,j,i)/(this->VcGas(RHO,k,j,i))*units.Kelvin*this->mu;
-      real temp = kappa_0*std::pow(this->VcGas(RHO,k,j,i)*units.density/rho_0,2.)*std::pow(T/T_0,-3.5);
-      *kappa_p = temp;
-    } else if (this->kappa_type == Type_opac::usertable){
-      real T = this->VcGas(PRS,k,j,i)/(this->VcGas(RHO,k,j,i))*units.Kelvin*this->mu;
-      real logT = std::log10(T);
-      auto k_p = this->kappa_planck_1D;
-      real temp = k_p.Get(&logT);
-      *kappa_p = temp;
-    }
-  }
-  
-  // Compute kappa_r
-  KOKKOS_INLINE_FUNCTION void K_KappaR(int i, int j, int k, real* kappa_r) const {
-    auto units = idfx::units;
-
-    if (kappa_type == Type_opac::constant){
-      *kappa_r = this->kappa_0;
-    } else if (kappa_type == Type_opac::kramers){
-      real T = this->VcGas(PRS,k,j,i)/(VcGas(RHO,k,j,i))*units.Kelvin*this->mu;
-      *kappa_r = kappa_0*std::pow(this->VcGas(RHO,k,j,i)*units.density/rho_0,2.)*std::pow(T/T_0,-3.5);
-    } else if (kappa_type == Type_opac::usertable){
-      real T = this->VcGas(PRS,k,j,i)/(this->VcGas(RHO,k,j,i))*units.Kelvin*this->mu;
-      real logT = std::log10(T);
-      auto k_r = this->kappa_ross_1D;
-      *kappa_r = k_r.Get(&logT);
-    }
-  }
-
-  // Compute xi
-  KOKKOS_INLINE_FUNCTION void K_Xi(int i, int j, int k, real* xi) const {
-    auto units = idfx::units;
-
-    if (xi_type == Type_opac::constant){
-      *xi = this->xi_0;
-    } else if (xi_type == Type_opac::usertable){
-      real T = this->VcGas(PRS,k,j,i)/(this->VcGas(RHO,k,j,i))*units.Kelvin*this->mu;
-      real logT = std::log10(T);
-      auto xi1D = this->xi_1D;
-      *xi = xi1D.Get(&logT);
-    }
-  }
 
   // Compute limiting diffusion speed for Riemann solver in opt. thick media
   KOKKOS_INLINE_FUNCTION real LimitSpeedsRad(int i, int j, int k, real dx) const {
     auto VcGas = this->VcGas;
     real kappa,xi;
     auto units=idfx::units;
-
-    real unit_density = units.density;
-    real unit_length = units.length;
     
-    K_KappaP(i,j,k,&kappa);
-    K_Xi(i,j,k,&xi);
+    if (kappa_type == Type_opac::constant) {
+     kappa = this->kappa_0;
+    } else if (kappa_type == Type_opac::kramers) {
+    real kappa_0 = this->kappa_0;
+    real T_0 = this->T_0;
+    real rho_0 = this->rho_0;
+    real T = VcGas(PRS,k,j,i)/(VcGas(RHO,k,j,i))*units.Kelvin*this->mu;
+    kappa = kappa_0*std::pow(VcGas(RHO,k,j,i)*units.density/rho_0,2.)*std::pow(T/T_0,-3.5);
+    } else if (kappa_type == Type_opac::usertable) {
+      real T = VcGas(PRS,k,j,i)/(VcGas(RHO,k,j,i))*units.Kelvin*this->mu;
+      real logT = std::log10(T);
+      kappa = this->kappa_planck_1D.Get(&logT);
+    }
 
     // Compute optical depth across one cell
     real tau = VcGas(RHO,k,j,i)*units.density*(kappa+xi)*dx*units.length;

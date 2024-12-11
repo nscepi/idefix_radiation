@@ -22,6 +22,10 @@ void RadSource::SourceFullImplicit(const real dt) {
 
   auto units = idfx::units;
 
+  auto kp1D = this->kappa_planck_1D;
+  auto kr1D = this->kappa_ross_1D;
+  auto xi1D = this->xi_1D;
+
   real reduced_c = this->reduced_c;
   real mu = this->mu;
   real gamma = this->gamma;
@@ -38,12 +42,28 @@ void RadSource::SourceFullImplicit(const real dt) {
     irr_flag=true;
   }
 
+  // Local copy of opacity parameters
+  Type_opac kappa_type = this->kappa_type;
+  if (kappa_type == Type_opac::constant) {
+    real kappa_0 = this->kappa_0;
+  } else if (kappa_type == Type_opac::kramers) {
+    real kappa_0 = this->kappa_0;
+    real T_0 = this->T_0;
+    real rho_0 = this->rho_0;
+  }
+  Type_opac xi_type = this->xi_type;
+  if (xi_type == Type_opac::constant) {
+    real xi_0 = this->xi_0;
+  }
+
   idefix_for("RadSourceFullImplicit",0,data->np_tot[KDIR],0,data->np_tot[JDIR],0,data->np_tot[IDIR],
     KOKKOS_LAMBDA (int k, int j, int i) {
   
       real URad[RadiationPhysics::nvar];
       real UGas[DefaultPhysics::nvar];
       real VGas[DefaultPhysics::nvar];
+
+      real kappa_p, kappa_r, xi;
 
       for(int nv = 0 ; nv < RadiationPhysics::nvar ; nv++) {
         URad[nv] = UcRad(nv,k,j,i);
@@ -78,10 +98,18 @@ void RadSource::SourceFullImplicit(const real dt) {
       real T3 = std::pow(T,3);
 
       // Compute opacities
-      real kappa_p,kappa_r,xi;
-      K_KappaP(i,j,k,&kappa_p);
-      K_KappaR(i,j,k,&kappa_r);
-      K_Xi(i,j,k,&xi);
+      if (kappa_type == Type_opac::kramers) {
+        kappa_p = kappa_0*std::pow(VGas[RHO]*units.density/rho_0,2.)*std::pow(T/T_0,-3.5);
+        kappa_r = kappa_p;
+      } else if (kappa_type == Type_opac::usertable) {
+        real logT = std::log10(T);
+        kappa_p = kp1D.Get(&logT);
+        kappa_r = kr1D.Get(&logT);
+      }
+      if (xi_type == Type_opac::usertable) {
+        real logT = std::log10(T);
+        xi = xi1D.Get(&logT);
+      }
 
       real kk_red = reduced_c * units.velocity * dt * units.time * kappa_p * VGas[RHO]*units.density;
       real kk = units.c * dt * units.time * kappa_p * VGas[RHO]*units.density;
@@ -159,6 +187,10 @@ void RadSource::SourceFixedPointRad(const real dt) {
   
   auto units=idfx::units;
 
+  auto kp1D = this->kappa_planck_1D;
+  auto kr1D = this->kappa_ross_1D;
+  auto xi1D = this->xi_1D;
+
   real reduced_c = this->reduced_c;
   real mu = this->mu;
 
@@ -177,6 +209,20 @@ void RadSource::SourceFixedPointRad(const real dt) {
     irr_flag=true;
   }
 
+  // Local copy of opacity parameters
+  Type_opac kappa_type = this->kappa_type;
+  if (kappa_type == Type_opac::constant) {
+    real kappa_0 = this->kappa_0;
+  } else if (kappa_type == Type_opac::kramers) {
+    real kappa_0 = this->kappa_0;
+    real T_0 = this->T_0;
+    real rho_0 = this->rho_0;
+  }
+  Type_opac xi_type = this->xi_type;
+  if (xi_type == Type_opac::constant) {
+    real xi_0 = this->xi_0;
+  }
+
   idefix_for("RadSourceFixedPointRad",0,data->np_tot[KDIR],0,data->np_tot[JDIR],0,data->np_tot[IDIR],
     KOKKOS_LAMBDA (int k, int j, int i) {
   
@@ -190,6 +236,8 @@ void RadSource::SourceFixedPointRad(const real dt) {
       real UGas[DefaultPhysics::nvar];
       real VGas[DefaultPhysics::nvar];
       real URad[RadiationPhysics::nvar];
+
+      real kappa_p, kappa_r, xi;
 
       for(int nv = 0 ; nv < RadiationPhysics::nvar ; nv++) {
         URad[nv] = UcRad(nv,k,j,i);
@@ -231,17 +279,25 @@ void RadSource::SourceFixedPointRad(const real dt) {
         Egas_old = UGas[ENG];
         Mnorm_old = Mnorm;
 
+        // Compute new temperature
+        real T = VGas[PRS]/(VGas[RHO])*units.Kelvin*mu;
+        
         // Compute opacities
-        real kappa_p,kappa_r,xi;
-        K_KappaP(i,j,k,&kappa_p);
-        K_KappaR(i,j,k,&kappa_r);
-        K_Xi(i,j,k,&xi);
+        if (kappa_type == Type_opac::kramers) {
+          kappa_p = kappa_0*std::pow(VGas[RHO]*units.density/rho_0,2.)*std::pow(T/T_0,-3.5);
+          kappa_r = kappa_p;
+        } else if (kappa_type == Type_opac::usertable) {
+          real logT = std::log10(T);
+          kappa_p = kp1D.Get(&logT);
+          kappa_r = kr1D.Get(&logT);
+       }
+        if (xi_type == Type_opac::usertable) {
+         real logT = std::log10(T);
+         xi = xi1D.Get(&logT);
+        }
 
         real kk_red = reduced_c * units.velocity * dt * units.time * kappa_p * VGas[RHO]*units.density;
         real xx_red = reduced_c * units.velocity * dt * units.time * (xi + kappa_r) * VGas[RHO]*units.density;
-
-        // Compute new temperature
-        real T = VGas[PRS]/(VGas[RHO])*units.Kelvin*mu;
 
         // "Implicit" step on radiation conservative variables
         URad[ER] = Er_hyp +  kk_red*units.ar*std::pow(T,4.)/units.energy;
@@ -302,6 +358,10 @@ void RadSource::SourceFixedPointGas(const real dt) {
 
   auto units=idfx::units;
 
+  auto kp1D = this->kappa_planck_1D;
+  auto kr1D = this->kappa_ross_1D;
+  auto xi1D = this->xi_1D;
+
   // Max iteration for fixed-point solver
   int MAX_ITER = 200;
   // Tolerance on ER and ENG for fixed-point solver
@@ -333,6 +393,8 @@ void RadSource::SourceFixedPointGas(const real dt) {
       real UGas[DefaultPhysics::nvar];
       real VGas[DefaultPhysics::nvar];
 
+      real kappa_p, kappa_r, xi;
+
       for(int nv = 0 ; nv < RadiationPhysics::nvar ; nv++) {
         URad[nv] = UcRad(nv,k,j,i);
       }
@@ -348,13 +410,24 @@ void RadSource::SourceFixedPointGas(const real dt) {
       real err4= 1.;
       int count = 0;
 
-      real kappa_p,kappa_r,xi;
-      K_KappaP(i,j,k,&kappa_p);
-      K_KappaR(i,j,k,&kappa_r);
-      K_Xi(i,j,k,&xi);
-
       real Fnorm = std::sqrt(EXPAND(URad[FR1]*URad[FR1] , + URad[FR2]*URad[FR2], + URad[FR3]*URad[FR3]));
       real Mnorm = std::sqrt(EXPAND(UGas[MX1]*UGas[MX1] , + UGas[MX2]*UGas[MX2], + UGas[MX3]*UGas[MX3]));
+
+      real T = VGas[PRS]/(VGas[RHO])*units.Kelvin*mu;
+
+      // Compute opacities (out of while loop so that opacity is contant throughout the fixed_point iteration)
+      if (kappa_type == Type_opac::kramers) {
+        kappa_p = kappa_0*std::pow(VGas[RHO]*units.density/rho_0,2.)*std::pow(T/T_0,-3.5);
+        kappa_r = kappa_p;
+      } else if (kappa_type == Type_opac::usertable) {
+        real logT = std::log10(T);
+        kappa_p = kp1D.Get(&logT);
+        kappa_r = kr1D.Get(&logT);
+      }
+      if (xi_type == Type_opac::usertable) {
+        real logT = std::log10(T);
+        xi = xi1D.Get(&logT);
+      }
 
       while (((err1>tol) || (err2>tol) || (err3>tol) || (err4>tol)) && (count < MAX_ITER)){
 
@@ -365,8 +438,6 @@ void RadSource::SourceFixedPointGas(const real dt) {
         
         real kk =  units.c * dt * units.time * kappa_p * VGas[RHO]*units.density;
         real xx =  dt * units.time * (xi + kappa_r) * VGas[RHO]*units.density;
-
-        real T = VGas[PRS]/(VGas[RHO])*units.Kelvin*mu;
 
         // Stop if UGas <= 0
         if ((Egas_hyp +  kk*(URad[ER]-units.ar*std::pow(T,4)/units.energy))<=ZERO_F) {
@@ -395,12 +466,14 @@ void RadSource::SourceFixedPointGas(const real dt) {
         Fnorm = std::sqrt(EXPAND(URad[FR1]*URad[FR1] , + URad[FR2]*URad[FR2], + URad[FR3]*URad[FR3]));
 
         K_ConsToPrim<DefaultPhysics>(VGas, UGas, &eos);
+        T = VGas[PRS]/(VGas[RHO])*units.Kelvin*mu;
 
         err1 = std::abs(1.-UGas[ENG]/Egas_old);
         err2 = std::abs(1.-Mnorm/Mnorm_old);
         err3 = std::abs(1.-URad[ER]/Er_old);
         err4 = std::abs(1.-Fnorm/Fnorm_old);
         count += 1;
+        
       }
       
       for(int nv = 0 ; nv < RadiationPhysics::nvar ; nv++) {
