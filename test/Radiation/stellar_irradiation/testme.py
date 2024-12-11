@@ -32,13 +32,13 @@ def testMe(test,mpi):
 
 
 test=tst.idfxTest()
-test._readLog()
 
 if not test.dec:
   test.dec=['2','2']
 
 if not test.all:
   if(test.check):
+    test._readLog()
     if test.mpi: 
      tolerance = 1.e-10
     else:
