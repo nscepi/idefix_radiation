@@ -42,7 +42,6 @@ class RadSource {
   KOKKOS_INLINE_FUNCTION real LimitSpeedsRad(int i, int j, int k, real dx) const {
     auto VcGas = this->VcGas;
     real kappa,xi;
-    auto units=idfx::units;
     
     if (kappa_type == Type_opac::constant) {
       kappa = this->kappa_0;
