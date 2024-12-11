@@ -58,6 +58,14 @@ class RadSource {
       kappa = this->kappa_planck_1D.Get(&logT);
     }
 
+    if (xi_type == Type_opac::constant) {
+     xi = this->xi_0;
+    } else if (xi_type == Type_opac::usertable) {
+      real T = VcGas(PRS,k,j,i)/(VcGas(RHO,k,j,i))*units.Kelvin*this->mu;
+      real logT = std::log10(T);
+      xi = this->xi_1D.Get(&logT);
+    }
+
     // Compute optical depth across one cell
     real tau = VcGas(RHO,k,j,i)*units.density*(kappa+xi)*dx*units.length;
 

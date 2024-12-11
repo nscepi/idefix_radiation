@@ -98,7 +98,10 @@ void RadSource::SourceFullImplicit(const real dt) {
       real T3 = std::pow(T,3);
 
       // Compute opacities
-      if (kappa_type == Type_opac::kramers) {
+      if (kappa_type == Type_opac::constant) {
+        kappa_p = kappa_0;
+        kappa_r = kappa_0;
+      } else if (kappa_type == Type_opac::kramers) {
         kappa_p = kappa_0*std::pow(VGas[RHO]*units.density/rho_0,2.)*std::pow(T/T_0,-3.5);
         kappa_r = kappa_p;
       } else if (kappa_type == Type_opac::usertable) {
@@ -106,7 +109,9 @@ void RadSource::SourceFullImplicit(const real dt) {
         kappa_p = kp1D.Get(&logT);
         kappa_r = kr1D.Get(&logT);
       }
-      if (xi_type == Type_opac::usertable) {
+      if (xi_type == Type_opac::constant) {
+        xi = xi_0;
+      } else if (xi_type == Type_opac::usertable) {
         real logT = std::log10(T);
         xi = xi1D.Get(&logT);
       }
@@ -283,7 +288,10 @@ void RadSource::SourceFixedPointRad(const real dt) {
         real T = VGas[PRS]/(VGas[RHO])*units.Kelvin*mu;
         
         // Compute opacities
-        if (kappa_type == Type_opac::kramers) {
+        if (kappa_type == Type_opac::constant) {
+          kappa_p = kappa_0;
+          kappa_r = kappa_0;
+        } else if (kappa_type == Type_opac::kramers) {
           kappa_p = kappa_0*std::pow(VGas[RHO]*units.density/rho_0,2.)*std::pow(T/T_0,-3.5);
           kappa_r = kappa_p;
         } else if (kappa_type == Type_opac::usertable) {
@@ -291,9 +299,11 @@ void RadSource::SourceFixedPointRad(const real dt) {
           kappa_p = kp1D.Get(&logT);
           kappa_r = kr1D.Get(&logT);
        }
-        if (xi_type == Type_opac::usertable) {
-         real logT = std::log10(T);
-         xi = xi1D.Get(&logT);
+        if (xi_type == Type_opac::constant) {
+          xi = xi_0;
+        } else if (xi_type == Type_opac::usertable) {
+          real logT = std::log10(T);
+          xi = xi1D.Get(&logT);
         }
 
         real kk_red = reduced_c * units.velocity * dt * units.time * kappa_p * VGas[RHO]*units.density;
@@ -416,7 +426,10 @@ void RadSource::SourceFixedPointGas(const real dt) {
       real T = VGas[PRS]/(VGas[RHO])*units.Kelvin*mu;
 
       // Compute opacities (out of while loop so that opacity is contant throughout the fixed_point iteration)
-      if (kappa_type == Type_opac::kramers) {
+      if (kappa_type == Type_opac::constant) {
+        kappa_p = kappa_0;
+        kappa_r = kappa_0;
+      } else if (kappa_type == Type_opac::kramers) {
         kappa_p = kappa_0*std::pow(VGas[RHO]*units.density/rho_0,2.)*std::pow(T/T_0,-3.5);
         kappa_r = kappa_p;
       } else if (kappa_type == Type_opac::usertable) {
@@ -424,7 +437,10 @@ void RadSource::SourceFixedPointGas(const real dt) {
         kappa_p = kp1D.Get(&logT);
         kappa_r = kr1D.Get(&logT);
       }
-      if (xi_type == Type_opac::usertable) {
+
+      if (xi_type == Type_opac::constant) {
+        xi = xi_0;
+      } else if (xi_type == Type_opac::usertable) {
         real logT = std::log10(T);
         xi = xi1D.Get(&logT);
       }
