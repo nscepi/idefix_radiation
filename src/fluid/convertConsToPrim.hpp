@@ -26,7 +26,7 @@ KOKKOS_INLINE_FUNCTION void K_ConsToPrim(real Vc[], real Uc[], const EquationOfS
       }
       #endif
 
-      K_limit_RadFlux(Uc);
+      K_LimitRadFlux(Uc);
 
       EXPAND( Vc[FR1] = Uc[FR1];  ,
               Vc[FR2] = Uc[FR2];  ,

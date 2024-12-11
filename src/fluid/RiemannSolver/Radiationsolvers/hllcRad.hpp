@@ -72,14 +72,14 @@ void RiemannSolver<Phys>::HllcRad(IdefixArray4D<real> &Flux) {
       extrapol.ExtrapolatePrimVar(i, j, k, vL, vR);
 
       // Limit Fr after extrapolation to satisfy Fr<=Er
-      K_limit_RadFlux(vL);
-      K_limit_RadFlux(vR);
+      K_LimitRadFlux(vL);
+      K_LimitRadFlux(vR);
 
       // 2-- Get the wave speed
-      K_speeds_Rad(lambdaL,vL,Xn, reduced_c);
-      K_speeds_Rad(lambdaR,vR,Xn, reduced_c);
+      K_SpeedsRad(lambdaL,vL,Xn, reduced_c);
+      K_SpeedsRad(lambdaR,vR,Xn, reduced_c);
 
-      real speed_diff = rad_source.Limit_speeds_Rad(i,j,k,dx[index]);
+      real speed_diff = rad_source.LimitSpeedsRad(i,j,k,dx[index]);
  
       real lambda_max_L = FMAX(lambdaL[0],lambdaL[1]);
       real lambda_max_R = FMAX(lambdaR[0],lambdaR[1]);
