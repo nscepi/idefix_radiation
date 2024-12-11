@@ -26,9 +26,9 @@ class RadSource {
   RadSource(Input &, Fluid<Phys> *);
   void ShowConfig();                    // print configuration
   void AddRadSource(const real);
-  void Source_full_implicit(const real);
-  void Source_fixed_point_rad(const real);
-  void Source_fixed_point_gas(const real);
+  void SourceFullImplicit(const real);
+  void SourceFixedPointRad(const real);
+  void SourceFixedPointGas(const real);
   void IrrFlux(const real);
 
   IdefixArray4D<real> UcRad;  // Radiation conservative quantities
@@ -38,7 +38,7 @@ class RadSource {
   IdefixArray3D<real> InvDt;  // The InvDt of current radiation multigroup
   
   // Compute kappa_p
-  KOKKOS_INLINE_FUNCTION void K_kappa_p(int i, int j, int k, real* kappa_p) const {
+  KOKKOS_INLINE_FUNCTION void K_KappaP(int i, int j, int k, real* kappa_p) const {
     auto units = idfx::units;
 
     if (this->kappa_type == Type_opac::constant){
@@ -58,7 +58,7 @@ class RadSource {
   }
   
   // Compute kappa_r
-  KOKKOS_INLINE_FUNCTION void K_kappa_r(int i, int j, int k, real* kappa_r) const {
+  KOKKOS_INLINE_FUNCTION void K_KappaR(int i, int j, int k, real* kappa_r) const {
     auto units = idfx::units;
 
     if (kappa_type == Type_opac::constant){
@@ -75,7 +75,7 @@ class RadSource {
   }
 
   // Compute xi
-  KOKKOS_INLINE_FUNCTION void K_xi(int i, int j, int k, real* xi) const {
+  KOKKOS_INLINE_FUNCTION void K_Xi(int i, int j, int k, real* xi) const {
     auto units = idfx::units;
 
     if (xi_type == Type_opac::constant){
@@ -89,7 +89,7 @@ class RadSource {
   }
 
   // Compute limiting diffusion speed for Riemann solver in opt. thick media
-  KOKKOS_INLINE_FUNCTION real Limit_speeds_Rad(int i, int j, int k, real dx) const {
+  KOKKOS_INLINE_FUNCTION real LimitSpeedsRad(int i, int j, int k, real dx) const {
     auto VcGas = this->VcGas;
     real kappa,xi;
     auto units=idfx::units;
@@ -97,8 +97,8 @@ class RadSource {
     real unit_density = units.density;
     real unit_length = units.length;
     
-    K_kappa_p(i,j,k,&kappa);
-    K_xi(i,j,k,&xi);
+    K_KappaP(i,j,k,&kappa);
+    K_Xi(i,j,k,&xi);
 
     // Compute optical depth across one cell
     real tau = VcGas(RHO,k,j,i)*units.density*(kappa+xi)*dx*units.length;

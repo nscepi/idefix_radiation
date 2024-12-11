@@ -11,7 +11,7 @@
 #include "lookupTable.hpp"
 #include "column.hpp"
 
-void RadSource::Source_full_implicit(const real dt) {
+void RadSource::SourceFullImplicit(const real dt) {
   idfx::pushRegion("RadSource::Source_full_implicit");
 
   auto UcGas = this->UcGas;
@@ -38,7 +38,7 @@ void RadSource::Source_full_implicit(const real dt) {
     irr_flag=true;
   }
 
-  idefix_for("RadSource_full_implicit",0,data->np_tot[KDIR],0,data->np_tot[JDIR],0,data->np_tot[IDIR],
+  idefix_for("RadSourceFullImplicit",0,data->np_tot[KDIR],0,data->np_tot[JDIR],0,data->np_tot[IDIR],
     KOKKOS_LAMBDA (int k, int j, int i) {
   
       real URad[RadiationPhysics::nvar];
@@ -79,9 +79,9 @@ void RadSource::Source_full_implicit(const real dt) {
 
       // Compute opacities
       real kappa_p,kappa_r,xi;
-      K_kappa_p(i,j,k,&kappa_p);
-      K_kappa_r(i,j,k,&kappa_r);
-      K_xi(i,j,k,&xi);
+      K_KappaP(i,j,k,&kappa_p);
+      K_KappaR(i,j,k,&kappa_r);
+      K_Xi(i,j,k,&xi);
 
       real kk_red = reduced_c * units.velocity * dt * units.time * kappa_p * VGas[RHO]*units.density;
       real kk = units.c * dt * units.time * kappa_p * VGas[RHO]*units.density;
@@ -148,8 +148,8 @@ void RadSource::Source_full_implicit(const real dt) {
 }
 
 
-void RadSource::Source_fixed_point_rad(const real dt) {
-  idfx::pushRegion("RadSource::Source_Fixed_point_rad");
+void RadSource::SourceFixedPointRad(const real dt) {
+  idfx::pushRegion("RadSource::SourceFixedPointRad");
 
   auto UcGas = this->UcGas;
   auto VcGas = this->VcGas;
@@ -177,7 +177,7 @@ void RadSource::Source_fixed_point_rad(const real dt) {
     irr_flag=true;
   }
 
-  idefix_for("RadSource_fixed_point_rad",0,data->np_tot[KDIR],0,data->np_tot[JDIR],0,data->np_tot[IDIR],
+  idefix_for("RadSourceFixedPointRad",0,data->np_tot[KDIR],0,data->np_tot[JDIR],0,data->np_tot[IDIR],
     KOKKOS_LAMBDA (int k, int j, int i) {
   
       // Add heating due to irradiation flux if needed
@@ -233,9 +233,9 @@ void RadSource::Source_fixed_point_rad(const real dt) {
 
         // Compute opacities
         real kappa_p,kappa_r,xi;
-        K_kappa_p(i,j,k,&kappa_p);
-        K_kappa_r(i,j,k,&kappa_r);
-        K_xi(i,j,k,&xi);
+        K_KappaP(i,j,k,&kappa_p);
+        K_KappaR(i,j,k,&kappa_r);
+        K_Xi(i,j,k,&xi);
 
         real kk_red = reduced_c * units.velocity * dt * units.time * kappa_p * VGas[RHO]*units.density;
         real xx_red = reduced_c * units.velocity * dt * units.time * (xi + kappa_r) * VGas[RHO]*units.density;
@@ -288,8 +288,8 @@ void RadSource::Source_fixed_point_rad(const real dt) {
 }
 
 
-void RadSource::Source_fixed_point_gas(const real dt) {
-  idfx::pushRegion("RadSource::Source_Fixed_point_gas");
+void RadSource::SourceFixedPointGas(const real dt) {
+  idfx::pushRegion("RadSource::SourceFixedPointGas");
 
   auto UcGas = this->UcGas;
   auto VcGas = this->VcGas;
@@ -349,9 +349,9 @@ void RadSource::Source_fixed_point_gas(const real dt) {
       int count = 0;
 
       real kappa_p,kappa_r,xi;
-      K_kappa_p(i,j,k,&kappa_p);
-      K_kappa_r(i,j,k,&kappa_r);
-      K_xi(i,j,k,&xi);
+      K_KappaP(i,j,k,&kappa_p);
+      K_KappaR(i,j,k,&kappa_r);
+      K_Xi(i,j,k,&xi);
 
       real Fnorm = std::sqrt(EXPAND(URad[FR1]*URad[FR1] , + URad[FR2]*URad[FR2], + URad[FR3]*URad[FR3]));
       real Mnorm = std::sqrt(EXPAND(UGas[MX1]*UGas[MX1] , + UGas[MX2]*UGas[MX2], + UGas[MX3]*UGas[MX3]));
@@ -461,13 +461,13 @@ void RadSource::AddRadSource(const real dt) {
 
   switch(source_solver) {
     case Type_isolver::full_implicit:
-      RadSource::Source_full_implicit(dt);
+      RadSource::SourceFullImplicit(dt);
       break;
     case Type_isolver::fixed_point_rad:
-      RadSource::Source_fixed_point_rad(dt);
+      RadSource::SourceFixedPointRad(dt);
       break;
     case Type_isolver::fixed_point_gas:
-      RadSource::Source_fixed_point_gas(dt);
+      RadSource::SourceFixedPointGas(dt);
       break;
   }
 
@@ -475,7 +475,7 @@ void RadSource::AddRadSource(const real dt) {
 }
 
 void RadSource::IrrFlux(const real dt) {
-  idfx::pushRegion("RadSource::Irrflux");
+  idfx::pushRegion("RadSource::IrrFlux");
   
   auto divFlux = this->divF;  
   auto units=idfx::units;
