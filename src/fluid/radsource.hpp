@@ -39,15 +39,17 @@ class RadSource {
   
   // Compute kappa_p
   KOKKOS_INLINE_FUNCTION void K_kappa_p(int i, int j, int k, real* kappa_p) const {
+    auto units = idfx::units;
+
     if (this->kappa_type == Type_opac::constant){
       real temp = this->kappa_0;
       *kappa_p = temp;
     } else if (this->kappa_type == Type_opac::kramers){
-      real T = this->VcGas(PRS,k,j,i)/(this->VcGas(RHO,k,j,i))*this->Kelvin*this->mu;
-      real temp = kappa_0*std::pow(this->VcGas(RHO,k,j,i)*this->unit_density/rho_0,2.)*std::pow(T/T_0,-3.5);
+      real T = this->VcGas(PRS,k,j,i)/(this->VcGas(RHO,k,j,i))*units.Kelvin*this->mu;
+      real temp = kappa_0*std::pow(this->VcGas(RHO,k,j,i)*units.density/rho_0,2.)*std::pow(T/T_0,-3.5);
       *kappa_p = temp;
     } else if (this->kappa_type == Type_opac::usertable){
-      real T = this->VcGas(PRS,k,j,i)/(this->VcGas(RHO,k,j,i))*this->Kelvin*this->mu;
+      real T = this->VcGas(PRS,k,j,i)/(this->VcGas(RHO,k,j,i))*units.Kelvin*this->mu;
       real logT = std::log10(T);
       auto k_p = this->kappa_planck_1D;
       real temp = k_p.Get(&logT);
@@ -57,13 +59,15 @@ class RadSource {
   
   // Compute kappa_r
   KOKKOS_INLINE_FUNCTION void K_kappa_r(int i, int j, int k, real* kappa_r) const {
+    auto units = idfx::units;
+
     if (kappa_type == Type_opac::constant){
       *kappa_r = this->kappa_0;
     } else if (kappa_type == Type_opac::kramers){
-      real T = this->VcGas(PRS,k,j,i)/(VcGas(RHO,k,j,i))*this->Kelvin*this->mu;
-      *kappa_r = kappa_0*std::pow(this->VcGas(RHO,k,j,i)*this->unit_density/rho_0,2.)*std::pow(T/T_0,-3.5);
+      real T = this->VcGas(PRS,k,j,i)/(VcGas(RHO,k,j,i))*units.Kelvin*this->mu;
+      *kappa_r = kappa_0*std::pow(this->VcGas(RHO,k,j,i)*units.density/rho_0,2.)*std::pow(T/T_0,-3.5);
     } else if (kappa_type == Type_opac::usertable){
-      real T = this->VcGas(PRS,k,j,i)/(this->VcGas(RHO,k,j,i))*this->Kelvin*this->mu;
+      real T = this->VcGas(PRS,k,j,i)/(this->VcGas(RHO,k,j,i))*units.Kelvin*this->mu;
       real logT = std::log10(T);
       auto k_r = this->kappa_ross_1D;
       *kappa_r = k_r.Get(&logT);
@@ -72,10 +76,12 @@ class RadSource {
 
   // Compute xi
   KOKKOS_INLINE_FUNCTION void K_xi(int i, int j, int k, real* xi) const {
+    auto units = idfx::units;
+
     if (xi_type == Type_opac::constant){
       *xi = this->xi_0;
     } else if (xi_type == Type_opac::usertable){
-      real T = this->VcGas(PRS,k,j,i)/(this->VcGas(RHO,k,j,i))*this->Kelvin*this->mu;
+      real T = this->VcGas(PRS,k,j,i)/(this->VcGas(RHO,k,j,i))*units.Kelvin*this->mu;
       real logT = std::log10(T);
       auto xi1D = this->xi_1D;
       *xi = xi1D.Get(&logT);
@@ -86,15 +92,16 @@ class RadSource {
   KOKKOS_INLINE_FUNCTION real Limit_speeds_Rad(int i, int j, int k, real dx) const {
     auto VcGas = this->VcGas;
     real kappa,xi;
+    auto units=idfx::units;
 
-    real unit_density = this->unit_density;
-    real unit_length = this->unit_length;
+    real unit_density = units.density;
+    real unit_length = units.length;
     
     K_kappa_p(i,j,k,&kappa);
     K_xi(i,j,k,&xi);
 
     // Compute optical depth across one cell
-    real tau = VcGas(RHO,k,j,i)*unit_density*(kappa+xi)*dx*unit_length;
+    real tau = VcGas(RHO,k,j,i)*units.density*(kappa+xi)*dx*units.length;
 
     // return characteristic velocity of radiative diffusion 
     return 4./(3.*tau)*this->reduced_c;
@@ -117,16 +124,7 @@ class RadSource {
   real gamma;
   real mu;
   int count_max;
-
-  real C_c;
-  real C_ar;
-
-  // Units
-  real unit_length;
-  real unit_velocity;
-  real unit_density;
-  real Kelvin;
-
+  
   // Sound speed computation
   EquationOfState *eos;
 
@@ -191,12 +189,6 @@ RadSource::RadSource(Input &input, Fluid<Phys> *hydroin):
   
   // Mean molecular weight
   this->mu = this->eos->GetMu();
-
-  // Units
-  this->unit_length = idfx::units.length;
-  this->unit_velocity = idfx::units.velocity;
-  this->unit_density = idfx::units.density;
-  this->Kelvin = idfx::units.Kelvin ;
 
   // Information on scattering opacity coefficient
   if(input.CheckEntry(BlockName,"xi")>=0) {
