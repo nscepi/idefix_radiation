@@ -591,7 +591,7 @@ void RadSource::IrrFlux(const real dt) {
   auto units=idfx::units;
 
   column_rho->ComputeColumn(this->VcGas);
-  tau = column_rho->GetColumn();
+  IdefixArray3D<real> tau = column_rho->GetColumn();
   real kirr = kappa_irr*units.density*units.length; 
   real flux_pre = std::pow(rs/units.length,2.)*units.sigma_sb*std::pow(Ts,4.)/units.length;
 

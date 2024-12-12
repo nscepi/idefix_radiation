@@ -109,7 +109,6 @@ class RadSource {
   LookupTable<1> irr_1D;
 
   Column *column_rho;
-  IdefixArray3D<real> tau;  // column density
   IdefixArray3D<real> divF;  // Divergence of irradiation flux
  
 
