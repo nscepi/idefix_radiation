@@ -124,9 +124,9 @@ void RadSource::SourceFullImplicit(const real dt) {
 
       // Define matrix to invert
       real M00 = ONE_F + kk_red;
-      //real M11 = VGas[RHO]*units.density*C_cv/(gamma-1.) + 4.*kk*units.ar*T3;
+      real M11 = VGas[RHO]*units.density*C_cv/(gamma-1.) + 4.*kk*units.ar*T3;
       real M01 = -4.*kk_red*units.ar*T3;
-      //real M10 = -kk;
+      real M10 = -kk;
 
       // Define right-hand side of system
       real S0 = Er_hyp*units.energy - 3.*kk_red*units.ar*T3*T;
