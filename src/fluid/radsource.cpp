@@ -385,6 +385,21 @@ void RadSource::SourceFixedPointGas(const real dt) {
 
   EquationOfState eos = *(this->eos);
 
+  // Local copy of opacity parameters
+  Type_opac kappa_type = this->kappa_type;
+  real kappa_0,rho_0,T_0,xi_0;
+  if (kappa_type == Type_opac::constant) {
+    kappa_0 = this->kappa_0;
+  } else if (kappa_type == Type_opac::kramers) {
+    kappa_0 = this->kappa_0;
+    T_0 = this->T_0;
+    rho_0 = this->rho_0;
+  }
+  Type_opac xi_type = this->xi_type;
+  if (xi_type == Type_opac::constant) {
+    xi_0 = this->xi_0;
+  }
+  
   idefix_for("RadSource",0,data->np_tot[KDIR],0,data->np_tot[JDIR],0,data->np_tot[IDIR],
     KOKKOS_LAMBDA (int k, int j, int i) {
   
