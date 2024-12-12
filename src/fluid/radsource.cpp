@@ -612,6 +612,7 @@ void RadSource::AddRadSource(const real dt) {
 void RadSource::IrrFlux(IdefixArray3D<real> divFin) {
   idfx::pushRegion("RadSource::IrrFlux");
   
+  auto data = this->data;
   auto units=idfx::units;
   auto irr1D = this->irr_1D;
   IdefixArray3D<real> divFlux = divFin;
