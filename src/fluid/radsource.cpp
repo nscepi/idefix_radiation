@@ -612,7 +612,9 @@ void RadSource::AddRadSource(const real dt) {
 void RadSource::IrrFlux(IdefixArray3D<real> divFin) {
   idfx::pushRegion("RadSource::IrrFlux");
   
-  auto data = this->data;
+  IdefixArray3D<real>  dV = this->data->dV;
+  IdefixArray3D<real>  A1 = this->data->A[IDIR];
+  IdefixArray1D<real>  x1l = this->data->xl[IDIR];
   auto units=idfx::units;
   auto irr1D = this->irr_1D;
   IdefixArray3D<real> divFlux = divFin;
@@ -631,9 +633,9 @@ void RadSource::IrrFlux(IdefixArray3D<real> divFin) {
     data->beg[IDIR], data->end[IDIR],
     KOKKOS_LAMBDA (int k, int j, int i) {
 
-                real Fim = std::exp(-kirr*tau(k,j,i-1))*data->A[IDIR](k,j,i)/std::pow(data->xl[IDIR](i),2.);
-                real Fip = std::exp(-kirr*tau(k,j,i))*data->A[IDIR](k,j,i+1)/std::pow(data->xl[IDIR](i+1),2.);
-                divFlux(k,j,i) = flux_pre*(Fip-Fim)/data->dV(k,j,i);
+                real Fim = std::exp(-kirr*tau(k,j,i-1))*A1(k,j,i)/std::pow(x1l(i),2.);
+                real Fip = std::exp(-kirr*tau(k,j,i))*A1(k,j,i+1)/std::pow(x1l(i+1),2.);
+                divFlux(k,j,i) = flux_pre*(Fip-Fim)/dV(k,j,i);
     });
 
   // Usertable kappa
@@ -646,10 +648,10 @@ void RadSource::IrrFlux(IdefixArray3D<real> divFin) {
               KOKKOS_LAMBDA (int k, int j, int i) {
 
                 real logtaum = std::log10(FMAX(tau(k,j,i-1)*units.density*units.length,1.e-15));
-                real Fim = pow(10.,irr_1D.Get(&logtaum))*data->A[IDIR](k,j,i)/std::pow(data->xl[IDIR](i),2.);
+                real Fim = pow(10.,irr_1D.Get(&logtaum))*A1(k,j,i)/std::pow(x1l(i),2.);
                 real logtaup = std::log10(FMAX(tau(k,j,i)*units.density*units.length,1.e-15));
-                real Fip = pow(10.,irr_1D.Get(&logtaup))*data->A[IDIR](k,j,i+1)/std::pow(data->xl[IDIR](i+1),2.);
-                divFlux(k,j,i)  = flux_pre*(Fip-Fim)/data->dV(k,j,i);
+                real Fip = pow(10.,irr_1D.Get(&logtaup))*A1(k,j,i+1)/std::pow(x1l(i+1),2.);
+                divFlux(k,j,i)  = flux_pre*(Fip-Fim)/dV(k,j,i);
     });
   }
 
