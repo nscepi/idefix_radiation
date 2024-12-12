@@ -29,7 +29,7 @@ class RadSource {
   void SourceFullImplicit(const real);
   void SourceFixedPointRad(const real);
   void SourceFixedPointGas(const real);
-  void IrrFlux(const real);
+  void IrrFlux(IdefixArray3D<real>);
 
   IdefixArray4D<real> UcRad;  // Radiation conservative quantities
   IdefixArray4D<real> UcGas;  // Gas conservative quantities
@@ -37,19 +37,24 @@ class RadSource {
   IdefixArray4D<real> VcGas;  // Gas primitive quantities
   IdefixArray3D<real> InvDt;  // The InvDt of current radiation multigroup
   
+  // Data related to current instance of the Rad object
+  std::string prefix;
+  int instanceNumber;
 
   // Compute limiting diffusion speed for Riemann solver in opt. thick media
   KOKKOS_INLINE_FUNCTION real LimitSpeedsRad(int i, int j, int k, real dx) const {
     auto VcGas = this->VcGas;
     real kappa,xi;
+    EquationOfState eos = *(this->eos);
+    real mu = eos.GetMu(VcGas(PRS,k,j,i),VcGas(RHO,k,j,i));
     
     if (kappa_type == Type_opac::constant) {
       kappa = this->kappa_0;
     } else if (kappa_type == Type_opac::kramers) {
-      real T = VcGas(PRS,k,j,i)/(VcGas(RHO,k,j,i))*this->unit_Kelvin*this->mu;
+      real T = VcGas(PRS,k,j,i)/(VcGas(RHO,k,j,i))*this->unit_Kelvin*mu;
       kappa = this->kappa_0*std::pow(VcGas(RHO,k,j,i)*this->unit_density/this->rho_0,2.)*std::pow(T/this->T_0,-3.5);
     } else if (kappa_type == Type_opac::usertable) {
-      real T = VcGas(PRS,k,j,i)/(VcGas(RHO,k,j,i))*this->unit_Kelvin*this->mu;
+      real T = VcGas(PRS,k,j,i)/(VcGas(RHO,k,j,i))*this->unit_Kelvin*mu;
       real logT = std::log10(T);
       kappa = this->kappa_planck_1D.Get(&logT);
     }
@@ -57,7 +62,7 @@ class RadSource {
     if (xi_type == Type_opac::constant) {
       xi = this->xi_0;
     } else if (xi_type == Type_opac::usertable) {
-      real T = VcGas(PRS,k,j,i)/(VcGas(RHO,k,j,i))*this->unit_Kelvin*this->mu;
+      real T = VcGas(PRS,k,j,i)/(VcGas(RHO,k,j,i))*this->unit_Kelvin*mu;
       real logT = std::log10(T);
       xi = this->xi_1D.Get(&logT);
     }
@@ -110,7 +115,6 @@ class RadSource {
 
   Column *column_rho;
   IdefixArray3D<real> divF;  // Divergence of irradiation flux
- 
 
   Type_isolver source_solver;
   Type_opac kappa_type;
@@ -136,6 +140,9 @@ RadSource::RadSource(Input &input, Fluid<Phys> *hydroin):
                       InvDt{hydroin->InvDt} {
   idfx::pushRegion("RadSource::RadSource");
   
+  // Create our own prefix
+  prefix = std::string(Phys::prefix);
+
   // Save the parent hydro object
   this->data = hydroin->data;
   this->eos = hydroin->data->hydro->eos.get();
@@ -255,8 +262,9 @@ RadSource::RadSource(Input &input, Fluid<Phys> *hydroin):
     const int n = hydroin->instanceNumber;
     
     this->column_rho = new Column(IDIR,1,RHO,data);
-    this->divF = IdefixArray3D<real>("divF",data->np_tot[KDIR], data->np_tot[JDIR], data->np_tot[IDIR]);
+    this->divF = IdefixArray3D<real>(prefix+"_divF",data->np_tot[KDIR], data->np_tot[JDIR], data->np_tot[IDIR]);
 
+                                    
     std::string irrType = input.Get<std::string>(BlockName,"irr",0);
     
     if(irrType.compare("constant") == 0) {

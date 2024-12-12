@@ -32,10 +32,9 @@ void RadSource::SourceFullImplicit(const real dt) {
 
   // Irradiation source
   bool irr_flag=false;
-  IdefixArray3D<real> divF;
+  IdefixArray3D<real> divF = this->divF;
   if (haveIrradiation){
-    IrrFlux(dt);
-    divF = GetdivF();
+    IrrFlux(divF);
     irr_flag=true;
   }
 
@@ -200,7 +199,6 @@ void RadSource::SourceFixedPointRad(const real dt) {
   auto xi1D = this->xi_1D;
 
   real reduced_c = this->reduced_c;
-  real mu = this->mu;
 
   // Max iteration for fixed-point solver
   int MAX_ITER = 200;
@@ -211,10 +209,9 @@ void RadSource::SourceFixedPointRad(const real dt) {
 
   // Irradiation source
   bool irr_flag=false;
-  IdefixArray3D<real> divF;
+  IdefixArray3D<real> divF = this->divF;
   if (haveIrradiation){
-    IrrFlux(dt);
-    divF = GetdivF();
+    IrrFlux(divF);
     irr_flag=true;
   }
 
@@ -281,6 +278,30 @@ void RadSource::SourceFixedPointRad(const real dt) {
       real Fnorm = std::sqrt(EXPAND(URad[FR1]*URad[FR1] , + URad[FR2]*URad[FR2], + URad[FR3]*URad[FR3]));
       real Mnorm = std::sqrt(EXPAND(UGas[MX1]*UGas[MX1] , + UGas[MX2]*UGas[MX2], + UGas[MX3]*UGas[MX3]));
 
+      // Assume mu is constant during iteration (to check)
+      real mu = eos.GetMu(VGas[PRS],VGas[RHO]);
+
+      real T = VGas[PRS]/(VGas[RHO])*units.Kelvin*mu;
+
+      // Assume kappa and xi are constant during iteration (to check)
+      if (kappa_type == Type_opac::constant) {
+        kappa_p = kappa_0;
+        kappa_r = kappa_0;
+      } else if (kappa_type == Type_opac::kramers) {
+        kappa_p = kappa_0*std::pow(VGas[RHO]*units.density/rho_0,2.)*std::pow(T/T_0,-3.5);
+        kappa_r = kappa_p;
+      } else if (kappa_type == Type_opac::usertable) {
+        real logT = std::log10(T);
+        kappa_p = kp1D.Get(&logT);
+        kappa_r = kr1D.Get(&logT);
+      }
+      if (xi_type == Type_opac::constant) {
+        xi = xi_0;
+      } else if (xi_type == Type_opac::usertable) {
+        real logT = std::log10(T);
+        xi = xi1D.Get(&logT);
+      }
+
       // Iterate on radiative variables
       while (((err1>tol) || (err2>tol) || (err3>tol) || (err4>tol)) && (count < MAX_ITER)){
 
@@ -288,30 +309,7 @@ void RadSource::SourceFixedPointRad(const real dt) {
         Fnorm_old = Fnorm;
         Egas_old = UGas[ENG];
         Mnorm_old = Mnorm;
-
-        // Compute new temperature
-
-        real T = VGas[PRS]/(VGas[RHO])*units.Kelvin*mu;
         
-        // Compute opacities
-        if (kappa_type == Type_opac::constant) {
-          kappa_p = kappa_0;
-          kappa_r = kappa_0;
-        } else if (kappa_type == Type_opac::kramers) {
-          kappa_p = kappa_0*std::pow(VGas[RHO]*units.density/rho_0,2.)*std::pow(T/T_0,-3.5);
-          kappa_r = kappa_p;
-        } else if (kappa_type == Type_opac::usertable) {
-          real logT = std::log10(T);
-          kappa_p = kp1D.Get(&logT);
-          kappa_r = kr1D.Get(&logT);
-       }
-        if (xi_type == Type_opac::constant) {
-          xi = xi_0;
-        } else if (xi_type == Type_opac::usertable) {
-          real logT = std::log10(T);
-          xi = xi1D.Get(&logT);
-        }
-
         real kk_red = reduced_c * units.velocity * dt * units.time * kappa_p * VGas[RHO]*units.density;
         real xx_red = reduced_c * units.velocity * dt * units.time * (xi + kappa_r) * VGas[RHO]*units.density;
 
@@ -336,7 +334,10 @@ void RadSource::SourceFixedPointRad(const real dt) {
 
         // Update gas primitive variables
         K_ConsToPrim<DefaultPhysics>(VGas, UGas, &eos);
-
+        
+        // Compute new temperature
+        T = VGas[PRS]/(VGas[RHO])*units.Kelvin*mu;
+        
         // Compute errors and number of cycles
         err1 = std::abs(1.-URad[ER]/Er_old);
         err2 = std::abs(1.-Fnorm/Fnorm_old);
@@ -370,7 +371,6 @@ void RadSource::SourceFixedPointGas(const real dt) {
   auto InvDt = this->InvDt;
   
   real reduced_c = this->reduced_c;
-  real mu = this->mu;
 
   auto units=idfx::units;
 
@@ -444,6 +444,8 @@ void RadSource::SourceFixedPointGas(const real dt) {
       real Fnorm = std::sqrt(EXPAND(URad[FR1]*URad[FR1] , + URad[FR2]*URad[FR2], + URad[FR3]*URad[FR3]));
       real Mnorm = std::sqrt(EXPAND(UGas[MX1]*UGas[MX1] , + UGas[MX2]*UGas[MX2], + UGas[MX3]*UGas[MX3]));
 
+      // Assume mu is constant during iteration (to check)
+      real mu = eos.GetMu(VGas[PRS],VGas[RHO]);
       real T = VGas[PRS]/(VGas[RHO])*units.Kelvin*mu;
 
       // Compute opacities (out of while loop so that opacity is contant throughout the fixed_point iteration)
@@ -584,11 +586,12 @@ void RadSource::AddRadSource(const real dt) {
   idfx::popRegion();
 }
 
-void RadSource::IrrFlux(const real dt) {
+void RadSource::IrrFlux(IdefixArray3D<real> divFin) {
   idfx::pushRegion("RadSource::IrrFlux");
   
-  auto divFlux = this->divF;  
   auto units=idfx::units;
+  auto irr1D = this->irr_1D;
+  IdefixArray3D<real> divFlux = divFin;
 
   column_rho->ComputeColumn(this->VcGas);
   IdefixArray3D<real> tau = column_rho->GetColumn();
