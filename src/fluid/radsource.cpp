@@ -14,6 +14,9 @@
 void RadSource::SourceFullImplicit(const real dt) {
   idfx::pushRegion("RadSource::Source_full_implicit");
 
+  // Ensure that radiation cannot be run with isothermal eos
+  #ifndef ISOTHERMAL 
+
   auto UcGas = this->UcGas;
   auto VcGas = this->VcGas;
   auto UcRad = this->UcRad;
@@ -179,12 +182,16 @@ void RadSource::SourceFullImplicit(const real dt) {
       }
     });
 
+    #endif
   idfx::popRegion();
 }
 
 
 void RadSource::SourceFixedPointRad(const real dt) {
   idfx::pushRegion("RadSource::SourceFixedPointRad");
+
+  // Ensure that radiation cannot be run with isothermal eos
+  #ifndef ISOTHERMAL 
 
   auto UcGas = this->UcGas;
   auto VcGas = this->VcGas;
@@ -355,7 +362,9 @@ void RadSource::SourceFixedPointRad(const real dt) {
         UcGas(nv,k,j,i) = UGas[nv];
         VcGas(nv,k,j,i) = VGas[nv];
       }
-    });
+  });
+
+  #endif
 
   idfx::popRegion();
 }
@@ -363,6 +372,9 @@ void RadSource::SourceFixedPointRad(const real dt) {
 
 void RadSource::SourceFixedPointGas(const real dt) {
   idfx::pushRegion("RadSource::SourceFixedPointGas");
+
+  // Ensure that radiation cannot be run with isothermal eos
+  #ifndef ISOTHERMAL 
 
   auto UcGas = this->UcGas;
   auto VcGas = this->VcGas;
@@ -524,12 +536,18 @@ void RadSource::SourceFixedPointGas(const real dt) {
         UcGas(nv,k,j,i) = UGas[nv];
         VcGas(nv,k,j,i) = VGas[nv];
       }
-    });
+  });
+
+  #endif
 
   idfx::popRegion();
 }
 
 void RadSource::ShowConfig() {
+
+  // Ensure that radiation cannot be run with isothermal eos
+  #ifndef ISOTHERMAL 
+
   idfx::cout << "RadSource: kappa is ";
   switch(kappa_type) {
     case Type_opac::constant:
@@ -566,6 +584,11 @@ void RadSource::ShowConfig() {
       idfx::cout << "fixed_point_gas (to test)." << std::endl;
       break;
   }
+ 
+ #else 
+    IDEFIX_ERROR("Isothermal EOS is not compatible with radiative transfer.");
+ #endif 
+
 }
 
 void RadSource::AddRadSource(const real dt) {
