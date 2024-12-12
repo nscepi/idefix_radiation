@@ -93,7 +93,7 @@ void RadSource::SourceFullImplicit(const real dt) {
       real Fnorm = std::sqrt(EXPAND(URad[FR1]*URad[FR1] , + URad[FR2]*URad[FR2], + URad[FR3]*URad[FR3]));
         
       real mu = eos.GetMu(VGas[PRS],VGas[RHO]);
-      real cv = idfx::units.k_B/(idfx::units.u*mu);
+      real cv = units.k_B/(units.u*mu);
 
       real T = VGas[PRS]/(VGas[RHO])*units.Kelvin*mu;
       real T3 = std::pow(T,3);
