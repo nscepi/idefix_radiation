@@ -142,9 +142,9 @@ void RadSource::SourceFullImplicit(const real dt) {
       real det = M00*M11 - M01*M10;
 
       real Minv00 = M11/det;
-      real Minv11 = M00/det;
+      //real Minv11 = M00/det;
       real Minv01 = -M01/det;
-      real Minv10 = -M10/det;
+      //real Minv10 = -M10/det;
 
       real Er_new = Minv00*S0 + Minv01*S1;
       //real T_new = Minv10*S0 + Minv11*S1;
