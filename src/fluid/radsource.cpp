@@ -648,9 +648,9 @@ void RadSource::IrrFlux(IdefixArray3D<real> divFin) {
               KOKKOS_LAMBDA (int k, int j, int i) {
 
                 real logtaum = std::log10(FMAX(tau(k,j,i-1)*units.density*units.length,1.e-15));
-                real Fim = pow(10.,irr_1D.Get(&logtaum))*A1(k,j,i)/std::pow(x1l(i),2.);
+                real Fim = pow(10.,irr1D.Get(&logtaum))*A1(k,j,i)/std::pow(x1l(i),2.);
                 real logtaup = std::log10(FMAX(tau(k,j,i)*units.density*units.length,1.e-15));
-                real Fip = pow(10.,irr_1D.Get(&logtaup))*A1(k,j,i+1)/std::pow(x1l(i+1),2.);
+                real Fip = pow(10.,irr1D.Get(&logtaup))*A1(k,j,i+1)/std::pow(x1l(i+1),2.);
                 divFlux(k,j,i)  = flux_pre*(Fip-Fim)/dV(k,j,i);
     });
   }
