@@ -36,24 +36,26 @@ void RadSource::SourceFullImplicit(const real dt) {
 
   // Irradiation source
   bool irr_flag=false;
+  IdefixArray3D<real> divF;
   if (haveIrradiation){
     IrrFlux(dt);
-    IdefixArray3D<real> divF = GetdivF();
+    divF = GetdivF();
     irr_flag=true;
   }
 
   // Local copy of opacity parameters
   Type_opac kappa_type = this->kappa_type;
+  real kappa_0,rho_0,T_0,xi_0;
   if (kappa_type == Type_opac::constant) {
-    real kappa_0 = this->kappa_0;
+    kappa_0 = this->kappa_0;
   } else if (kappa_type == Type_opac::kramers) {
-    real kappa_0 = this->kappa_0;
-    real T_0 = this->T_0;
-    real rho_0 = this->rho_0;
+    kappa_0 = this->kappa_0;
+    T_0 = this->T_0;
+    rho_0 = this->rho_0;
   }
   Type_opac xi_type = this->xi_type;
   if (xi_type == Type_opac::constant) {
-    real xi_0 = this->xi_0;
+    xi_0 = this->xi_0;
   }
 
   idefix_for("RadSourceFullImplicit",0,data->np_tot[KDIR],0,data->np_tot[JDIR],0,data->np_tot[IDIR],
@@ -122,9 +124,9 @@ void RadSource::SourceFullImplicit(const real dt) {
 
       // Define matrix to invert
       real M00 = ONE_F + kk_red;
-      real M11 = VGas[RHO]*units.density*C_cv/(gamma-1.) + 4.*kk*units.ar*T3;
+      //real M11 = VGas[RHO]*units.density*C_cv/(gamma-1.) + 4.*kk*units.ar*T3;
       real M01 = -4.*kk_red*units.ar*T3;
-      real M10 = -kk;
+      //real M10 = -kk;
 
       // Define right-hand side of system
       real S0 = Er_hyp*units.energy - 3.*kk_red*units.ar*T3*T;
@@ -208,24 +210,26 @@ void RadSource::SourceFixedPointRad(const real dt) {
 
   // Irradiation source
   bool irr_flag=false;
+  IdefixArray3D<real> divF;
   if (haveIrradiation){
     IrrFlux(dt);
-    IdefixArray3D<real> divF = GetdivF();
+    divF = GetdivF();
     irr_flag=true;
   }
 
   // Local copy of opacity parameters
   Type_opac kappa_type = this->kappa_type;
+  real kappa_0,rho_0,T_0,xi_0;
   if (kappa_type == Type_opac::constant) {
-    real kappa_0 = this->kappa_0;
+    kappa_0 = this->kappa_0;
   } else if (kappa_type == Type_opac::kramers) {
-    real kappa_0 = this->kappa_0;
-    real T_0 = this->T_0;
-    real rho_0 = this->rho_0;
+    kappa_0 = this->kappa_0;
+    T_0 = this->T_0;
+    rho_0 = this->rho_0;
   }
   Type_opac xi_type = this->xi_type;
   if (xi_type == Type_opac::constant) {
-    real xi_0 = this->xi_0;
+    xi_0 = this->xi_0;
   }
 
   idefix_for("RadSourceFixedPointRad",0,data->np_tot[KDIR],0,data->np_tot[JDIR],0,data->np_tot[IDIR],
