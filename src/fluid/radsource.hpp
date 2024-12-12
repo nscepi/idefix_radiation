@@ -151,12 +151,6 @@ RadSource::RadSource(Input &input, Fluid<Phys> *hydroin):
 
   // Reduced velocity of light 
   this->reduced_c =  hydroin->reduced_c;
-  
-  // Adiabatic index
-  this->gamma = this->eos->GetGamma();
-  
-  // Mean molecular weight
-  this->mu = this->eos->GetMu();
 
   // Information on scattering opacity coefficient
   if(input.CheckEntry(BlockName,"xi")>=0) {

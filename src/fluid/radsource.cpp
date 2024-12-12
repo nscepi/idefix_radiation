@@ -26,13 +26,9 @@ void RadSource::SourceFullImplicit(const real dt) {
   auto kr1D = this->kappa_ross_1D;
   auto xi1D = this->xi_1D;
 
-  real reduced_c = this->reduced_c;
-  real mu = this->mu;
-  real gamma = this->gamma;
-
-  real C_cv = idfx::units.k_B/(idfx::units.u*mu);
-
   EquationOfState eos = *(this->eos);
+
+  real reduced_c = this->reduced_c;
 
   // Irradiation source
   bool irr_flag=false;
@@ -96,6 +92,9 @@ void RadSource::SourceFullImplicit(const real dt) {
 
       real Fnorm = std::sqrt(EXPAND(URad[FR1]*URad[FR1] , + URad[FR2]*URad[FR2], + URad[FR3]*URad[FR3]));
         
+      real mu = eos.GetMu(VGas[PRS],VGas[RHO]);
+      real cv = idfx::units.k_B/(idfx::units.u*mu);
+
       real T = VGas[PRS]/(VGas[RHO])*units.Kelvin*mu;
       real T3 = std::pow(T,3);
 
@@ -123,14 +122,16 @@ void RadSource::SourceFullImplicit(const real dt) {
       real xx_red = reduced_c * units.velocity * dt * units.time * (xi + kappa_r) * VGas[RHO]*units.density;
 
       // Define matrix to invert
+      real gamma = eos.GetGamma(VGas[PRS],VGas[RHO]);
+
       real M00 = ONE_F + kk_red;
-      real M11 = VGas[RHO]*units.density*C_cv/(gamma-1.) + 4.*kk*units.ar*T3;
+      real M11 = VGas[RHO]*units.density*cv/(gamma-1.) + 4.*kk*units.ar*T3;
       real M01 = -4.*kk_red*units.ar*T3;
       real M10 = -kk;
 
       // Define right-hand side of system
       real S0 = Er_hyp*units.energy - 3.*kk_red*units.ar*T3*T;
-      real S1 = VGas[RHO]*units.density*C_cv*T/(gamma-1.) + 3.*kk*units.ar*T3*T;
+      real S1 = VGas[RHO]*units.density*cv*T/(gamma-1.) + 3.*kk*units.ar*T3*T;
 
       // Add irradiation heating to RHS if needed
       if (irr_flag){
@@ -289,6 +290,7 @@ void RadSource::SourceFixedPointRad(const real dt) {
         Mnorm_old = Mnorm;
 
         // Compute new temperature
+
         real T = VGas[PRS]/(VGas[RHO])*units.Kelvin*mu;
         
         // Compute opacities
