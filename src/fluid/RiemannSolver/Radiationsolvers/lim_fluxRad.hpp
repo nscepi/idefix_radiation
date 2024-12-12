@@ -7,7 +7,7 @@
 #include "input.hpp"
 
 
-KOKKOS_INLINE_FUNCTION void K_limit_RadFlux(real  V[]) {
+KOKKOS_INLINE_FUNCTION void K_LimitRadFlux(real  V[]) {
 
 real Fnorm = std::sqrt(EXPAND(V[FR1]*V[FR1] , + V[FR2]*V[FR2], + V[FR3]*V[FR3]));
       

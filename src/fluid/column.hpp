@@ -2,15 +2,14 @@
 #define COLUMN_HPP_
 
 #include "idefix.hpp"
-#include "input.hpp"
-#include "output.hpp"
-#include "grid.hpp"
-#include "dataBlock.hpp"
-#include "dataBlockHost.hpp"
-#include "fluid.hpp"
+#ifdef WITH_MPI
+#include "mpi.hpp"
+#endif
+#include <array>
 #include <vector>
 #include <string>
 
+class DataBlock;
 
 
 class Column {

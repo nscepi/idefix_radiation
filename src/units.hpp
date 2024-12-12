@@ -44,7 +44,9 @@ class Units {
   // Deduced units from user-defined units
   const real &Kelvin{_Kelvin};                      // T(K) = P(code)/rho(code) * mu * Units::Kelvin
   const real &magField{_magField};                  // B(G) = B(code) * Units::MagField
-
+  const real &energy{_energy};
+  const real &time{_time};
+  
   bool &is_initialized{_is_initialized};
 
   // code-style change of the units
@@ -65,6 +67,8 @@ class Units {
   // Deduced units from user-defined units
   real _Kelvin{1.0};
   real _magField{1.0};
+  real _time{1.0};
+  real _energy{1.0};
 
   // Recompute deduced user-units
   void ComputeUnits();

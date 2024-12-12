@@ -46,4 +46,6 @@ void idfx::Units::ComputeUnits() {
   this->_is_initialized = true;
   this->_magField = std::sqrt(4*M_PI*density*velocity*velocity);
   this->_Kelvin = u*velocity*velocity/k_B;
+  this->_energy = density*velocity*velocity;
+  this->_time = length/velocity;
 }

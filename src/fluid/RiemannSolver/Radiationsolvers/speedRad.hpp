@@ -7,7 +7,7 @@
 #include "input.hpp"
 
 
-KOKKOS_INLINE_FUNCTION void K_speeds_Rad(real lambda[], const real *KOKKOS_RESTRICT V, int Xn, real reduced_c) {
+KOKKOS_INLINE_FUNCTION void K_SpeedsRad(real lambda[], const real *KOKKOS_RESTRICT V, int Xn, real reduced_c) {
     
     real Fnorm = std::sqrt(EXPAND(V[FR1]*V[FR1] , + V[FR2]*V[FR2], + V[FR3]*V[FR3]));
 

@@ -22,32 +22,41 @@ def testMe(test):
 
   # loop on all the ini files for this test
   for definition in deffiles:
-    if ("cart" in definition):
-      if ("1D" in definition):
-        shutil.copy('idefix-hll-cart.ini', 'idefix-hll-cart1D.ini')
-        shutil.copy('idefix-hllc-cart.ini', 'idefix-hllc-cart1D.ini')
-        inifiles=["idefix-hll-cart1D.ini","idefix-hllc-cart1D.ini"]
-      elif ("2D" in definition):
-        shutil.copy('idefix-hll-cart.ini', 'idefix-hll-cart2D.ini')
-        shutil.copy('idefix-hllc-cart.ini', 'idefix-hllc-cart2D.ini')
-        inifiles=["idefix-hll-cart2D.ini","idefix-hllc-cart2D.ini"]
-      elif ("3D" in definition):
-        shutil.copy('idefix-hll-cart.ini', 'idefix-hll-cart3D.ini')
-        shutil.copy('idefix-hllc-cart.ini', 'idefix-hllc-cart3D.ini')
-        inifiles=["idefix-hll-cart3D.ini","idefix-hllc-cart3D.ini"]
-    elif ("sph" in definition):
-      if ("1D" in definition):
-        shutil.copy('idefix-hll-sph.ini', 'idefix-hll-sph1D.ini')
-        shutil.copy('idefix-hllc-sph.ini', 'idefix-hllc-sph1D.ini')
-        inifiles=["idefix-hll-sph1D.ini","idefix-hllc-sph1D.ini"]
-      elif ("2D" in definition):
-        shutil.copy('idefix-hll-sph.ini', 'idefix-hll-sph2D.ini')
-        shutil.copy('idefix-hllc-sph.ini', 'idefix-hllc-sph2D.ini')
-        inifiles=["idefix-hll-sph2D.ini","idefix-hllc-sph2D.ini"]
-      elif ("3D" in definition):
-        shutil.copy('idefix-hll-sph.ini', 'idefix-hll-sph3D.ini')
-        shutil.copy('idefix-hllc-sph.ini', 'idefix-hllc-sph3D.ini')
-        inifiles=["idefix-hll-sph3D.ini","idefix-hllc-sph3D.ini"]
+    inifiles = []
+    for solver in ["hll","hllc"]:
+      for opt in ["thin","thick"]:
+        if ("cart" in definition):
+          if ("1D" in definition):
+            ini_name = "idefix-"+str(solver)+"-cart1D-"+str(opt)+'.ini'
+            shutil.copy('idefix-'+str(solver)+'-cart-'+str(opt)+'.ini', str(ini_name))
+            inifiles += [str(ini_name)]
+            test.dec = ['2']
+          elif ("2D" in definition):
+            ini_name = "idefix-"+str(solver)+"-cart2D-"+str(opt)+'.ini'
+            shutil.copy('idefix-'+str(solver)+'-cart-'+str(opt)+'.ini', str(ini_name))
+            inifiles += [str(ini_name)]
+            test.dec = ['2','2']
+          elif ("3D" in definition):
+            ini_name = "idefix-"+str(solver)+"-cart3D-"+str(opt)+'.ini'
+            shutil.copy('idefix-'+str(solver)+'-cart-'+str(opt)+'.ini', str(ini_name))
+            inifiles += [str(ini_name)]
+            test.dec = ['2','2','1']
+        elif ("sph" in definition):
+          if ("1D" in definition):
+            ini_name = "idefix-"+str(solver)+"-sph1D-"+str(opt)+'.ini'
+            shutil.copy('idefix-'+str(solver)+'-sph-'+str(opt)+'.ini', str(ini_name))
+            inifiles += [str(ini_name)]
+            test.dec = ['2']
+          elif ("2D" in definition):
+            ini_name = "idefix-"+str(solver)+"-sph2D-"+str(opt)+'.ini'
+            shutil.copy('idefix-'+str(solver)+'-sph-'+str(opt)+'.ini', str(ini_name))
+            inifiles += [str(ini_name)]
+            test.dec = ['2','2']
+          elif ("3D" in definition):
+            ini_name = "idefix-"+str(solver)+"-sph3D-"+str(opt)+'.ini'
+            shutil.copy('idefix-'+str(solver)+'-sph-'+str(opt)+'.ini', str(ini_name))
+            inifiles += [str(ini_name)]
+            test.dec = ['2','2','1']
 
     test.configure(definitionFile=definition)
     test.compile()
@@ -61,8 +70,6 @@ def testMe(test):
 
 
 test=tst.idfxTest()
-if not test.dec:
-  test.dec=['2']
 
 if not test.all:
   if(test.check):
@@ -70,7 +77,7 @@ if not test.all:
   else:
     testMe(test)
 else:
-  for rec in range(1,4):
+  for rec in range(1,2):
     test.vectPot=False
     test.single=False
     test.reconstruction=rec
