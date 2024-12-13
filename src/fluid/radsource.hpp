@@ -74,10 +74,6 @@ class RadSource {
     return 4./(3.*tau)*this->reduced_c;
   };
 
-   IdefixArray3D<real> GetdivF() {
-    return (this->divF);
-  }
-
  private:
   DataBlock* data;
   real kappa_0;
