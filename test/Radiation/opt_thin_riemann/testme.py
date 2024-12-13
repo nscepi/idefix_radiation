@@ -12,7 +12,7 @@ import pytools.idfx_test as tst
 
 name="dump.0001.dmp"
 
-tolerance=1e-10
+tolerance=0.
 
 def testMe(test):
   test.configure()
