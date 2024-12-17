@@ -44,8 +44,8 @@ class RadSource {
   // Compute limiting diffusion speed for Riemann solver in opt. thick media
   KOKKOS_INLINE_FUNCTION real LimitSpeedsRad(int i, int j, int k, real dx) const {
     auto VcGas = this->VcGas;
+
     real kappa,xi;
-    EquationOfState eos = *(this->eos);
     real mu = eos.GetMu(VcGas(PRS,k,j,i),VcGas(RHO,k,j,i));
     
     if (kappa_type == Type_opac::constant) {
@@ -88,8 +88,8 @@ class RadSource {
   real mu;
   int count_max;
   
-  // Sound speed computation
-  EquationOfState *eos;
+  // EOS
+  EquationOfState eos;
 
   // Dimension of Planck and Rosseland opacities tables
   int kappa_ndim;
@@ -133,7 +133,8 @@ RadSource::RadSource(Input &input, Fluid<Phys> *hydroin):
                       UcGas{hydroin->data->hydro->Uc},
                       VcRad{hydroin->Vc},
                       VcGas{hydroin->data->hydro->Vc},
-                      InvDt{hydroin->InvDt} {
+                      InvDt{hydroin->InvDt},
+                      eos{*(hydroin->data->hydro->eos.get())}{
   idfx::pushRegion("RadSource::RadSource");
   
   // Create our own prefix
@@ -141,7 +142,6 @@ RadSource::RadSource(Input &input, Fluid<Phys> *hydroin):
 
   // Save the parent hydro object
   this->data = hydroin->data;
-  this->eos = hydroin->data->hydro->eos.get();
 
   // Check in which block we should fetch our information
   std::string BlockName;

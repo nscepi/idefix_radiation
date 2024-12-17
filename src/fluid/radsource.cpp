@@ -29,7 +29,7 @@ void RadSource::SourceFullImplicit(const real dt) {
   auto kr1D = this->kappa_ross_1D;
   auto xi1D = this->xi_1D;
 
-  EquationOfState eos = *(this->eos);
+  EquationOfState eos = this->eos;
 
   real reduced_c = this->reduced_c;
 
@@ -212,7 +212,7 @@ void RadSource::SourceFixedPointRad(const real dt) {
   // Tolerance on ER and ENG for fixed-point solver
   real tol = 1.e-3;
 
-  EquationOfState eos = *(this->eos);
+  EquationOfState eos = this->eos;
 
   // Irradiation source
   bool irr_flag=false;
@@ -395,7 +395,7 @@ void RadSource::SourceFixedPointGas(const real dt) {
   // Tolerance on ER and ENG for fixed-point solver
   real tol = 1.e-3;
 
-  EquationOfState eos = *(this->eos);
+  EquationOfState eos = this->eos;
 
   // Local copy of opacity parameters
   Type_opac kappa_type = this->kappa_type;
