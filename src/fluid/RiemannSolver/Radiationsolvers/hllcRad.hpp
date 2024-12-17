@@ -183,8 +183,8 @@ void RiemannSolver<Phys>::HllcRad(IdefixArray4D<real> &Flux) {
 
         //printf("vR[ER]=%e, vR[FR1]=%e, fluxR[ER]=%e, vL[ER]=%e, vL[FR1]=%e, fluxL[ER]=%e, AL=%e,AR=%e,BL=%e,BR=%e at i=%i, j=%i, k=%i and DIR=%i\n",vR[ER],vR[Xn],fluxR[ER],vL[ER],vL[Xn],fluxL[ER],AL,AR,BR,BL,i,j,k,DIR);
 
-        real fpL = EXPAND(ZERO_F, + vL[Xt]*vL[Xt], + vL[Xb]*vL[Xb]) ;
-        real fpR = EXPAND(ZERO_F, + vR[Xt]*vR[Xt], + vR[Xb]*vR[Xb]) ;
+        //real fpL = EXPAND(ZERO_F, + vL[Xt]*vL[Xt], + vL[Xb]*vL[Xb]) ;
+        //real fpR = EXPAND(ZERO_F, + vR[Xt]*vR[Xt], + vR[Xb]*vR[Xb]) ;
 
         real eeL = 1e-10*vL[ER];
         real eeR = 1e-10*vR[ER];
