@@ -42,7 +42,7 @@ void RadSource::SourceFullImplicit(const real dt) {
   }
 
   // Local copy of opacity parameters
-  Type_opac kappa_type = this->kappa_type;
+  const Type_opac kappa_type = this->kappa_type;
   real kappa_0,rho_0,T_0,xi_0;
   if (kappa_type == Type_opac::constant) {
     kappa_0 = this->kappa_0;
@@ -51,7 +51,7 @@ void RadSource::SourceFullImplicit(const real dt) {
     T_0 = this->T_0;
     rho_0 = this->rho_0;
   }
-  Type_opac xi_type = this->xi_type;
+  const Type_opac xi_type = this->xi_type;
   if (xi_type == Type_opac::constant) {
     xi_0 = this->xi_0;
   }
@@ -223,7 +223,7 @@ void RadSource::SourceFixedPointRad(const real dt) {
   }
 
   // Local copy of opacity parameters
-  Type_opac kappa_type = this->kappa_type;
+  const Type_opac kappa_type = this->kappa_type;
   real kappa_0,rho_0,T_0,xi_0;
   if (kappa_type == Type_opac::constant) {
     kappa_0 = this->kappa_0;
@@ -232,7 +232,7 @@ void RadSource::SourceFixedPointRad(const real dt) {
     T_0 = this->T_0;
     rho_0 = this->rho_0;
   }
-  Type_opac xi_type = this->xi_type;
+  const Type_opac xi_type = this->xi_type;
   if (xi_type == Type_opac::constant) {
     xi_0 = this->xi_0;
   }
@@ -398,7 +398,7 @@ void RadSource::SourceFixedPointGas(const real dt) {
   EquationOfState eos = this->eos;
 
   // Local copy of opacity parameters
-  Type_opac kappa_type = this->kappa_type;
+  const Type_opac kappa_type = this->kappa_type;
   real kappa_0,rho_0,T_0,xi_0;
   if (kappa_type == Type_opac::constant) {
     kappa_0 = this->kappa_0;
@@ -407,7 +407,7 @@ void RadSource::SourceFixedPointGas(const real dt) {
     T_0 = this->T_0;
     rho_0 = this->rho_0;
   }
-  Type_opac xi_type = this->xi_type;
+  const Type_opac xi_type = this->xi_type;
   if (xi_type == Type_opac::constant) {
     xi_0 = this->xi_0;
   }
