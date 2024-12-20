@@ -156,8 +156,8 @@ void ComputeUserVars(DataBlock & data, UserDefVariablesContainer &variables) {
         for(int i = d.beg[IDIR]; i < d.end[IDIR] ; i++) {
           A1_out(k,j,i) = A1(k,j,i);
 
-          real Fim = std::exp(-kirr*tau(k,j,i-1))/std::pow(x1l(i),2.);
-          real Fip = std::exp(-kirr*tau(k,j,i))/std::pow(x1l(i+1),2.);
+          real Fim = std::exp(-kirr*variables["tau"](k,j,i-1))/std::pow(x1l(i),2.);
+          real Fip = std::exp(-kirr*variables["tau"](k,j,i))/std::pow(x1l(i+1),2.);
 
           divF(k,j,i) = (Fip*A1(k,j,i+1)-Fim*A1(k,j,i));
           divF(k,j,i) *= flux_pre;
@@ -173,10 +173,10 @@ void ComputeUserVars(DataBlock & data, UserDefVariablesContainer &variables) {
         for(int i = d.beg[IDIR]; i < d.end[IDIR] ; i++) {
           A1_out(k,j,i) = A1(k,j,i);
 
-          real logtaum = std::log10(FMAX(tau(k,j,i-1)*idfx::units.GetDensity()*idfx::units.GetLength(),1.e-15));
-          real Fim = pow(10.,kappatableGlob->Get(&logtaum))*A1(k,j,i)/std::pow(x1l(i),2.);
-          real logtaup = std::log10(FMAX(tau(k,j,i)*idfx::units.GetDensity()*idfx::units.GetLength(),1.e-15));
-          real Fip = pow(10.,kappatableGlob->Get(&logtaup))*A1(k,j,i+1)/std::pow(x1l(i+1),2.);
+          real logtaum = std::log10(FMAX(variables["tau"](k,j,i-1)*idfx::units.GetDensity()*idfx::units.GetLength(),1.e-15));
+          real Fim = pow(10.,kappatableGlob->GetHost(&logtaum))*A1(k,j,i)/std::pow(x1l(i),2.);
+          real logtaup = std::log10(FMAX(variables["tau"](k,j,i)*idfx::units.GetDensity()*idfx::units.GetLength(),1.e-15));
+          real Fip = pow(10.,kappatableGlob->GetHost(&logtaup))*A1(k,j,i+1)/std::pow(x1l(i+1),2.);
           divF(k,j,i)  = flux_pre*(Fip-Fim)/dV(k,j,i);
 
         }
