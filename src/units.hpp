@@ -38,19 +38,6 @@ class Units {
 
 
   // User-defined units, non user-modifiable
-<<<<<<< HEAD
-  const real &length{_length};                      // L (cm)  = L (code) * Units::length
-  const real &velocity{_velocity};                  // V(cm/s) = V(code) * Units::velocity
-  const real &density{_density};                    // density (g/cm^3) = density(code)
-
-  // Deduced units from user-defined units
-  const real &Kelvin{_Kelvin};                      // T(K) = P(code)/rho(code) * mu * Units::Kelvin
-  const real &magField{_magField};                  // B(G) = B(code) * Units::MagField
-  const real &energy{_energy};
-  const real &time{_time};
-  
-  bool &is_initialized{_is_initialized};
-=======
   KOKKOS_INLINE_FUNCTION real GetLength() const {return _density;}                      // L (cm)  = L (code) * Units::length
   KOKKOS_INLINE_FUNCTION real GetVelocity() const {return _velocity;}                  // V(cm/s) = V(code) * Units::velocity
   KOKKOS_INLINE_FUNCTION real GetDensity() const {return _density;}                    // density (g/cm^3) = density(code)
@@ -59,9 +46,10 @@ class Units {
   // Deduced units from user-defined units
   KOKKOS_INLINE_FUNCTION  real GetKelvin() const {return _Kelvin;}                      // T(K) = P(code)/rho(code) * mu * Units::Kelvin
   KOKKOS_INLINE_FUNCTION  real GetMagField() const {return _magField;}                  // B(G) = B(code) * Units::MagField
+  KOKKOS_INLINE_FUNCTION  real GetEnergy() const {return _energy;}                  // energy(erg/cm3) = energy(code) * Units::energy
+  KOKKOS_INLINE_FUNCTION  real GetTime() const {return _time;}                  // time(s) = time(code) * Units::time
 
   KOKKOS_INLINE_FUNCTION  bool GetIsInitialized() const {return _isInitialized;}
->>>>>>> ba5eac839d2c9c53e5ca26fe28cc775595cec729
 
   // code-style change of the units
   void SetLength(const real);
