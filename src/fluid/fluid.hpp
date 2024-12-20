@@ -284,7 +284,7 @@ Fluid<Phys>::Fluid(Grid &grid, Input &input, DataBlock *datain, int n) {
   if(Phys::prefix.compare("Rad") == 0) {
     prefix += std::to_string(n);
     this->reduced_c = input.Get<real>(std::string(Phys::prefix),"reduced_c",0);
-    this->reduced_c *= idfx::units.c/idfx::units.velocity;
+    this->reduced_c *= idfx::units.c/idfx::units.GetVelocity();
   }
 
   // Keep the instance # for later use

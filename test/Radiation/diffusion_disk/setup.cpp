@@ -17,26 +17,14 @@ void MySourceTerm(Hydro *hydro, const real t, const real dtin) {
   IdefixArray1D<real> x1=data->x[IDIR];
   IdefixArray1D<real> x2=data->x[JDIR];
 
-  real C_G = idfx::units.G;
-  real C_Msol = idfx::units.M_sun;
-  real C_au = idfx::units.au;
-  real C_kb = idfx::units.k_B;
-  real C_amu = idfx::units.u;
-
-  real unit_density = idfx::units.density;
-  real unit_velocity = idfx::units.velocity;
-  real unit_length = idfx::units.length;
-  real unit_time = unit_length/unit_velocity;
-  real unit_energy = unit_density*unit_velocity*unit_velocity;
-
   real alpha = alphaGlob;
-  real R = RGlob*C_au;
+  real R = RGlob*idfx::units.au;
   real mu = muGlob;
   real T0 = T0Glob;
   real dt=dtin;
-  real Omega_K = std::sqrt(C_G*C_Msol/(R*R*R));
+  real Omega_K = std::sqrt(idfx::units.G*idfx::units.M_sun/(R*R*R));
   //real csiso = epsilon*R*Omega_K;
-  real csiso = std::sqrt(C_kb*T0/(mu*C_amu));
+  real csiso = std::sqrt(idfx::units.k_B*T0/(mu*idfx::units.u));
 
   idefix_for("MySourceTerm",
     0, data->np_tot[KDIR],
@@ -44,7 +32,7 @@ void MySourceTerm(Hydro *hydro, const real t, const real dtin) {
     0, data->np_tot[IDIR],
               KOKKOS_LAMBDA (int k, int j, int i) {
               
-                real SE = 2.25*alpha*Omega_K*csiso*csiso*Vc(RHO,k,j,i)*unit_density/(unit_energy/unit_time);
+                real SE = 2.25*alpha*Omega_K*csiso*csiso*Vc(RHO,k,j,i)*idfx::units.GetDensity()/(idfx::units.GetEnergy()/idfx::units.GetTime());
 
                 Uc(ENG,k,j,i) += dt*SE;
 
@@ -59,13 +47,6 @@ void UserdefBoundaryRad(Fluid<RadiationPhysics> *radiation, int dir, BoundarySid
   real C_ar = idfx::units.ar;
   real T0 = T0Glob;
 
-  real unit_density = idfx::units.density;
-  real unit_velocity = idfx::units.velocity;
-  real unit_length = idfx::units.length;
-  real unit_time = unit_length/unit_velocity;
-  real unit_energy = unit_density*unit_velocity*unit_velocity;
-
-
   IdefixArray1D<real> x1 = data->x[IDIR];
   IdefixArray1D<real> x2 = data->x[JDIR];
   if(dir==IDIR) {
@@ -79,7 +60,7 @@ void UserdefBoundaryRad(Fluid<RadiationPhysics> *radiation, int dir, BoundarySid
         0, data->np_tot[JDIR],
         ibeg, iend,
         KOKKOS_LAMBDA (int k, int j, int i) {
-          Vc(ER,k,j,i) = C_ar*std::pow(T0,4.)/unit_energy;
+          Vc(ER,k,j,i) = C_ar*std::pow(T0,4.)/idfx::units.GetEnergy();
           Vc(FR1,k,j,i) = Vc(FR1,k,j,ighost);
         });
     } else if (side==right){
@@ -92,7 +73,7 @@ void UserdefBoundaryRad(Fluid<RadiationPhysics> *radiation, int dir, BoundarySid
         0, data->np_tot[JDIR],
         ibeg, iend,
         KOKKOS_LAMBDA (int k, int j, int i) {
-          Vc(ER,k,j,i) = C_ar*std::pow(T0,4.)/unit_energy;
+          Vc(ER,k,j,i) = C_ar*std::pow(T0,4.)/idfx::units.GetEnergy();
           Vc(FR1,k,j,i) = Vc(FR1,k,j,ighost+nxi-1);
         });
     }
@@ -215,27 +196,14 @@ Setup::Setup(Input &input, Grid &grid, DataBlock &data, Output &output)
 void Setup::InitFlow(DataBlock &data) {
     // Create a host copy
     DataBlockHost d(data);
-    
-    real C_au = idfx::units.au;
-    real C_G = idfx::units.G;
-    real C_Msol = idfx::units.M_sun;
-    real C_kb = idfx::units.k_B;
-    real C_ar = idfx::units.ar;
-    real C_amu = idfx::units.u;
-
-    real unit_density = idfx::units.density;
-    real unit_velocity = idfx::units.velocity;
-    real unit_length = idfx::units.length;
-    real unit_time = unit_length/unit_velocity;
-    real unit_energy = unit_density*unit_velocity*unit_velocity;
 
     real epsilon = epsilonGlob;
-    real R = RGlob*C_au;
+    real R = RGlob*idfx::units.au;
     real rho0 = rho0Glob;
     real rhomin = rhominGlob;
     real T0 = T0Glob;
     real mu = muGlob;
-    real Omega_K = std::pow(C_G*C_Msol/(R*R*R),0.5);
+    real Omega_K = std::pow(idfx::units.G*idfx::units.M_sun/(R*R*R),0.5);
     real csiso = epsilon*R*Omega_K;
     real H2 = std::pow(epsilon*R,2.);
 
@@ -243,12 +211,12 @@ void Setup::InitFlow(DataBlock &data) {
         for(int j = 0; j < d.np_tot[JDIR] ; j++) {
             for(int i = 0; i < d.np_tot[IDIR] ; i++) {
 
-              real x2 = std::pow(d.x[IDIR](i)*unit_length,2.);
+              real x2 = std::pow(d.x[IDIR](i)*idfx::units.GetLength(),2.);
 
-              d.Vc(RHO,k,j,i) = (rho0*std::exp(-0.5*x2/H2)+rhomin)/unit_density;
-              d.Vc(PRS,k,j,i) = d.Vc(RHO,k,j,i)*unit_density*C_kb*T0/(mu*C_amu)/unit_energy;
+              d.Vc(RHO,k,j,i) = (rho0*std::exp(-0.5*x2/H2)+rhomin)/idfx::units.GetDensity();
+              d.Vc(PRS,k,j,i) = d.Vc(RHO,k,j,i)*idfx::units.GetDensity()*idfx::units.k_B*T0/(mu*idfx::units.u)/idfx::units.GetEnergy();
               d.Vc(VX1,k,j,i) = 0.;
-              d.RadVc[0](ER,k,j,i) = C_ar*std::pow(T0,4.)/unit_energy;
+              d.RadVc[0](ER,k,j,i) = idfx::units.ar*std::pow(T0,4.)/idfx::units.GetEnergy();
               d.RadVc[0](FR1,k,j,i) = ZERO_F;
             }
         }

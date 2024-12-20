@@ -14,10 +14,6 @@ void UserdefBoundaryRad(Fluid<RadiationPhysics> *radiation, int dir, BoundarySid
   IdefixArray4D<real> Vc = radiation->Vc;
   auto *data = radiation->data;
 
-  real unit_velocity = idfx::units.velocity;
-  real unit_density = idfx::units.density;
-  real unit_energy = unit_density*unit_velocity*unit_velocity;
-
   real C_ar = idfx::units.ar;
   real Tinj = TinjGlob;
 
@@ -33,7 +29,7 @@ void UserdefBoundaryRad(Fluid<RadiationPhysics> *radiation, int dir, BoundarySid
         0, data->np_tot[JDIR],
         ibeg, iend,
         KOKKOS_LAMBDA (int k, int j, int i) {
-          Vc(ER,k,j,i) = C_ar*std::pow(Tinj,4)/unit_energy;
+          Vc(ER,k,j,i) = C_ar*std::pow(Tinj,4)/idfx::units.GetEnergy();
           Vc(FR1,k,j,i) = Vc(ER,k,j,i);
           Vc(FR2,k,j,i) = ZERO_F;
         });
@@ -74,31 +70,24 @@ void UserdefBoundary(Fluid<DefaultPhysics> *hydro, int dir, BoundarySide side, r
 void Setup::InitFlow(DataBlock &data) {
     // Create a host copy
     DataBlockHost d(data);
-    
-    real unit_length = idfx::units.length;
-    real unit_velocity = idfx::units.velocity;
-    real unit_density = idfx::units.density;
 
     real C_ar = idfx::units.ar;
     real mu = muGlob;
-    real KELVIN = idfx::units.Kelvin*mu;
     real rho0 = rho0Glob; 
     real rho1 = rho1Glob; 
     real T0 = T0Glob;
-    real x02 = x02Glob/(unit_length*unit_length);
-    real y02 = y02Glob/(unit_length*unit_length);
-
-    real unit_energy = unit_density*unit_velocity*unit_velocity;
+    real x02 = x02Glob/(idfx::units.GetLength()*idfx::units.GetLength());
+    real y02 = y02Glob/(idfx::units.GetLength()*idfx::units.GetLength());
 
     for(int k = 0; k < d.np_tot[KDIR] ; k++) {
         for(int j = 0; j < d.np_tot[JDIR] ; j++) {
             for(int i = 0; i < d.np_tot[IDIR] ; i++) {
               real delta = 10.*(d.x[IDIR](i)*d.x[IDIR](i)/x02+d.x[JDIR](j)*d.x[JDIR](j)/y02-1.);
               d.Vc(RHO,k,j,i) = rho0+(rho1-rho0)/(1.+std::exp(delta));
-              d.Vc(PRS,k,j,i) = d.Vc(RHO,k,j,i)*T0/KELVIN;
+              d.Vc(PRS,k,j,i) = d.Vc(RHO,k,j,i)*T0/idfx::units.GetKelvin();
               d.Vc(VX1,k,j,i) = ZERO_F;
               d.Vc(VX2,k,j,i) = ZERO_F;
-              d.RadVc[0](ER,k,j,i) = C_ar*std::pow(T0,4)/unit_energy;
+              d.RadVc[0](ER,k,j,i) = C_ar*std::pow(T0,4)/idfx::units.GetEnergy();
               d.RadVc[0](FR1,k,j,i) = ZERO_F;
               d.RadVc[0](FR2,k,j,i) = ZERO_F;
             }

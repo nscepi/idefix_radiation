@@ -23,25 +23,19 @@ Setup::Setup(Input &input, Grid &grid, DataBlock &data, Output &output)
 void Setup::InitFlow(DataBlock &data) {
     // Create a host copy
     DataBlockHost d(data);
-    real C_kb = idfx::units.k_B;
-    real C_amu = idfx::units.u;
-    real C_ar = idfx::units.ar;
+    
     real T = T0Glob;
     real rho0 = rho0Glob;
     real vx1 = vx1Glob;
     real mu = muGlob;
-
-    real unit_density = idfx::units.density;
-    real unit_velocity = idfx::units.velocity;
-    real unit_energy = unit_density*unit_velocity*unit_velocity;
     
     for(int k = 0; k < d.np_tot[KDIR] ; k++) {
         for(int j = 0; j < d.np_tot[JDIR] ; j++) {
             for(int i = 0; i < d.np_tot[IDIR] ; i++) {
-              d.Vc(RHO,k,j,i) = rho0/unit_density;
-              d.Vc(PRS,k,j,i) = d.Vc(RHO,k,j,i)*unit_density*C_kb*T/(mu*C_amu*unit_energy);
-              d.Vc(VX1,k,j,i) = vx1/unit_velocity;
-              d.RadVc[0](ER,k,j,i) = C_ar*std::pow(T,4)/(unit_energy);
+              d.Vc(RHO,k,j,i) = rho0/idfx::units.GetDensity();
+              d.Vc(PRS,k,j,i) = d.Vc(RHO,k,j,i)*idfx::units.GetDensity()*idfx::units.k_B*T/(mu*idfx::units.u*idfx::units.GetEnergy());
+              d.Vc(VX1,k,j,i) = vx1/idfx::units.GetVelocity();
+              d.RadVc[0](ER,k,j,i) = idfx::units.ar*std::pow(T,4)/(idfx::units.GetEnergy());
               d.RadVc[0](FR1,k,j,i) = ZERO_F;
             }
         }

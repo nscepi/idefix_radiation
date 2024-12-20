@@ -38,7 +38,7 @@ class Units {
 
 
   // User-defined units, non user-modifiable
-  KOKKOS_INLINE_FUNCTION real GetLength() const {return _density;}                      // L (cm)  = L (code) * Units::length
+  KOKKOS_INLINE_FUNCTION real GetLength() const {return _length;}                      // L (cm)  = L (code) * Units::length
   KOKKOS_INLINE_FUNCTION real GetVelocity() const {return _velocity;}                  // V(cm/s) = V(code) * Units::velocity
   KOKKOS_INLINE_FUNCTION real GetDensity() const {return _density;}                    // density (g/cm^3) = density(code)
                                                     //                     * Units::density

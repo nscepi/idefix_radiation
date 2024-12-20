@@ -35,9 +35,7 @@ Setup::Setup(Input &input, Grid &grid, DataBlock &data, Output &output)
 void Setup::InitFlow(DataBlock &data) {
     // Create a host copy
     DataBlockHost d(data);
-    real C_ar = idfx::units.ar;
     real mu = muGlob;
-    real KELVIN = idfx::units.Kelvin*mu;
     real T0 = T0Glob;
     real rho0 = rho0Glob;
     real w = wGlob;
@@ -46,9 +44,9 @@ void Setup::InitFlow(DataBlock &data) {
     real prs_in = prsinGlob;
     real B0 = B0Glob;
 
-    real unit_density = idfx::units.density;
-    real unit_velocity = idfx::units.velocity;
-    real unit_energy = idfx::units.energy;
+    real unit_density = idfx::units.GetDensity();
+    real unit_velocity = idfx::units.GetVelocity();
+    real unit_energy = idfx::units.GetEnergy();
 
     for(int k = 0; k < d.np_tot[KDIR] ; k++) {
         for(int j = 0; j < d.np_tot[JDIR] ; j++) {
@@ -64,9 +62,9 @@ void Setup::InitFlow(DataBlock &data) {
               d.Vc(VX1,k,j,i) = ZERO_F;
               d.Vc(VX2,k,j,i) = ZERO_F;
               d.Vc(VX3,k,j,i) = ZERO_F;
-              T = d.Vc(PRS,k,j,i)/d.Vc(RHO,k,j,i)*KELVIN;
+              T = d.Vc(PRS,k,j,i)/d.Vc(RHO,k,j,i)*idfx::units.GetKelvin();
               if (haveRadiationGlob) {
-                d.RadVc[0](ER,k,j,i) = C_ar*std::pow(T,4)/unit_energy;
+                d.RadVc[0](ER,k,j,i) = idfx::units.ar*std::pow(T,4)/unit_energy;
                 d.RadVc[0](FR1,k,j,i) = ZERO_F;
                 d.RadVc[0](FR2,k,j,i) = ZERO_F;
                 d.RadVc[0](FR3,k,j,i) = ZERO_F;

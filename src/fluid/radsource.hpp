@@ -118,9 +118,9 @@ class RadSource {
   Type_irr irr_type;
 
   //Units
-  real unit_density = idfx::units.density;
-  real unit_length = idfx::units.length;
-  real unit_Kelvin = idfx::units.Kelvin;
+  real unit_density = idfx::units.GetDensity();
+  real unit_length = idfx::units.GetLength();
+  real unit_Kelvin = idfx::units.GetKelvin();
   
 
 };

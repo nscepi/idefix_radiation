@@ -85,7 +85,7 @@ void InternalBoundary(Hydro *hydro, const real t) {
   real hpow = hpowGlob;
   real rho0 = rho0Glob;
   real rhomin = rhominGlob;
-  real unit_density = idfx::units.density;
+  real unit_density = idfx::units.GetDensity();
 
 
     idefix_for("InternalBoundary",
@@ -132,18 +132,13 @@ void ComputeUserVars(DataBlock & data, UserDefVariablesContainer &variables) {
 
   IdefixHostArray3D<real> divF  = variables["divF"];
   IdefixHostArray3D<real> A1_out  = variables["A1"];
- 
-  real unit_density = idfx::units.density;
-  real unit_velocity = idfx::units.velocity;
-  real unit_length = idfx::units.length;
-  real unit_energy = idfx::units.energy;
 
   real rs = rsGlob;
   real Ts = TsGlob;
   real kappa_irr = kappairrGlob;
 
-  real kirr = kappa_irr*idfx::units.density*idfx::units.length; 
-  real flux_pre = std::pow(rs/idfx::units.length,2.)*idfx::units.sigma_sb*std::pow(Ts,4.)/idfx::units.length;
+  real kirr = kappa_irr*idfx::units.GetDensity()*idfx::units.GetLength(); 
+  real flux_pre = std::pow(rs/idfx::units.GetLength(),2.)*idfx::units.sigma_sb*std::pow(Ts,4.)/idfx::units.GetLength();
 
   // Make references to the user-defined arrays (variables is a container of IdefixHostArray3D)
   // Note that the labels should match the variable names in the input file
@@ -178,9 +173,9 @@ void ComputeUserVars(DataBlock & data, UserDefVariablesContainer &variables) {
         for(int i = d.beg[IDIR]; i < d.end[IDIR] ; i++) {
           A1_out(k,j,i) = A1(k,j,i);
 
-          real logtaum = std::log10(FMAX(tau(k,j,i-1)*unit_density*unit_length,1.e-15));
+          real logtaum = std::log10(FMAX(tau(k,j,i-1)*idfx::units.GetDensity()*idfx::units.GetLength(),1.e-15));
           real Fim = pow(10.,kappatableGlob->Get(&logtaum))*A1(k,j,i)/std::pow(x1l(i),2.);
-          real logtaup = std::log10(FMAX(tau(k,j,i)*unit_density*unit_length,1.e-15));
+          real logtaup = std::log10(FMAX(tau(k,j,i)*idfx::units.GetDensity()*idfx::units.GetLength(),1.e-15));
           real Fip = pow(10.,kappatableGlob->Get(&logtaup))*A1(k,j,i+1)/std::pow(x1l(i+1),2.);
           divF(k,j,i)  = flux_pre*(Fip-Fim)/dV(k,j,i);
 
@@ -241,13 +236,6 @@ void Setup::InitFlow(DataBlock &data) {
     // Create a host copy
     DataBlockHost d(data);
 
-    real C_kb = idfx::units.k_B;
-    real C_ar = idfx::units.ar;
-    real C_amu = idfx::units.u;
-
-    real unit_density = idfx::units.density;
-    real unit_energy =idfx::units.energy;
-
     real R0 = R0Glob;
     real h0 = h0Glob;
     real hpow = hpowGlob;
@@ -266,17 +254,17 @@ void Setup::InitFlow(DataBlock &data) {
               real H = h0*std::pow(R/R0,hpow);
               real T = T0;
 
-              d.Vc(RHO,k,j,i) = (rho0*(R0/R)*std::exp(-0.25*M_PI*z2/(H*H))+rhomin)/unit_density;
-              d.Vc(PRS,k,j,i) = d.Vc(RHO,k,j,i)*unit_density*C_kb*T/(mu*C_amu)/unit_energy;
+              d.Vc(RHO,k,j,i) = (rho0*(R0/R)*std::exp(-0.25*M_PI*z2/(H*H))+rhomin)/idfx::units.GetDensity();
+              d.Vc(PRS,k,j,i) = d.Vc(RHO,k,j,i)*idfx::units.GetDensity()*idfx::units.k_B*T/(mu*idfx::units.u)/idfx::units.GetEnergy();
               d.Vc(VX1,k,j,i) = 0.;
               d.Vc(VX2,k,j,i) = 0.;
               d.Vc(VX3,k,j,i) = 0.;
-              d.RadVc[0](ER,k,j,i) = C_ar*std::pow(T,4.)/unit_energy;
+              d.RadVc[0](ER,k,j,i) = idfx::units.ar*std::pow(T,4.)/idfx::units.GetEnergy();
               d.RadVc[0](FR1,k,j,i) = ZERO_F;
               d.RadVc[0](FR2,k,j,i) = ZERO_F;
               d.RadVc[0](FR3,k,j,i) = ZERO_F;
 
-              d.RadUc[0](ER,k,j,i) = C_ar*std::pow(T,4.)/unit_energy;
+              d.RadUc[0](ER,k,j,i) = idfx::units.ar*std::pow(T,4.)/idfx::units.GetEnergy();
               d.RadUc[0](FR1,k,j,i) = ZERO_F;
               d.RadUc[0](FR2,k,j,i) = ZERO_F;
               d.RadUc[0](FR3,k,j,i) = ZERO_F;

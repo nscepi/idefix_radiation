@@ -25,17 +25,12 @@ Setup::Setup(Input &input, Grid &grid, DataBlock &data, Output &output)
 void Setup::InitFlow(DataBlock &data) {
     // Create a host copy
     DataBlockHost d(data);
-    real C_ar = idfx::units.ar;
     real mu = muGlob;
-    real KELVIN = idfx::units.Kelvin*mu;
     real T0 = T0Glob;
     real rho0 = rho0Glob;
     real w = wGlob;
     real r2,T;
 
-    real unit_density = idfx::units.density;
-    real unit_velocity = idfx::units.velocity;
-    real unit_energy = unit_density*unit_velocity*unit_velocity;
 
     for(int k = 0; k < d.np_tot[KDIR] ; k++) {
         for(int j = 0; j < d.np_tot[JDIR] ; j++) {
@@ -46,12 +41,12 @@ void Setup::InitFlow(DataBlock &data) {
                 r2 = d.x[IDIR](i)*d.x[IDIR](i);
               }
               d.Vc(RHO,k,j,i) = rho0;
-              d.Vc(PRS,k,j,i) = d.Vc(RHO,k,j,i)*T0/KELVIN;
+              d.Vc(PRS,k,j,i) = d.Vc(RHO,k,j,i)*T0/idfx::units.GetKelvin();
               d.Vc(VX1,k,j,i) = ZERO_F;
               d.Vc(VX2,k,j,i) = ZERO_F;
               d.Vc(VX3,k,j,i) = ZERO_F;
               T = T0*(1.+100.*std::exp(-r2/(w*w)));
-              d.RadVc[0](ER,k,j,i) = C_ar*std::pow(T,4)/unit_energy;
+              d.RadVc[0](ER,k,j,i) = idfx::units.ar*std::pow(T,4)/idfx::units.GetEnergy();
               d.RadVc[0](FR1,k,j,i) = ZERO_F;
               d.RadVc[0](FR2,k,j,i) = ZERO_F;
               d.RadVc[0](FR3,k,j,i) = ZERO_F;

@@ -74,11 +74,11 @@ void RadSource::SourceFullImplicit(const real dt) {
       }
 
       // Compute total modified energy
-      real Etot = UGas[ENG]+URad[ER]*units.c/(reduced_c*units.velocity);
+      real Etot = UGas[ENG]+URad[ER]*units.c/(reduced_c*units.GetVelocity());
       
       // Add irradiation heating if needed
       if (irr_flag){  
-        Etot -= divF(k,j,i)*dt*units.time/units.energy;
+        Etot -= divF(k,j,i)*dt*units.GetTime()/units.GetEnergy();
       }
       
       // Compute total modified momentum
@@ -97,7 +97,7 @@ void RadSource::SourceFullImplicit(const real dt) {
       real mu = eos.GetMu(VGas[PRS],VGas[RHO]);
       real cv = units.k_B/(units.u*mu);
 
-      real T = VGas[PRS]/(VGas[RHO])*units.Kelvin*mu;
+      real T = VGas[PRS]/(VGas[RHO])*units.GetKelvin()*mu;
       real T3 = std::pow(T,3);
 
       // Compute opacities
@@ -105,7 +105,7 @@ void RadSource::SourceFullImplicit(const real dt) {
         kappa_p = kappa_0;
         kappa_r = kappa_0;
       } else if (kappa_type == Type_opac::kramers) {
-        kappa_p = kappa_0*std::pow(VGas[RHO]*units.density/rho_0,2.)*std::pow(T/T_0,-3.5);
+        kappa_p = kappa_0*std::pow(VGas[RHO]*units.GetDensity()/rho_0,2.)*std::pow(T/T_0,-3.5);
         kappa_r = kappa_p;
       } else if (kappa_type == Type_opac::usertable) {
         real logT = std::log10(T);
@@ -119,25 +119,25 @@ void RadSource::SourceFullImplicit(const real dt) {
         xi = xi1D.Get(&logT);
       }
 
-      real kk_red = reduced_c * units.velocity * dt * units.time * kappa_p * VGas[RHO]*units.density;
-      real kk = units.c * dt * units.time * kappa_p * VGas[RHO]*units.density;
-      real xx_red = reduced_c * units.velocity * dt * units.time * (xi + kappa_r) * VGas[RHO]*units.density;
+      real kk_red = reduced_c * units.GetVelocity() * dt * units.GetTime() * kappa_p * VGas[RHO]*units.GetDensity();
+      real kk = units.c * dt * units.GetTime() * kappa_p * VGas[RHO]*units.GetDensity();
+      real xx_red = reduced_c * units.GetVelocity() * dt * units.GetTime() * (xi + kappa_r) * VGas[RHO]*units.GetDensity();
 
       // Define matrix to invert
       real gamma = eos.GetGamma(VGas[PRS],VGas[RHO]);
 
       real M00 = ONE_F + kk_red;
-      real M11 = VGas[RHO]*units.density*cv/(gamma-1.) + 4.*kk*units.ar*T3;
+      real M11 = VGas[RHO]*units.GetDensity()*cv/(gamma-1.) + 4.*kk*units.ar*T3;
       real M01 = -4.*kk_red*units.ar*T3;
       real M10 = -kk;
 
       // Define right-hand side of system
-      real S0 = Er_hyp*units.energy - 3.*kk_red*units.ar*T3*T;
-      real S1 = VGas[RHO]*units.density*cv*T/(gamma-1.) + 3.*kk*units.ar*T3*T;
+      real S0 = Er_hyp*units.GetEnergy() - 3.*kk_red*units.ar*T3*T;
+      real S1 = VGas[RHO]*units.GetDensity()*cv*T/(gamma-1.) + 3.*kk*units.ar*T3*T;
 
       // Add irradiation heating to RHS if needed
       if (irr_flag){
-        S1 -= divF(k,j,i)*dt*units.time;
+        S1 -= divF(k,j,i)*dt*units.GetTime();
       }
  
       // Invert system
@@ -152,16 +152,16 @@ void RadSource::SourceFullImplicit(const real dt) {
       //real T_new = Minv10*S0 + Minv11*S1;
 
       // Update conservative variables
-      URad[ER] = Er_new/units.energy;
+      URad[ER] = Er_new/units.GetEnergy();
       EXPAND( URad[FR1] = Fr1_hyp/(1.+xx_red);,
               URad[FR2] = Fr2_hyp/(1.+xx_red);,
               URad[FR3] = Fr3_hyp/(1.+xx_red);)
       Fnorm = std::sqrt(EXPAND(URad[FR1]*URad[FR1] , + URad[FR2]*URad[FR2], + URad[FR3]*URad[FR3]));
 
-      if ((Etot - URad[ER]*units.c/(reduced_c*units.velocity))<=ZERO_F) {
+      if ((Etot - URad[ER]*units.c/(reduced_c*units.GetVelocity()))<=ZERO_F) {
         Kokkos::abort("ENG=0 in Radsource");
       } else {
-        UGas[ENG] = Etot - URad[ER]*units.c/(reduced_c*units.velocity);
+        UGas[ENG] = Etot - URad[ER]*units.c/(reduced_c*units.GetVelocity());
       }
 
       EXPAND( UGas[MX1] = m1tot - URad[FR1]/reduced_c;,
@@ -243,8 +243,8 @@ void RadSource::SourceFixedPointRad(const real dt) {
       // Add heating due to irradiation flux if needed
       if (irr_flag){
         // Limit time step relative to characteristic time of irradiation heating
-        InvDt(k,j,i) += FABS(units.time*divF(k,j,i)/units.energy/UcGas(ENG,k,j,i));
-        UcGas(ENG,k,j,i) -= dt*units.time*divF(k,j,i)/units.energy;
+        InvDt(k,j,i) += FABS(units.GetTime()*divF(k,j,i)/units.GetEnergy()/UcGas(ENG,k,j,i));
+        UcGas(ENG,k,j,i) -= dt*units.GetTime()*divF(k,j,i)/units.GetEnergy();
       }
 
       real UGas[DefaultPhysics::nvar];
@@ -263,7 +263,7 @@ void RadSource::SourceFixedPointRad(const real dt) {
       }
       
       // Compute total modified energy and momentum
-      real Etot = UGas[ENG]+URad[ER]*units.c/(reduced_c*units.velocity);
+      real Etot = UGas[ENG]+URad[ER]*units.c/(reduced_c*units.GetVelocity());
       EXPAND(real m1tot = UGas[MX1]+URad[FR1]/reduced_c;,
              real m2tot = UGas[MX2]+URad[FR2]/reduced_c;,
              real m3tot = UGas[MX3]+URad[FR3]/reduced_c;)
@@ -288,14 +288,14 @@ void RadSource::SourceFixedPointRad(const real dt) {
       // Assume mu is constant during iteration (to check)
       real mu = eos.GetMu(VGas[PRS],VGas[RHO]);
 
-      real T = VGas[PRS]/(VGas[RHO])*units.Kelvin*mu;
+      real T = VGas[PRS]/(VGas[RHO])*units.GetKelvin()*mu;
 
       // Assume kappa and xi are constant during iteration (to check)
       if (kappa_type == Type_opac::constant) {
         kappa_p = kappa_0;
         kappa_r = kappa_0;
       } else if (kappa_type == Type_opac::kramers) {
-        kappa_p = kappa_0*std::pow(VGas[RHO]*units.density/rho_0,2.)*std::pow(T/T_0,-3.5);
+        kappa_p = kappa_0*std::pow(VGas[RHO]*units.GetDensity()/rho_0,2.)*std::pow(T/T_0,-3.5);
         kappa_r = kappa_p;
       } else if (kappa_type == Type_opac::usertable) {
         real logT = std::log10(T);
@@ -317,11 +317,11 @@ void RadSource::SourceFixedPointRad(const real dt) {
         Egas_old = UGas[ENG];
         Mnorm_old = Mnorm;
         
-        real kk_red = reduced_c * units.velocity * dt * units.time * kappa_p * VGas[RHO]*units.density;
-        real xx_red = reduced_c * units.velocity * dt * units.time * (xi + kappa_r) * VGas[RHO]*units.density;
+        real kk_red = reduced_c * units.GetVelocity() * dt * units.GetTime() * kappa_p * VGas[RHO]*units.GetDensity();
+        real xx_red = reduced_c * units.GetVelocity() * dt * units.GetTime() * (xi + kappa_r) * VGas[RHO]*units.GetDensity();
 
         // "Implicit" step on radiation conservative variables
-        URad[ER] = Er_hyp +  kk_red*units.ar*std::pow(T,4.)/units.energy;
+        URad[ER] = Er_hyp +  kk_red*units.ar*std::pow(T,4.)/units.GetEnergy();
         URad[ER] /= 1. + kk_red;
         EXPAND( URad[FR1] = Fr1_hyp/(1.+xx_red);,
                 URad[FR2] = Fr2_hyp/(1.+xx_red);,
@@ -329,10 +329,10 @@ void RadSource::SourceFixedPointRad(const real dt) {
         Fnorm = std::sqrt(EXPAND(URad[FR1]*URad[FR1] , + URad[FR2]*URad[FR2], + URad[FR3]*URad[FR3]));
 
         // Update gas conservative variables
-        if ((Etot - URad[ER]*units.c/(reduced_c*units.velocity))<=ZERO_F) {
+        if ((Etot - URad[ER]*units.c/(reduced_c*units.GetVelocity()))<=ZERO_F) {
           Kokkos::abort("ENG=0 in Radsource");
         } else {
-          UGas[ENG] = Etot - URad[ER]*units.c/(reduced_c*units.velocity);
+          UGas[ENG] = Etot - URad[ER]*units.c/(reduced_c*units.GetVelocity());
         }
         EXPAND( UGas[MX1] = m1tot - URad[FR1]/reduced_c;,
                 UGas[MX2] = m2tot - URad[FR2]/reduced_c;,
@@ -343,7 +343,7 @@ void RadSource::SourceFixedPointRad(const real dt) {
         K_ConsToPrim<DefaultPhysics>(VGas, UGas, &eos);
         
         // Compute new temperature
-        T = VGas[PRS]/(VGas[RHO])*units.Kelvin*mu;
+        T = VGas[PRS]/(VGas[RHO])*units.GetKelvin()*mu;
         
         // Compute errors and number of cycles
         err1 = std::abs(1.-URad[ER]/Er_old);
@@ -415,7 +415,7 @@ void RadSource::SourceFixedPointGas(const real dt) {
   idefix_for("RadSource",0,data->np_tot[KDIR],0,data->np_tot[JDIR],0,data->np_tot[IDIR],
     KOKKOS_LAMBDA (int k, int j, int i) {
   
-      real Etot = UcGas(ENG,k,j,i)+UcRad(ER,k,j,i)*units.c/(reduced_c*units.velocity);
+      real Etot = UcGas(ENG,k,j,i)+UcRad(ER,k,j,i)*units.c/(reduced_c*units.GetVelocity());
       real m1tot = UcGas(MX1,k,j,i)+UcRad(FR1,k,j,i)/reduced_c;
       real m2tot = UcGas(MX2,k,j,i)+UcRad(FR2,k,j,i)/reduced_c;
       real m3tot = UcGas(MX3,k,j,i)+UcRad(FR3,k,j,i)/reduced_c;
@@ -458,14 +458,14 @@ void RadSource::SourceFixedPointGas(const real dt) {
 
       // Assume mu is constant during iteration (to check)
       real mu = eos.GetMu(VGas[PRS],VGas[RHO]);
-      real T = VGas[PRS]/(VGas[RHO])*units.Kelvin*mu;
+      real T = VGas[PRS]/(VGas[RHO])*units.GetKelvin()*mu;
 
       // Compute opacities (out of while loop so that opacity is contant throughout the fixed_point iteration)
       if (kappa_type == Type_opac::constant) {
         kappa_p = kappa_0;
         kappa_r = kappa_0;
       } else if (kappa_type == Type_opac::kramers) {
-        kappa_p = kappa_0*std::pow(VGas[RHO]*units.density/rho_0,2.)*std::pow(T/T_0,-3.5);
+        kappa_p = kappa_0*std::pow(VGas[RHO]*units.GetDensity()/rho_0,2.)*std::pow(T/T_0,-3.5);
         kappa_r = kappa_p;
       } else if (kappa_type == Type_opac::usertable) {
         real logT = std::log10(T);
@@ -487,15 +487,15 @@ void RadSource::SourceFixedPointGas(const real dt) {
         Egas_old = UGas[ENG];
         Mnorm_old = Mnorm;
         
-        real kk =  units.c * dt * units.time * kappa_p * VGas[RHO]*units.density;
-        real xx =  dt * units.time * (xi + kappa_r) * VGas[RHO]*units.density;
+        real kk =  units.c * dt * units.GetTime() * kappa_p * VGas[RHO]*units.GetDensity();
+        real xx =  dt * units.GetTime() * (xi + kappa_r) * VGas[RHO]*units.GetDensity();
 
         // Stop if UGas <= 0
-        if ((Egas_hyp +  kk*(URad[ER]-units.ar*std::pow(T,4)/units.energy))<=ZERO_F) {
+        if ((Egas_hyp +  kk*(URad[ER]-units.ar*std::pow(T,4)/units.GetEnergy()))<=ZERO_F) {
           Kokkos::abort("EGas=0 in Radsource");
           UGas[ENG] = 1.e-6;
         } else {
-          UGas[ENG] = Egas_hyp +  kk*(URad[ER]-units.ar*std::pow(T,4)/units.energy);
+          UGas[ENG] = Egas_hyp +  kk*(URad[ER]-units.ar*std::pow(T,4)/units.GetEnergy());
         }
 
         EXPAND( UGas[MX1] = m1gas_hyp + URad[FR1]*xx;,
@@ -503,7 +503,7 @@ void RadSource::SourceFixedPointGas(const real dt) {
                 UGas[MX3] = m3gas_hyp + URad[FR3]*xx;)
         Mnorm = std::sqrt(EXPAND(UGas[MX1]*UGas[MX1] , + UGas[MX2]*UGas[MX2], + UGas[MX3]*UGas[MX3]));
 
-        URad[ER] = (Etot - UGas[ENG])*reduced_c*units.velocity/units.c;
+        URad[ER] = (Etot - UGas[ENG])*reduced_c*units.GetVelocity()/units.c;
 
         // Stop if URad <= 0
         if (URad[ER]<=ZERO_F) {
@@ -517,7 +517,7 @@ void RadSource::SourceFixedPointGas(const real dt) {
         Fnorm = std::sqrt(EXPAND(URad[FR1]*URad[FR1] , + URad[FR2]*URad[FR2], + URad[FR3]*URad[FR3]));
 
         K_ConsToPrim<DefaultPhysics>(VGas, UGas, &eos);
-        T = VGas[PRS]/(VGas[RHO])*units.Kelvin*mu;
+        T = VGas[PRS]/(VGas[RHO])*units.GetKelvin()*mu;
 
         err1 = std::abs(1.-UGas[ENG]/Egas_old);
         err2 = std::abs(1.-Mnorm/Mnorm_old);
@@ -621,8 +621,8 @@ void RadSource::IrrFlux(IdefixArray3D<real> divFin) {
 
   column_rho->ComputeColumn(this->VcGas);
   IdefixArray3D<real> tau = column_rho->GetColumn();
-  real kirr = kappa_irr*units.density*units.length; 
-  real flux_pre = std::pow(rs/units.length,2.)*units.sigma_sb*std::pow(Ts,4.)/units.length;
+  real kirr = kappa_irr*units.GetDensity()*units.GetLength(); 
+  real flux_pre = std::pow(rs/units.GetLength(),2.)*units.sigma_sb*std::pow(Ts,4.)/units.GetLength();
 
   // Constant kappa
   if(irr_type==Type_irr::constant) {
@@ -647,9 +647,9 @@ void RadSource::IrrFlux(IdefixArray3D<real> divFin) {
     data->beg[IDIR], data->end[IDIR],
               KOKKOS_LAMBDA (int k, int j, int i) {
 
-                real logtaum = std::log10(FMAX(tau(k,j,i-1)*units.density*units.length,1.e-15));
+                real logtaum = std::log10(FMAX(tau(k,j,i-1)*units.GetDensity()*units.GetLength(),1.e-15));
                 real Fim = pow(10.,irr1D.Get(&logtaum))*A1(k,j,i)/std::pow(x1l(i),2.);
-                real logtaup = std::log10(FMAX(tau(k,j,i)*units.density*units.length,1.e-15));
+                real logtaup = std::log10(FMAX(tau(k,j,i)*units.GetDensity()*units.GetLength(),1.e-15));
                 real Fip = pow(10.,irr1D.Get(&logtaup))*A1(k,j,i+1)/std::pow(x1l(i+1),2.);
                 divFlux(k,j,i)  = flux_pre*(Fip-Fim)/dV(k,j,i);
     });
