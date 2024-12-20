@@ -17,6 +17,7 @@ namespace idfx {
 class Units {
  public:
   void Init(Input &input);
+  
 
   const real u{1.6605390666e-24};                   // Atomic mass unit (g)
   const real m_p{1.67262192369e-24};                // Proton mass unit (g)
@@ -37,6 +38,7 @@ class Units {
 
 
   // User-defined units, non user-modifiable
+<<<<<<< HEAD
   const real &length{_length};                      // L (cm)  = L (code) * Units::length
   const real &velocity{_velocity};                  // V(cm/s) = V(code) * Units::velocity
   const real &density{_density};                    // density (g/cm^3) = density(code)
@@ -48,6 +50,18 @@ class Units {
   const real &time{_time};
   
   bool &is_initialized{_is_initialized};
+=======
+  KOKKOS_INLINE_FUNCTION real GetLength() const {return _density;}                      // L (cm)  = L (code) * Units::length
+  KOKKOS_INLINE_FUNCTION real GetVelocity() const {return _velocity;}                  // V(cm/s) = V(code) * Units::velocity
+  KOKKOS_INLINE_FUNCTION real GetDensity() const {return _density;}                    // density (g/cm^3) = density(code)
+                                                    //                     * Units::density
+
+  // Deduced units from user-defined units
+  KOKKOS_INLINE_FUNCTION  real GetKelvin() const {return _Kelvin;}                      // T(K) = P(code)/rho(code) * mu * Units::Kelvin
+  KOKKOS_INLINE_FUNCTION  real GetMagField() const {return _magField;}                  // B(G) = B(code) * Units::MagField
+
+  KOKKOS_INLINE_FUNCTION  bool GetIsInitialized() const {return _isInitialized;}
+>>>>>>> ba5eac839d2c9c53e5ca26fe28cc775595cec729
 
   // code-style change of the units
   void SetLength(const real);
@@ -58,7 +72,7 @@ class Units {
   void ShowConfig();
 
  private:
-  bool _is_initialized{false};
+  bool _isInitialized{false};
   // read-write variables
   real _length{1.0};
   real _velocity{1.0};
