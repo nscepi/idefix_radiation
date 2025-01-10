@@ -36,20 +36,20 @@ void Setup::InitFlow(DataBlock &data) {
         for(int j = 0; j < d.np_tot[JDIR] ; j++) {
             for(int i = 0; i < d.np_tot[IDIR] ; i++) {
               if (GEOMETRY==CARTESIAN){
-                r2 = d.x[IDIR](i)*d.x[IDIR](i)+d.x[JDIR](j)*d.x[JDIR](j)+d.x[KDIR](k)*d.x[KDIR](k);
+                r2 = EXPAND(d.x[IDIR](i)*d.x[IDIR](i),+d.x[JDIR](j)*d.x[JDIR](j),+d.x[KDIR](k)*d.x[KDIR](k));
               } else if (GEOMETRY==SPHERICAL) {
                 r2 = d.x[IDIR](i)*d.x[IDIR](i);
               }
               d.Vc(RHO,k,j,i) = rho0;
               d.Vc(PRS,k,j,i) = d.Vc(RHO,k,j,i)*T0/idfx::units.GetKelvin();
-              d.Vc(VX1,k,j,i) = ZERO_F;
-              d.Vc(VX2,k,j,i) = ZERO_F;
-              d.Vc(VX3,k,j,i) = ZERO_F;
+              EXPAND( d.Vc(VX1,k,j,i) = ZERO_F;,
+                      d.Vc(VX2,k,j,i) = ZERO_F;,
+                      d.Vc(VX3,k,j,i) = ZERO_F;)
               T = T0*(1.+100.*std::exp(-r2/(w*w)));
               d.RadVc[0](ER,k,j,i) = idfx::units.ar*std::pow(T,4)/idfx::units.GetEnergy();
-              d.RadVc[0](FR1,k,j,i) = ZERO_F;
-              d.RadVc[0](FR2,k,j,i) = ZERO_F;
-              d.RadVc[0](FR3,k,j,i) = ZERO_F;
+              EXPAND(d.RadVc[0](FR1,k,j,i) = ZERO_F;,
+                     d.RadVc[0](FR2,k,j,i) = ZERO_F;,
+                     d.RadVc[0](FR3,k,j,i) = ZERO_F;)
             }
         }
     }
