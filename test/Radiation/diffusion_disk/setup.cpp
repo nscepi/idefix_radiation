@@ -45,8 +45,8 @@ void MySourceTerm(Hydro *hydro, const real t, const real dtin) {
 void UserdefBoundaryRad(Fluid<RadiationPhysics> *radiation, int dir, BoundarySide side, real t) {
   IdefixArray4D<real> Vc = radiation->Vc;
   auto *data = radiation->data;
+  auto units=idfx::units;
 
-  real C_ar = idfx::units.ar;
   real T0 = T0Glob;
 
   IdefixArray1D<real> x1 = data->x[IDIR];
@@ -62,7 +62,7 @@ void UserdefBoundaryRad(Fluid<RadiationPhysics> *radiation, int dir, BoundarySid
         0, data->np_tot[JDIR],
         ibeg, iend,
         KOKKOS_LAMBDA (int k, int j, int i) {
-          Vc(ER,k,j,i) = C_ar*std::pow(T0,4.)/idfx::units.GetEnergy();
+          Vc(ER,k,j,i) = units.ar*std::pow(T0,4.)/units.GetEnergy();
           Vc(FR1,k,j,i) = Vc(FR1,k,j,ighost);
         });
     } else if (side==right){
@@ -75,7 +75,7 @@ void UserdefBoundaryRad(Fluid<RadiationPhysics> *radiation, int dir, BoundarySid
         0, data->np_tot[JDIR],
         ibeg, iend,
         KOKKOS_LAMBDA (int k, int j, int i) {
-          Vc(ER,k,j,i) = C_ar*std::pow(T0,4.)/idfx::units.GetEnergy();
+          Vc(ER,k,j,i) = units.ar*std::pow(T0,4.)/units.GetEnergy();
           Vc(FR1,k,j,i) = Vc(FR1,k,j,ighost+nxi-1);
         });
     }
