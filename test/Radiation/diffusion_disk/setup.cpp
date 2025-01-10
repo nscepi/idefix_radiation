@@ -12,6 +12,8 @@ real gammaGlob;
 
 void MySourceTerm(Hydro *hydro, const real t, const real dtin) {
   auto *data = hydro->data;
+  auto units=idfx::units;
+
   IdefixArray4D<real> Vc = hydro->Vc;
   IdefixArray4D<real> Uc = hydro->Uc;
   IdefixArray1D<real> x1=data->x[IDIR];
@@ -32,7 +34,7 @@ void MySourceTerm(Hydro *hydro, const real t, const real dtin) {
     0, data->np_tot[IDIR],
               KOKKOS_LAMBDA (int k, int j, int i) {
               
-                real SE = 2.25*alpha*Omega_K*csiso*csiso*Vc(RHO,k,j,i)*idfx::units.GetDensity()/(idfx::units.GetEnergy()/idfx::units.GetTime());
+                real SE = 2.25*alpha*Omega_K*csiso*csiso*Vc(RHO,k,j,i)*units.GetDensity()/(units.GetEnergy()/units.GetTime());
 
                 Uc(ENG,k,j,i) += dt*SE;
 
