@@ -16,21 +16,39 @@
 #include "lookupTable.hpp"
 #include "column.hpp"
 
+using XiFunc = void (*) (DataBlock &, IdefixArray3D<real> &);
+using KappaFunc = void (*) (DataBlock &, IdefixArray3D<real> &, IdefixArray3D<real> &);
+
 class RadSource {
  public:
-  enum class Type_opac{constant,kramers,usertable};
-  enum class Type_irr{constant,usertable};
-  enum class Type_isolver{full_implicit,fixed_point_rad,fixed_point_gas};
-  // Different types of implementation for the radiation source terms.
+  enum class Type_opac{constant,kramers,usertable,userfunc};                 // Type of opacity definition
+  enum class Type_irr{constant,usertable};                                   // Type of irradiation flux definition
+  enum class Type_isolver{full_implicit,fixed_point_rad,fixed_point_gas};    // Type of implicit solver for radiation source terms
+
+  // RadSource constructor
   template <typename Phys>
   RadSource(Input &, Fluid<Phys> *);
+  
   void ShowConfig();                    // print configuration
-  void AddRadSource(const real);
+  void AddRadSource(const real);        // Effectively add the radiation source terms
+
+  // Type of implicit solver for radiation source terms
   void SourceFullImplicit(const real);
   void SourceFixedPointRad(const real);
   void SourceFixedPointGas(const real);
+
+  // Compute divergence of external irradiation flux
   void IrrFlux(IdefixArray3D<real>);
 
+  // Enroll user-defined functions for opacities
+  void EnrollKappa(KappaFunc);
+  void EnrollXi(XiFunc);
+
+  // Arrays containing the opacities from userdef function
+  IdefixArray3D<real> xiArr;
+  IdefixArray3D<real> kappapArr;
+  IdefixArray3D<real> kapparArr;
+  
   IdefixArray4D<real> UcRad;  // Radiation conservative quantities
   IdefixArray4D<real> UcGas;  // Gas conservative quantities
   IdefixArray4D<real> VcRad;  // Radiation primitive quantities
@@ -57,6 +75,8 @@ class RadSource {
       real T = VcGas(PRS,k,j,i)/(VcGas(RHO,k,j,i))*this->unit_Kelvin*mu;
       real logT = std::log10(T);
       kappa = this->kappa_planck_1D.Get(&logT);
+    } else if (kappa_type == Type_opac::userfunc) {
+      kappa = this->kappapArr(k,j,i);
     }
 
     if (xi_type == Type_opac::constant) {
@@ -65,7 +85,10 @@ class RadSource {
       real T = VcGas(PRS,k,j,i)/(VcGas(RHO,k,j,i))*this->unit_Kelvin*mu;
       real logT = std::log10(T);
       xi = this->xi_1D.Get(&logT);
+    } else if (xi_type == Type_opac::userfunc) {
+      xi = this->xiArr(k,j,i);
     }
+
 
     // Compute optical depth across one cell
     real tau = VcGas(RHO,k,j,i)*this->unit_density*(kappa+xi)*dx*this->unit_length;
@@ -95,7 +118,11 @@ class RadSource {
   int kappa_ndim;
   int xi_ndim;
 
-  // Opacity tables
+  // Enroll user-defined opacity function
+  XiFunc xiFunc;
+  KappaFunc kappaFunc;
+
+  // User-defined opacity tables
   LookupTable<1> kappa_planck_1D;
   LookupTable<1> kappa_ross_1D;
   LookupTable<1> xi_1D;
@@ -109,13 +136,13 @@ class RadSource {
   // Irradiation flux table
   LookupTable<1> irr_1D;
 
-  Column *column_rho;
+  Column *column_rho;        // Column density
   IdefixArray3D<real> divF;  // Divergence of irradiation flux
 
-  Type_isolver source_solver;
-  Type_opac kappa_type;
-  Type_opac xi_type;
-  Type_irr irr_type;
+  Type_isolver source_solver;    // Type of implicit solver for radiation source terms
+  Type_opac kappa_type;          // Type of absorption opacity definition
+  Type_opac xi_type;             // Type of scattering opacity definition
+  Type_irr irr_type;             // Type of irradiation flux definition
 
   //Units
   real unit_density = idfx::units.GetDensity();
@@ -174,6 +201,11 @@ RadSource::RadSource(Input &input, Fluid<Phys> *hydroin):
         msg << "Only 1 dimension for scattering opacity tables are currently accepted." << std::endl;
         IDEFIX_ERROR(msg);
       }
+    } else if (xiType.compare("userfunc") == 0) {
+      this->xi_type = Type_opac::userfunc;
+      this->xiArr = IdefixArray3D<real>("xiArray",data->np_tot[KDIR],
+                                                 data->np_tot[JDIR],
+                                                 data->np_tot[IDIR]);  
     } else {
       std::stringstream msg;
       msg << "Unknown xi type \"" <<  xiType
@@ -213,12 +245,19 @@ RadSource::RadSource(Input &input, Fluid<Phys> *hydroin):
         msg << "Only 1 dimension for absorption opacity tables are currently accepted." << std::endl;
         IDEFIX_ERROR(msg);
       }
-      
+    } else if (kappaType.compare("userfunc") == 0) {
+      this->kappa_type = Type_opac::userfunc;
+      this->kappapArr = IdefixArray3D<real>("kappapArray",data->np_tot[KDIR],
+                                                 data->np_tot[JDIR],
+                                                 data->np_tot[IDIR]);
+      this->kapparArr = IdefixArray3D<real>("kapparArray",data->np_tot[KDIR],
+                                                 data->np_tot[JDIR],
+                                                 data->np_tot[IDIR]);
     } else {
       std::stringstream msg;
       msg << "Unknown kappa type \"" <<  kappaType
           << "\" in your input file." << std::endl
-          << "Allowed values are: constant, kramers, usertable." << std::endl;
+          << "Allowed values are: constant, kramers, usertable, userfunc" << std::endl;
 
       IDEFIX_ERROR(msg);
     }

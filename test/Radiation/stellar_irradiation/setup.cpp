@@ -15,10 +15,30 @@ real rsGlob;
 real TsGlob;
 real kappaGlob;
 real kappairrGlob;
+std::string kappairrtypeGlob;
 std::string kappatypeGlob;
+std::string xitypeGlob;
 
 Column *columnGlob;
-LookupTable<1> *kappatableGlob;
+LookupTable<1> *kappairrtableGlob;
+
+void MyKappa(DataBlock &data, IdefixArray3D<real> &kappap, IdefixArray3D<real> &kappar) {
+
+  idefix_for("MyKappa",0,data.np_tot[KDIR],0,data.np_tot[JDIR],0,data.np_tot[IDIR],
+              KOKKOS_LAMBDA (int k, int j, int i) {
+                kappap(k,j,i) = 1.;
+                kappar(k,j,i) = 1.;
+              });
+}
+
+void MyXi(DataBlock &data, IdefixArray3D<real> &xi) {
+
+  idefix_for("MyXi",0,data.np_tot[KDIR],0,data.np_tot[JDIR],0,data.np_tot[IDIR],
+              KOKKOS_LAMBDA (int k, int j, int i) {
+                xi(k,j,i) = 0.;
+              });
+}
+
 
 void FluxBoundary(Fluid<DefaultPhysics> *hydro, int dir, BoundarySide side, const real t) {
     idfx::pushRegion("FluxInternal");
@@ -136,6 +156,7 @@ void ComputeUserVars(DataBlock & data, UserDefVariablesContainer &variables) {
   real rs = rsGlob;
   real Ts = TsGlob;
   real kappa_irr = kappairrGlob;
+  std::string kappairrType = kappairrtypeGlob; 
 
   real kirr = kappa_irr*idfx::units.GetDensity()*idfx::units.GetLength(); 
   real flux_pre = std::pow(rs/idfx::units.GetLength(),2.)*idfx::units.sigma_sb*std::pow(Ts,4.)/idfx::units.GetLength();
@@ -149,7 +170,7 @@ void ComputeUserVars(DataBlock & data, UserDefVariablesContainer &variables) {
   Kokkos::deep_copy(variables["tau"], tau);
   Kokkos::deep_copy(variables["dV"], dV);
 
-  if(kappatypeGlob=="constant") {
+  if(kappairrType=="constant") {
 
     for(int k = d.beg[KDIR]; k < d.end[KDIR] ; k++) {
       for(int j = d.beg[JDIR]; j < d.end[JDIR] ; j++) {
@@ -166,7 +187,7 @@ void ComputeUserVars(DataBlock & data, UserDefVariablesContainer &variables) {
         }
       }
     }
-  } else if (kappatypeGlob=="usertable") {
+  } else if (kappairrType=="usertable") {
     
     for(int k = d.beg[KDIR]; k < d.end[KDIR] ; k++) {
       for(int j = d.beg[JDIR]; j < d.end[JDIR] ; j++) {
@@ -174,9 +195,9 @@ void ComputeUserVars(DataBlock & data, UserDefVariablesContainer &variables) {
           A1_out(k,j,i) = A1(k,j,i);
 
           real logtaum = std::log10(FMAX(variables["tau"](k,j,i-1)*idfx::units.GetDensity()*idfx::units.GetLength(),1.e-15));
-          real Fim = pow(10.,kappatableGlob->GetHost(&logtaum))*A1(k,j,i)/std::pow(x1l(i),2.);
+          real Fim = pow(10.,kappairrtableGlob->GetHost(&logtaum))*A1(k,j,i)/std::pow(x1l(i),2.);
           real logtaup = std::log10(FMAX(variables["tau"](k,j,i)*idfx::units.GetDensity()*idfx::units.GetLength(),1.e-15));
-          real Fip = pow(10.,kappatableGlob->GetHost(&logtaup))*A1(k,j,i+1)/std::pow(x1l(i+1),2.);
+          real Fip = pow(10.,kappairrtableGlob->GetHost(&logtaup))*A1(k,j,i+1)/std::pow(x1l(i+1),2.);
           divF(k,j,i)  = flux_pre*(Fip-Fim)/dV(k,j,i);
 
         }
@@ -206,19 +227,30 @@ Setup::Setup(Input &input, Grid &grid, DataBlock &data, Output &output)
   gammaGlob=data.hydro->eos->GetGamma();
   rsGlob=input.Get<real>("Rad","irr",1);
   TsGlob=input.Get<real>("Rad","irr",2);
-  kappatypeGlob = input.Get<std::string>("Rad","irr",0);
-  if (kappatypeGlob == "constant") {
+  
+  kappairrtypeGlob = input.Get<std::string>("Rad","irr",0);
+  kappatypeGlob = input.Get<std::string>("Rad","kappa",0);
+  xitypeGlob = input.Get<std::string>("Rad","xi",0);
+  
+  if (kappairrtypeGlob == "constant") {
     kappairrGlob = input.Get<real>("Rad","irr",3);
   } else if (kappatypeGlob == "usertable") {
     std::string irr_file = input.Get<std::string>("Rad","irr",4);
-    kappatableGlob = new LookupTable<1>(irr_file,',');
+    kappairrtableGlob = new LookupTable<1>(irr_file,',');
   }
 
   columnGlob = new Column(IDIR,1,RHO,&data);
 
+  if (kappatypeGlob == "userfunc") {
+    data.hydro->radsource->EnrollKappa(&MyKappa); 
+  }
+  if (xitypeGlob == "userfunc") {
+    data.hydro->radsource->EnrollXi(&MyXi); 
+  }
+
   data.hydro->EnrollInternalBoundary(&InternalBoundary);
   data.hydro->EnrollFluxBoundary(&FluxBoundary);
-  output.EnrollUserDefVariables(&ComputeUserVars);
+  //output.EnrollUserDefVariables(&ComputeUserVars);
 
   // Compute tau in dumps to check error with or without MPI
   auto temp_array = columnGlob->GetColumn();

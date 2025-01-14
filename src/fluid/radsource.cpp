@@ -50,11 +50,20 @@ void RadSource::SourceFullImplicit(const real dt) {
     kappa_0 = this->kappa_0;
     T_0 = this->T_0;
     rho_0 = this->rho_0;
+  } else if (kappa_type == Type_opac::userfunc) {
+    IdefixArray3D<real> kappapArr = this->kappapArr;
+    IdefixArray3D<real> kapparArr = this->kapparArr;
+    kappaFunc(*data,kappapArr,kapparArr);
   }
+
   const Type_opac xi_type = this->xi_type;
   if (xi_type == Type_opac::constant) {
     xi_0 = this->xi_0;
+  } else if (xi_type == Type_opac::userfunc) {
+    IdefixArray3D<real> xiArr = this->xiArr;
+    xiFunc(*data,xiArr);
   }
+
 
   idefix_for("RadSourceFullImplicit",0,data->np_tot[KDIR],0,data->np_tot[JDIR],0,data->np_tot[IDIR],
     KOKKOS_LAMBDA (int k, int j, int i) {
@@ -111,13 +120,20 @@ void RadSource::SourceFullImplicit(const real dt) {
         real logT = std::log10(T);
         kappa_p = kp1D.Get(&logT);
         kappa_r = kr1D.Get(&logT);
+      } else if (kappa_type == Type_opac::userfunc) {
+        kappa_p = kappapArr(k,j,i);
+        kappa_r = kapparArr(k,j,i);
       }
+
       if (xi_type == Type_opac::constant) {
         xi = xi_0;
       } else if (xi_type == Type_opac::usertable) {
         real logT = std::log10(T);
         xi = xi1D.Get(&logT);
+      } else if (xi_type== Type_opac::userfunc) {
+        xi = xiArr(k,j,i);
       }
+
 
       real kk_red = reduced_c * units.GetVelocity() * dt * units.GetTime() * kappa_p * VGas[RHO]*units.GetDensity();
       real kk = units.c * dt * units.GetTime() * kappa_p * VGas[RHO]*units.GetDensity();
@@ -231,10 +247,18 @@ void RadSource::SourceFixedPointRad(const real dt) {
     kappa_0 = this->kappa_0;
     T_0 = this->T_0;
     rho_0 = this->rho_0;
+  } else if (kappa_type == Type_opac::userfunc) {
+    IdefixArray3D<real> kappapArr = this->kappapArr;
+    IdefixArray3D<real> kapparArr = this->kapparArr;
+    kappaFunc(*data,kappapArr,kapparArr);
   }
+
   const Type_opac xi_type = this->xi_type;
   if (xi_type == Type_opac::constant) {
     xi_0 = this->xi_0;
+  } else if (xi_type == Type_opac::userfunc) {
+    IdefixArray3D<real> xiArr = this->xiArr;
+    xiFunc(*data,xiArr);
   }
 
   idefix_for("RadSourceFixedPointRad",0,data->np_tot[KDIR],0,data->np_tot[JDIR],0,data->np_tot[IDIR],
@@ -301,12 +325,18 @@ void RadSource::SourceFixedPointRad(const real dt) {
         real logT = std::log10(T);
         kappa_p = kp1D.Get(&logT);
         kappa_r = kr1D.Get(&logT);
+      } else if (kappa_type == Type_opac::userfunc) {
+        kappa_p = kappapArr(k,j,i);
+        kappa_r = kapparArr(k,j,i);
       }
+      
       if (xi_type == Type_opac::constant) {
         xi = xi_0;
       } else if (xi_type == Type_opac::usertable) {
         real logT = std::log10(T);
         xi = xi1D.Get(&logT);
+      } else if (xi_type== Type_opac::userfunc) {
+        xi = xiArr(k,j,i);
       }
 
       // Iterate on radiative variables
@@ -406,10 +436,18 @@ void RadSource::SourceFixedPointGas(const real dt) {
     kappa_0 = this->kappa_0;
     T_0 = this->T_0;
     rho_0 = this->rho_0;
+  } else if (kappa_type == Type_opac::userfunc) {
+    IdefixArray3D<real> kappapArr = this->kappapArr;
+    IdefixArray3D<real> kapparArr = this->kapparArr;
+    kappaFunc(*data,kappapArr,kapparArr);
   }
+
   const Type_opac xi_type = this->xi_type;
   if (xi_type == Type_opac::constant) {
     xi_0 = this->xi_0;
+  } else if (xi_type == Type_opac::userfunc) {
+    IdefixArray3D<real> xiArr = this->xiArr;
+    xiFunc(*data,xiArr);
   }
   
   idefix_for("RadSource",0,data->np_tot[KDIR],0,data->np_tot[JDIR],0,data->np_tot[IDIR],
@@ -471,6 +509,9 @@ void RadSource::SourceFixedPointGas(const real dt) {
         real logT = std::log10(T);
         kappa_p = kp1D.Get(&logT);
         kappa_r = kr1D.Get(&logT);
+      } else if (kappa_type == Type_opac::userfunc) {
+        kappa_p = kappapArr(k,j,i);
+        kappa_r = kapparArr(k,j,i);
       }
 
       if (xi_type == Type_opac::constant) {
@@ -478,6 +519,8 @@ void RadSource::SourceFixedPointGas(const real dt) {
       } else if (xi_type == Type_opac::usertable) {
         real logT = std::log10(T);
         xi = xi1D.Get(&logT);
+      } else if (xi_type== Type_opac::userfunc) {
+        xi = xiArr(k,j,i);
       }
 
       while (((err1>tol) || (err2>tol) || (err3>tol) || (err4>tol)) && (count < MAX_ITER)){
@@ -559,6 +602,13 @@ void RadSource::ShowConfig() {
     case Type_opac::usertable:
       idfx::cout << "from a user table." << std::endl;
       break;
+    case Type_opac::userfunc:
+      idfx::cout << "from a user-defined function."
+                     << std::endl;
+      if(!kappaFunc) {
+        IDEFIX_ERROR("No opacity function has been enrolled for kappa");
+      }
+      break;
   }
   idfx::cout << "RadSource: xi is ";
   switch(xi_type) {
@@ -570,6 +620,13 @@ void RadSource::ShowConfig() {
       break;
     case Type_opac::usertable:
       idfx::cout << "from a user table." << std::endl;
+      break;
+    case Type_opac::userfunc:
+      idfx::cout << "from a user-defined function."
+                     << std::endl;
+      if(!xiFunc) {
+        IDEFIX_ERROR("No opacity function has been enrolled for xi");
+      }
       break;
   }
   idfx::cout << "Source term solver is ";
@@ -607,6 +664,22 @@ void RadSource::AddRadSource(const real dt) {
   }
 
   idfx::popRegion();
+}
+
+void RadSource::EnrollKappa(KappaFunc myFunc) {
+  if(this->kappa_type != Type_opac::userfunc) {
+    IDEFIX_WARNING("Absorption opacities function enrollment requires kappa"
+                 "to be set to userfunc in .ini file");
+  }
+  this->kappaFunc = myFunc;
+}
+
+void RadSource::EnrollXi(XiFunc myFunc) {
+  if(this->xi_type != Type_opac::userfunc) {
+    IDEFIX_WARNING("Scattering opacities function enrollment requires xi "
+                 "to be set to userfunc in .ini file");
+  }
+  this->xiFunc = myFunc;
 }
 
 void RadSource::IrrFlux(IdefixArray3D<real> divFin) {
