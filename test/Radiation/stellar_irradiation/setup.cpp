@@ -162,7 +162,7 @@ void ComputeUserVars(DataBlock & data, UserDefVariablesContainer &variables) {
   // Make references to the user-defined arrays (variables is a container of IdefixHostArray3D)
   // Note that the labels should match the variable names in the input file
 
-  columnGlob->ComputeColumn(Vc);
+  columnGlob->ComputeColumn(Vc,RHO);
   tau = columnGlob->GetColumn();
 
   Kokkos::deep_copy(variables["tau"], tau);
@@ -240,7 +240,7 @@ Setup::Setup(Input &input, Grid &grid, DataBlock &data, Output &output)
     kappairrtableGlob = new LookupTable<1>(irr_file,',');
   }
 
-  columnGlob = new Column(IDIR,1,RHO,&data);
+  columnGlob = new Column(IDIR,1,&data);
 
   if (kappatypeGlob == "userfunc") {
     data.radiation[0]->radsource->EnrollKappa(&MyKappa); 

@@ -296,7 +296,7 @@ RadSource::RadSource(Input &input, Fluid<Phys> *hydroin):
     // Fetch the opacity coefficient for the current radiation group.
     const int n = hydroin->instanceNumber;
     
-    this->column_rho = new Column(IDIR,1,RHO,data);
+    this->column_rho = new Column(IDIR,1,data);
     this->divF = IdefixArray3D<real>(prefix+"_divF",data->np_tot[KDIR], data->np_tot[JDIR], data->np_tot[IDIR]);
 
                                     

@@ -15,8 +15,6 @@ target_sources(idefix
   PUBLIC ${CMAKE_CURRENT_LIST_DIR}/checkNan.hpp
   PUBLIC ${CMAKE_CURRENT_LIST_DIR}/checkDivB.hpp
   PUBLIC ${CMAKE_CURRENT_LIST_DIR}/coarsenFlow.hpp
-  PUBLIC ${CMAKE_CURRENT_LIST_DIR}/column.hpp
-  PUBLIC ${CMAKE_CURRENT_LIST_DIR}/column.cpp
   PUBLIC ${CMAKE_CURRENT_LIST_DIR}/convertConsToPrim.hpp
   PUBLIC ${CMAKE_CURRENT_LIST_DIR}/drag.hpp
   PUBLIC ${CMAKE_CURRENT_LIST_DIR}/drag.cpp

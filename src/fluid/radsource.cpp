@@ -692,7 +692,7 @@ void RadSource::IrrFlux(IdefixArray3D<real> divFin) {
   auto irr1D = this->irr_1D;
   IdefixArray3D<real> divFlux = divFin;
 
-  column_rho->ComputeColumn(this->VcGas);
+  column_rho->ComputeColumn(this->VcGas,RHO);
   IdefixArray3D<real> tau = column_rho->GetColumn();
   real kirr = kappa_irr*units.GetDensity()*units.GetLength(); 
   real flux_pre = std::pow(rs/units.GetLength(),2.)*units.sigma_sb*std::pow(Ts,4.)/units.GetLength();
