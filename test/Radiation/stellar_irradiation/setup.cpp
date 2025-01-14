@@ -26,8 +26,8 @@ void MyKappa(DataBlock &data, IdefixArray3D<real> &kappap, IdefixArray3D<real> &
 
   idefix_for("MyKappa",0,data.np_tot[KDIR],0,data.np_tot[JDIR],0,data.np_tot[IDIR],
               KOKKOS_LAMBDA (int k, int j, int i) {
-                kappap(k,j,i) = 1.;
-                kappar(k,j,i) = 1.;
+                kappap(k,j,i) = 1.e1;
+                kappar(k,j,i) = 1.e1;
               });
 }
 
@@ -153,12 +153,10 @@ void ComputeUserVars(DataBlock & data, UserDefVariablesContainer &variables) {
   IdefixHostArray3D<real> divF  = variables["divF"];
   IdefixHostArray3D<real> A1_out  = variables["A1"];
 
-  real rs = rsGlob;
-  real Ts = TsGlob;
-  real kappa_irr = kappairrGlob;
   std::string kappairrType = kappairrtypeGlob; 
 
-  real kirr = kappa_irr*idfx::units.GetDensity()*idfx::units.GetLength(); 
+  real rs = rsGlob;
+  real Ts = TsGlob;
   real flux_pre = std::pow(rs/idfx::units.GetLength(),2.)*idfx::units.sigma_sb*std::pow(Ts,4.)/idfx::units.GetLength();
 
   // Make references to the user-defined arrays (variables is a container of IdefixHostArray3D)
@@ -171,6 +169,9 @@ void ComputeUserVars(DataBlock & data, UserDefVariablesContainer &variables) {
   Kokkos::deep_copy(variables["dV"], dV);
 
   if(kappairrType=="constant") {
+
+    real kappa_irr = kappairrGlob;
+    real kirr = kappa_irr*idfx::units.GetDensity()*idfx::units.GetLength(); 
 
     for(int k = d.beg[KDIR]; k < d.end[KDIR] ; k++) {
       for(int j = d.beg[JDIR]; j < d.end[JDIR] ; j++) {
@@ -234,7 +235,7 @@ Setup::Setup(Input &input, Grid &grid, DataBlock &data, Output &output)
   
   if (kappairrtypeGlob == "constant") {
     kappairrGlob = input.Get<real>("Rad","irr",3);
-  } else if (kappatypeGlob == "usertable") {
+  } else if (kappairrtypeGlob == "usertable") {
     std::string irr_file = input.Get<std::string>("Rad","irr",4);
     kappairrtableGlob = new LookupTable<1>(irr_file,',');
   }
@@ -250,7 +251,7 @@ Setup::Setup(Input &input, Grid &grid, DataBlock &data, Output &output)
 
   data.hydro->EnrollInternalBoundary(&InternalBoundary);
   data.hydro->EnrollFluxBoundary(&FluxBoundary);
-  //output.EnrollUserDefVariables(&ComputeUserVars);
+  output.EnrollUserDefVariables(&ComputeUserVars);
 
   // Compute tau in dumps to check error with or without MPI
   auto temp_array = columnGlob->GetColumn();
