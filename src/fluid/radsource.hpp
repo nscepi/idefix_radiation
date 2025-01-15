@@ -22,7 +22,7 @@ using KappaFunc = void (*) (DataBlock &, IdefixArray3D<real> &, IdefixArray3D<re
 class RadSource {
  public:
   enum class Type_opac{constant,kramers,usertable,userfunc};                 // Type of opacity definition
-  enum class Type_irr{constant,usertable};                                   // Type of irradiation flux definition
+  enum class Type_irr{constant,usertable,userfunc};                                   // Type of irradiation flux definition
   enum class Type_isolver{full_implicit,fixed_point_rad,fixed_point_gas};    // Type of implicit solver for radiation source terms
 
   // RadSource constructor
@@ -49,6 +49,9 @@ class RadSource {
   IdefixArray3D<real> kappapArr;
   IdefixArray3D<real> kapparArr;
   
+  // Array containing kappa*rho for userfunc irradiation flux
+  IdefixArray3D<real> kapparhoArr;
+
   IdefixArray4D<real> UcRad;  // Radiation conservative quantities
   IdefixArray4D<real> UcGas;  // Gas conservative quantities
   IdefixArray4D<real> VcRad;  // Radiation primitive quantities
@@ -137,6 +140,7 @@ class RadSource {
   LookupTable<1> irr_1D;
 
   Column *column_rho;        // Column density
+  Column *column_rho2;        // Column density
   IdefixArray3D<real> divF;  // Divergence of irradiation flux
 
   Type_isolver source_solver;    // Type of implicit solver for radiation source terms
@@ -297,6 +301,7 @@ RadSource::RadSource(Input &input, Fluid<Phys> *hydroin):
     const int n = hydroin->instanceNumber;
     
     this->column_rho = new Column(IDIR,1,data);
+    this->column_rho2 = new Column(IDIR,1,data);
     this->divF = IdefixArray3D<real>(prefix+"_divF",data->np_tot[KDIR], data->np_tot[JDIR], data->np_tot[IDIR]);
 
                                     
@@ -320,11 +325,18 @@ RadSource::RadSource(Input &input, Fluid<Phys> *hydroin):
         msg << "Only 1 dimension for irradiation flux tables are currently accepted." << std::endl;
         IDEFIX_ERROR(msg);
       }
+    } else if(irrType.compare("userfunc") == 0) {
+      this->irr_type = Type_irr::userfunc;
+      this->rs = input.Get<real>(BlockName,"irr",n+1);
+      this->Ts = input.Get<real>(BlockName,"irr",n+2);
+      this->kapparhoArr = IdefixArray3D<real>("kapparrhoArray",data->np_tot[KDIR],
+                                                 data->np_tot[JDIR],
+                                                 data->np_tot[IDIR]);
     } else {
       std::stringstream msg;
       msg << "Unknown irr type \"" <<  irrType
           << "\" in your input file." << std::endl
-          << "Allowed values are: constant, usertable." << std::endl;
+          << "Allowed values are: constant, usertable, userfunc." << std::endl;
 
       IDEFIX_ERROR(msg);
     }

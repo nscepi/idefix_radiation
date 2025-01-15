@@ -20,6 +20,7 @@ std::string kappatypeGlob;
 std::string xitypeGlob;
 
 Column *columnGlob;
+Column *columnGlob2;
 LookupTable<1> *kappairrtableGlob;
 
 void MyKappa(DataBlock &data, IdefixArray3D<real> &kappap, IdefixArray3D<real> &kappar) {
@@ -167,6 +168,14 @@ void ComputeUserVars(DataBlock & data, UserDefVariablesContainer &variables) {
 
   Kokkos::deep_copy(variables["tau"], tau);
   Kokkos::deep_copy(variables["dV"], dV);
+  
+  IdefixArray3D<real> rho("rho",d.np_tot[KDIR],d.np_tot[JDIR],d.np_tot[IDIR]);
+  idefix_for("init rho",0,data.np_tot[KDIR],0,data.np_tot[JDIR],0,data.np_tot[IDIR],
+    KOKKOS_LAMBDA(int k, int j, int i) {
+      rho(k,j,i) = Vc(RHO,k,j,i);
+    });
+
+  columnGlob2->ComputeColumn(rho);
 
   if(kappairrType=="constant") {
 
@@ -205,7 +214,6 @@ void ComputeUserVars(DataBlock & data, UserDefVariablesContainer &variables) {
       }
     }
   }
-   
   Kokkos::deep_copy(variables["divF"], divF);
   Kokkos::deep_copy(variables["A1"], A1_out);
 
@@ -217,6 +225,9 @@ void ComputeUserVars(DataBlock & data, UserDefVariablesContainer &variables) {
 // Arrays or variables which are used later on
 Setup::Setup(Input &input, Grid &grid, DataBlock &data, Output &output)
 { 
+  DataBlockHost d(data);
+  auto Vc = data.hydro->Vc;
+
   // Mirror data on Host
   R0Glob = input.Get<real>("Setup","R0",0);
   h0Glob = input.Get<real>("Setup","h0",0);
@@ -241,6 +252,7 @@ Setup::Setup(Input &input, Grid &grid, DataBlock &data, Output &output)
   }
 
   columnGlob = new Column(IDIR,1,&data);
+  columnGlob2 = new Column(IDIR,1,&data);
 
   if (kappatypeGlob == "userfunc") {
     data.radiation[0]->radsource->EnrollKappa(&MyKappa); 
@@ -254,12 +266,16 @@ Setup::Setup(Input &input, Grid &grid, DataBlock &data, Output &output)
   output.EnrollUserDefVariables(&ComputeUserVars);
 
   // Compute tau in dumps to check error with or without MPI
+  auto temp_array2 = columnGlob2->GetColumn();
+  data.dump->RegisterVariable(temp_array2,"Tau2");
+
   auto temp_array = columnGlob->GetColumn();
   data.dump->RegisterVariable(temp_array,"Tau");
 }
 
 Setup::~Setup() {
   delete columnGlob;
+  delete columnGlob2;
 }
 // This routine initialize the flow
 // Note that data is on the device.

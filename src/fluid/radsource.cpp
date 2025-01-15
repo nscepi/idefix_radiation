@@ -685,48 +685,84 @@ void RadSource::EnrollXi(XiFunc myFunc) {
 void RadSource::IrrFlux(IdefixArray3D<real> divFin) {
   idfx::pushRegion("RadSource::IrrFlux");
   
+  auto VcGas = this->VcGas;
   IdefixArray3D<real>  dV = this->data->dV;
   IdefixArray3D<real>  A1 = this->data->A[IDIR];
   IdefixArray1D<real>  x1l = this->data->xl[IDIR];
   auto units=idfx::units;
   auto irr1D = this->irr_1D;
   IdefixArray3D<real> divFlux = divFin;
+  IdefixArray3D<real> kapparho = this->kapparhoArr;
+  IdefixArray3D<real> tau("tau",this->data->np_tot[KDIR],this->data->np_tot[JDIR],this->data->np_tot[IDIR]);
+  IdefixArray3D<real> tau2("tau2",this->data->np_tot[KDIR],this->data->np_tot[JDIR],this->data->np_tot[IDIR]);
+  IdefixArray3D<real> rho("rho",this->data->np_tot[KDIR],this->data->np_tot[JDIR],this->data->np_tot[IDIR]);
 
-  column_rho->ComputeColumn(this->VcGas,RHO);
-  IdefixArray3D<real> tau = column_rho->GetColumn();
-  real kirr = kappa_irr*units.GetDensity()*units.GetLength(); 
   real flux_pre = std::pow(rs/units.GetLength(),2.)*units.sigma_sb*std::pow(Ts,4.)/units.GetLength();
 
-  // Constant kappa
-  if(irr_type==Type_irr::constant) {
-    
-    idefix_for("constant_irr_source",
+  if (irr_type==Type_irr::constant){
+    idefix_for("init rho",
+    0, data->np_tot[KDIR],
+    0, data->np_tot[JDIR],
+    0, data->np_tot[IDIR],
+    KOKKOS_LAMBDA (int k, int j, int i) {
+                rho(k,j,i) = VcGas(RHO,k,j,i);
+    });
+    //printf("rho=%e\n",rho(0,25,5));
+    //printf("VcGas(RHO)=%e\n",VcGas(RHO,0,25,5));
+    column_rho->ComputeColumn(this->VcGas,RHO);
+    column_rho2->ComputeColumn(rho);
+    tau = column_rho->GetColumn();
+    tau2 = column_rho2->GetColumn();
+    //printf("tau=%e\n",tau(0,30,30));
+    //printf("tau2=%e\n",tau2(0,30,30));
+  } else if (irr_type==Type_irr::usertable){
+    column_rho->ComputeColumn(this->VcGas,RHO);
+    tau = column_rho->GetColumn();
+  } else if (irr_type==Type_irr::userfunc){
+    idefix_for("RadSourceInitKapparho",
     data->beg[KDIR], data->end[KDIR],
     data->beg[JDIR], data->end[JDIR],
     data->beg[IDIR], data->end[IDIR],
     KOKKOS_LAMBDA (int k, int j, int i) {
-
-                real Fim = std::exp(-kirr*tau(k,j,i-1))*A1(k,j,i)/std::pow(x1l(i),2.);
-                real Fip = std::exp(-kirr*tau(k,j,i))*A1(k,j,i+1)/std::pow(x1l(i+1),2.);
-                divFlux(k,j,i) = flux_pre*(Fip-Fim)/dV(k,j,i);
+                kapparho(k,j,i) = this->kappapArr(k,j,i)*units.GetDensity()*units.GetLength()*this->VcGas(RHO,k,j,i);
     });
-
-  // Usertable kappa
-  } else if (irr_type==Type_irr::usertable) {
-    
-    idefix_for("usertable_irr_source",
-    data->beg[KDIR], data->end[KDIR],
-    data->beg[JDIR], data->end[JDIR],
-    data->beg[IDIR], data->end[IDIR],
-              KOKKOS_LAMBDA (int k, int j, int i) {
-
-                real logtaum = std::log10(FMAX(tau(k,j,i-1)*units.GetDensity()*units.GetLength(),1.e-15));
-                real Fim = pow(10.,irr1D.Get(&logtaum))*A1(k,j,i)/std::pow(x1l(i),2.);
-                real logtaup = std::log10(FMAX(tau(k,j,i)*units.GetDensity()*units.GetLength(),1.e-15));
-                real Fip = pow(10.,irr1D.Get(&logtaup))*A1(k,j,i+1)/std::pow(x1l(i+1),2.);
-                divFlux(k,j,i)  = flux_pre*(Fip-Fim)/dV(k,j,i);
-    });
+    column_rho->ComputeColumn(kapparho);
+    tau = column_rho->GetColumn();
+    printf("tau=%e\n",tau(0,30,30));
   }
+
+  idefix_for("RadSourceIrrFlux",
+  data->beg[KDIR], data->end[KDIR],
+  data->beg[JDIR], data->end[JDIR],
+  data->beg[IDIR], data->end[IDIR],
+  KOKKOS_LAMBDA (int k, int j, int i) {
+
+              real Fip,Fim;
+
+              // Constant kappa
+              if(irr_type==Type_irr::constant) {
+                real kirr = kappa_irr*units.GetDensity()*units.GetLength();
+                //printf("tau=%e\n",tau(0,30,30));
+                //printf("tau2=%e\n",tau2(0,30,30)); 
+                Fim = std::exp(-kirr*tau2(k,j,i-1))*A1(k,j,i)/std::pow(x1l(i),2.);
+                Fip = std::exp(-kirr*tau2(k,j,i))*A1(k,j,i+1)/std::pow(x1l(i+1),2.);
+                
+              // Usertable kappa
+              } else if (irr_type==Type_irr::usertable) {  
+                real logtaum = std::log10(FMAX(tau(k,j,i-1)*units.GetDensity()*units.GetLength(),1.e-15));
+                Fim = pow(10.,irr1D.Get(&logtaum))*A1(k,j,i)/std::pow(x1l(i),2.);
+                real logtaup = std::log10(FMAX(tau(k,j,i)*units.GetDensity()*units.GetLength(),1.e-15));
+                Fip = pow(10.,irr1D.Get(&logtaup))*A1(k,j,i+1)/std::pow(x1l(i+1),2.);
+              
+              // Userfunc kappa
+              } else if (irr_type==Type_irr::userfunc){
+                Fim = std::exp(-tau(k,j,i-1))*A1(k,j,i)/std::pow(x1l(i),2.);
+                Fip = std::exp(-tau(k,j,i))*A1(k,j,i+1)/std::pow(x1l(i+1),2.);
+              }
+
+              divFlux(k,j,i) = flux_pre*(Fip-Fim)/dV(k,j,i);
+    });
+
 
   idfx::popRegion();
 
