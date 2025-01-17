@@ -43,6 +43,8 @@ void RadSource::SourceFullImplicit(const real dt) {
 
   // Local copy of opacity parameters
   const Type_opac kappa_type = this->kappa_type;
+  IdefixArray3D<real> kappapArr;
+  IdefixArray3D<real> kapparArr;
   real kappa_0,rho_0,T_0,xi_0;
   if (kappa_type == Type_opac::constant) {
     kappa_0 = this->kappa_0;
@@ -51,8 +53,8 @@ void RadSource::SourceFullImplicit(const real dt) {
     T_0 = this->T_0;
     rho_0 = this->rho_0;
   } else if (kappa_type == Type_opac::userfunc) {
-    IdefixArray3D<real> kappapArr = this->kappapArr;
-    IdefixArray3D<real> kapparArr = this->kapparArr;
+    kappapArr = this->kappapArr;
+    kapparArr = this->kapparArr;
   }
 
   const Type_opac xi_type = this->xi_type;
@@ -239,6 +241,8 @@ void RadSource::SourceFixedPointRad(const real dt) {
   // Local copy of opacity parameters
   const Type_opac kappa_type = this->kappa_type;
   real kappa_0,rho_0,T_0,xi_0;
+  IdefixArray3D<real> kappapArr;
+  IdefixArray3D<real> kapparArr;
   if (kappa_type == Type_opac::constant) {
     kappa_0 = this->kappa_0;
   } else if (kappa_type == Type_opac::kramers) {
@@ -246,8 +250,8 @@ void RadSource::SourceFixedPointRad(const real dt) {
     T_0 = this->T_0;
     rho_0 = this->rho_0;
   } else if (kappa_type == Type_opac::userfunc) {
-    IdefixArray3D<real> kappapArr = this->kappapArr;
-    IdefixArray3D<real> kapparArr = this->kapparArr;
+    kappapArr = this->kappapArr;
+    kapparArr = this->kapparArr;
   }
 
   const Type_opac xi_type = this->xi_type;
@@ -426,6 +430,8 @@ void RadSource::SourceFixedPointGas(const real dt) {
   // Local copy of opacity parameters
   const Type_opac kappa_type = this->kappa_type;
   real kappa_0,rho_0,T_0,xi_0;
+  IdefixArray3D<real> kappapArr;
+  IdefixArray3D<real> kapparArr;
   if (kappa_type == Type_opac::constant) {
     kappa_0 = this->kappa_0;
   } else if (kappa_type == Type_opac::kramers) {
@@ -433,8 +439,8 @@ void RadSource::SourceFixedPointGas(const real dt) {
     T_0 = this->T_0;
     rho_0 = this->rho_0;
   } else if (kappa_type == Type_opac::userfunc) {
-    IdefixArray3D<real> kappapArr = this->kappapArr;
-    IdefixArray3D<real> kapparArr = this->kapparArr;
+    kappapArr = this->kappapArr;
+    kapparArr = this->kapparArr;
   }
 
   const Type_opac xi_type = this->xi_type;
@@ -670,15 +676,17 @@ void RadSource::IrrFlux(IdefixArray3D<real> divFin) {
   IdefixArray3D<real>  A1 = this->data->A[IDIR];
   IdefixArray1D<real>  x1l = this->data->xl[IDIR];
   auto units=idfx::units;
+  auto irr_type = this->irr_type;
   auto irr1D = this->irr_1D;
   IdefixArray3D<real> divFlux = divFin;
   IdefixArray3D<real> kapparho = this->kapparhoArr;
+  IdefixArray3D<real> kappapArr = this->kappapArr;
   IdefixArray3D<real> tau("tau",this->data->np_tot[KDIR],this->data->np_tot[JDIR],this->data->np_tot[IDIR]);
   IdefixArray3D<real> tau2("tau2",this->data->np_tot[KDIR],this->data->np_tot[JDIR],this->data->np_tot[IDIR]);
   IdefixArray3D<real> rho("rho",this->data->np_tot[KDIR],this->data->np_tot[JDIR],this->data->np_tot[IDIR]);
 
   real flux_pre = std::pow(rs/units.GetLength(),2.)*units.sigma_sb*std::pow(Ts,4.)/units.GetLength();
-
+  
   if (irr_type==Type_irr::constant){
     column_rho->ComputeColumn(this->VcGas,RHO);
     tau = column_rho->GetColumn();
@@ -691,7 +699,7 @@ void RadSource::IrrFlux(IdefixArray3D<real> divFin) {
     data->beg[JDIR], data->end[JDIR],
     data->beg[IDIR], data->end[IDIR],
     KOKKOS_LAMBDA (int k, int j, int i) {
-                kapparho(k,j,i) = this->kappapArr(k,j,i)*units.GetDensity()*units.GetLength()*this->VcGas(RHO,k,j,i);
+                kapparho(k,j,i) = kappapArr(k,j,i)*units.GetDensity()*units.GetLength()*this->VcGas(RHO,k,j,i);
     });
     column_rho->ComputeColumn(kapparho);
     tau = column_rho->GetColumn();
