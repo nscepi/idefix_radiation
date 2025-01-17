@@ -700,21 +700,8 @@ void RadSource::IrrFlux(IdefixArray3D<real> divFin) {
   real flux_pre = std::pow(rs/units.GetLength(),2.)*units.sigma_sb*std::pow(Ts,4.)/units.GetLength();
 
   if (irr_type==Type_irr::constant){
-    idefix_for("init rho",
-    0, data->np_tot[KDIR],
-    0, data->np_tot[JDIR],
-    0, data->np_tot[IDIR],
-    KOKKOS_LAMBDA (int k, int j, int i) {
-                rho(k,j,i) = VcGas(RHO,k,j,i);
-    });
-    //printf("rho=%e\n",rho(0,25,5));
-    //printf("VcGas(RHO)=%e\n",VcGas(RHO,0,25,5));
     column_rho->ComputeColumn(this->VcGas,RHO);
-    column_rho2->ComputeColumn(rho);
     tau = column_rho->GetColumn();
-    tau2 = column_rho2->GetColumn();
-    //printf("tau=%e\n",tau(0,30,30));
-    //printf("tau2=%e\n",tau2(0,30,30));
   } else if (irr_type==Type_irr::usertable){
     column_rho->ComputeColumn(this->VcGas,RHO);
     tau = column_rho->GetColumn();
@@ -728,7 +715,6 @@ void RadSource::IrrFlux(IdefixArray3D<real> divFin) {
     });
     column_rho->ComputeColumn(kapparho);
     tau = column_rho->GetColumn();
-    printf("tau=%e\n",tau(0,30,30));
   }
 
   idefix_for("RadSourceIrrFlux",
@@ -742,8 +728,6 @@ void RadSource::IrrFlux(IdefixArray3D<real> divFin) {
               // Constant kappa
               if(irr_type==Type_irr::constant) {
                 real kirr = kappa_irr*units.GetDensity()*units.GetLength();
-                //printf("tau=%e\n",tau(0,30,30));
-                //printf("tau2=%e\n",tau2(0,30,30)); 
                 Fim = std::exp(-kirr*tau2(k,j,i-1))*A1(k,j,i)/std::pow(x1l(i),2.);
                 Fip = std::exp(-kirr*tau2(k,j,i))*A1(k,j,i+1)/std::pow(x1l(i+1),2.);
                 

@@ -140,7 +140,6 @@ class RadSource {
   LookupTable<1> irr_1D;
 
   Column *column_rho;        // Column density
-  Column *column_rho2;        // Column density
   IdefixArray3D<real> divF;  // Divergence of irradiation flux
 
   Type_isolver source_solver;    // Type of implicit solver for radiation source terms
@@ -301,7 +300,6 @@ RadSource::RadSource(Input &input, Fluid<Phys> *hydroin):
     const int n = hydroin->instanceNumber;
     
     this->column_rho = new Column(IDIR,1,data);
-    this->column_rho2 = new Column(IDIR,1,data);
     this->divF = IdefixArray3D<real>(prefix+"_divF",data->np_tot[KDIR], data->np_tot[JDIR], data->np_tot[IDIR]);
 
                                     
