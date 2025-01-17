@@ -255,10 +255,10 @@ Setup::Setup(Input &input, Grid &grid, DataBlock &data, Output &output)
   columnGlob2 = new Column(IDIR,1,&data);
 
   if (kappatypeGlob == "userfunc") {
-    data.radiation[0]->radsource->EnrollKappa(&MyKappa); 
+    data.radiation[0]->EnrollKappa(&MyKappa); 
   }
   if (xitypeGlob == "userfunc") {
-    data.radiation[0]->radsource->EnrollXi(&MyXi); 
+    data.radiation[0]->EnrollXi(&MyXi); 
   }
 
   data.hydro->EnrollInternalBoundary(&InternalBoundary);

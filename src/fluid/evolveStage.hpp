@@ -53,6 +53,16 @@ void Fluid<Phys>::EvolveStage(const real t, const real dt) {
   if constexpr(Phys::eos) {
     eos->Refresh(*data, t);
   }
+  
+  // Compute userfunc opacities
+  if constexpr(Phys::radiation) {
+    if (haveUserfuncKappa){
+      kappaFunc(*data,kappapArr,kapparArr);
+    }
+    if (haveUserfuncXi){
+      xiFunc(*data,xiArr);
+    }
+  }
 
   // Loop on all of the directions
   LoopDir<IDIR>(t,dt);

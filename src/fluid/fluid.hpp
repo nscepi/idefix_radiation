@@ -125,6 +125,8 @@ class Fluid {
 
   // RadSource object
   std::unique_ptr<RadSource> radsource;
+  bool haveUserfuncKappa{false};
+  bool haveUserfuncXi{false};
 
   // Whether or not we have to treat the axis
   bool haveAxis{false};
@@ -166,6 +168,9 @@ class Fluid {
   // Enroll user-defined isothermal sound speed
   void EnrollIsoSoundSpeed(IsoSoundSpeedFunc);
 
+  // Enroll user-defined functions for opacities
+  void EnrollKappa(KappaFunc);
+  void EnrollXi(XiFunc);
 
   // Arrays required by the Hydro object
   IdefixArray4D<real> Vc;      // Main cell-centered primitive variables index
@@ -246,7 +251,17 @@ class Fluid {
   IdefixArray3D<real> xHall;
   IdefixArray3D<real> xAmbipolar;
 
+  // Enroll user-defined opacity function
+  XiFunc xiFunc;
+  KappaFunc kappaFunc;
+
+  // Radiation reduced speed of light
   real reduced_c;
+
+  // Arrays containing the opacities from userdef function (only allocated when needed)
+  IdefixArray3D<real> xiArr;
+  IdefixArray3D<real> kappapArr;
+  IdefixArray3D<real> kapparArr;
 
   // Loop on dimensions
   template <int dir>
@@ -280,11 +295,27 @@ Fluid<Phys>::Fluid(Grid &grid, Input &input, DataBlock *datain, int n) {
   // When dealing with dust, add the specie number
   if(Phys::prefix.compare("Dust") == 0) prefix += std::to_string(n);
 
-  // When dealing with radiation, add the frequency group number
+  // When dealing with radiation, add the frequency group number, reduced speed of light and status of opacities
   if(Phys::prefix.compare("Rad") == 0) {
     prefix += std::to_string(n);
     this->reduced_c = input.Get<real>(std::string(Phys::prefix),"reduced_c",0);
     this->reduced_c *= idfx::units.c/idfx::units.GetVelocity();
+    if(input.Get<std::string>(std::string(Phys::prefix),"kappa",0).compare("userfunc") == 0) {
+      this->haveUserfuncKappa = true;
+      this->kappapArr = IdefixArray3D<real>("kappapArray",data->np_tot[KDIR],
+                                          data->np_tot[JDIR],
+                                          data->np_tot[IDIR]);        
+      this->kapparArr = IdefixArray3D<real>("kapparArray",data->np_tot[KDIR],
+                                          data->np_tot[JDIR],
+                                          data->np_tot[IDIR]);  
+      
+    }
+    if(input.Get<std::string>(std::string(Phys::prefix),"xi",0).compare("userfunc") == 0) {
+      this->haveUserfuncXi = true;
+      this->xiArr = IdefixArray3D<real>("xiArray",data->np_tot[KDIR],
+                                          data->np_tot[JDIR],
+                                          data->np_tot[IDIR]);  
+    }
   }
 
   // Keep the instance # for later use

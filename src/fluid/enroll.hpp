@@ -113,6 +113,24 @@ void Fluid<Phys>::EnrollHallDiffusivity(DiffusivityFunc myFunc) {
 }
 
 template<typename Phys>
+void Fluid<Phys>::EnrollKappa(KappaFunc myFunc) {
+  if(haveUserfuncKappa) {
+    IDEFIX_WARNING("Absorption opacities function enrollment requires kappa"
+                 "to be set to userfunc in .ini file");
+  }
+  this->kappaFunc = myFunc;
+}
+
+template<typename Phys>
+void Fluid<Phys>::EnrollXi(XiFunc myFunc) {
+  if(haveUserfuncXi) {
+    IDEFIX_WARNING("Scattering opacities function enrollment requires xi "
+                 "to be set to userfunc in .ini file");
+  }
+  this->xiFunc = myFunc;
+}
+
+template<typename Phys>
 void Fluid<Phys>::ResetStage() {
   // Reset variables required at the beginning of each stage
   // (essentially linked to timestep evaluation)

@@ -53,7 +53,6 @@ void RadSource::SourceFullImplicit(const real dt) {
   } else if (kappa_type == Type_opac::userfunc) {
     IdefixArray3D<real> kappapArr = this->kappapArr;
     IdefixArray3D<real> kapparArr = this->kapparArr;
-    kappaFunc(*data,kappapArr,kapparArr);
   }
 
   const Type_opac xi_type = this->xi_type;
@@ -61,7 +60,6 @@ void RadSource::SourceFullImplicit(const real dt) {
     xi_0 = this->xi_0;
   } else if (xi_type == Type_opac::userfunc) {
     IdefixArray3D<real> xiArr = this->xiArr;
-    xiFunc(*data,xiArr);
   }
 
 
@@ -250,7 +248,6 @@ void RadSource::SourceFixedPointRad(const real dt) {
   } else if (kappa_type == Type_opac::userfunc) {
     IdefixArray3D<real> kappapArr = this->kappapArr;
     IdefixArray3D<real> kapparArr = this->kapparArr;
-    kappaFunc(*data,kappapArr,kapparArr);
   }
 
   const Type_opac xi_type = this->xi_type;
@@ -258,7 +255,6 @@ void RadSource::SourceFixedPointRad(const real dt) {
     xi_0 = this->xi_0;
   } else if (xi_type == Type_opac::userfunc) {
     IdefixArray3D<real> xiArr = this->xiArr;
-    xiFunc(*data,xiArr);
   }
 
   idefix_for("RadSourceFixedPointRad",0,data->np_tot[KDIR],0,data->np_tot[JDIR],0,data->np_tot[IDIR],
@@ -439,7 +435,6 @@ void RadSource::SourceFixedPointGas(const real dt) {
   } else if (kappa_type == Type_opac::userfunc) {
     IdefixArray3D<real> kappapArr = this->kappapArr;
     IdefixArray3D<real> kapparArr = this->kapparArr;
-    kappaFunc(*data,kappapArr,kapparArr);
   }
 
   const Type_opac xi_type = this->xi_type;
@@ -447,7 +442,6 @@ void RadSource::SourceFixedPointGas(const real dt) {
     xi_0 = this->xi_0;
   } else if (xi_type == Type_opac::userfunc) {
     IdefixArray3D<real> xiArr = this->xiArr;
-    xiFunc(*data,xiArr);
   }
   
   idefix_for("RadSource",0,data->np_tot[KDIR],0,data->np_tot[JDIR],0,data->np_tot[IDIR],
@@ -605,7 +599,7 @@ void RadSource::ShowConfig() {
     case Type_opac::userfunc:
       idfx::cout << "from a user-defined function."
                      << std::endl;
-      if(!kappaFunc) {
+      if(!data->radiation[0]->kappaFunc) {
         IDEFIX_ERROR("No opacity function has been enrolled for kappa");
       }
       break;
@@ -624,7 +618,7 @@ void RadSource::ShowConfig() {
     case Type_opac::userfunc:
       idfx::cout << "from a user-defined function."
                      << std::endl;
-      if(!xiFunc) {
+      if(!data->radiation[0]->xiFunc) {
         IDEFIX_ERROR("No opacity function has been enrolled for xi");
       }
       break;
@@ -666,21 +660,7 @@ void RadSource::AddRadSource(const real dt) {
   idfx::popRegion();
 }
 
-void RadSource::EnrollKappa(KappaFunc myFunc) {
-  if(this->kappa_type != Type_opac::userfunc) {
-    IDEFIX_WARNING("Absorption opacities function enrollment requires kappa"
-                 "to be set to userfunc in .ini file");
-  }
-  this->kappaFunc = myFunc;
-}
 
-void RadSource::EnrollXi(XiFunc myFunc) {
-  if(this->xi_type != Type_opac::userfunc) {
-    IDEFIX_WARNING("Scattering opacities function enrollment requires xi "
-                 "to be set to userfunc in .ini file");
-  }
-  this->xiFunc = myFunc;
-}
 
 void RadSource::IrrFlux(IdefixArray3D<real> divFin) {
   idfx::pushRegion("RadSource::IrrFlux");
