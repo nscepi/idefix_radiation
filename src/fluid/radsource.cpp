@@ -190,12 +190,10 @@ void RadSource::SourceFullImplicit(const real dt) {
 
       for(int nv = 0 ; nv < RadiationPhysics::nvar ; nv++) {
         UcRad(nv,k,j,i) = URad[nv];
-        VcRad(nv,k,j,i) = URad[nv];
       }
 
       for(int nv = 0 ; nv < DefaultPhysics::nvar ; nv++) {
         UcGas(nv,k,j,i) = UGas[nv];
-        VcGas(nv,k,j,i) = VGas[nv];
       }
     });
 
@@ -387,12 +385,10 @@ void RadSource::SourceFixedPointRad(const real dt) {
 
       for(int nv = 0 ; nv < RadiationPhysics::nvar ; nv++) {
         UcRad(nv,k,j,i) = URad[nv];
-        VcRad(nv,k,j,i) = URad[nv];
       }
 
       for(int nv = 0 ; nv < DefaultPhysics::nvar ; nv++) {
         UcGas(nv,k,j,i) = UGas[nv];
-        VcGas(nv,k,j,i) = VGas[nv];
       }
   });
 
@@ -575,12 +571,10 @@ void RadSource::SourceFixedPointGas(const real dt) {
       
       for(int nv = 0 ; nv < RadiationPhysics::nvar ; nv++) {
         UcRad(nv,k,j,i) = URad[nv];
-        VcRad(nv,k,j,i) = URad[nv];
       }
 
       for(int nv = 0 ; nv < DefaultPhysics::nvar ; nv++) {
         UcGas(nv,k,j,i) = UGas[nv];
-        VcGas(nv,k,j,i) = VGas[nv];
       }
   });
 
