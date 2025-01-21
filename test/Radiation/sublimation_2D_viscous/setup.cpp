@@ -97,6 +97,26 @@ void MyViscosity(DataBlock &data, const real t, IdefixArray3D<real> &eta1, Idefi
 
 }
 
+void FargoVelocity(DataBlock &data, IdefixArray2D<real> &Vphi) {
+  IdefixArray1D<real> x1 = data.x[IDIR];
+  IdefixArray1D<real> x2 = data.x[JDIR];
+
+  real R0 = R0Glob;
+  real T0 = T0Glob;
+  real epsilon = epsilonGlob;
+  real CG = MGlob*GGlob;
+
+  idefix_for("FargoVphi",0,data.np_tot[JDIR],0, data.np_tot[IDIR],
+      KOKKOS_LAMBDA (int j, int i) {
+      
+      real R = FMAX(x1(i)*std::sin(x2(j)),R0);
+      real H = epsilon*R;
+      real Omega = std::sqrt(CG)*std::pow(R,-1.5);
+      real cs = H*Omega;
+      Vphi(j,i) = Omega*R;
+  });
+}
+
 
 // Compute user variables which will be written in vtk files
 void ComputeUserVars(DataBlock & data, UserDefVariablesContainer &variables) {
@@ -232,7 +252,6 @@ Setup::Setup(Input &input, Grid &grid, DataBlock &data, Output &output)
   kappagasGlob = input.Get<real>("Setup","kappa_gas",0);
   densityFloorGlob = input.Get<real>("Setup","density_floor",0);
 
-
   GGlob = input.Get<real>("Gravity","gravCst",0);
   MGlob = input.Get<real>("Gravity","Mcentral",0);
   
@@ -256,6 +275,8 @@ Setup::Setup(Input &input, Grid &grid, DataBlock &data, Output &output)
   data.radiation[0]->EnrollKappa(&MyKappa); 
   data.hydro->EnrollInternalBoundary(&InternalBoundary);
   data.hydro->viscosity->EnrollViscousDiffusivity(&MyViscosity);
+  if(data.haveFargo)
+    data.fargo->EnrollVelocity(&FargoVelocity);
   //output.EnrollUserDefVariables(&ComputeUserVars);
 }
 
@@ -294,7 +315,7 @@ void Setup::InitFlow(DataBlock &data) {
               d.Vc(PRS,k,j,i) = d.Vc(RHO,k,j,i)*T0/units.GetKelvin()/mu;
               d.Vc(VX1,k,j,i) = 0.;
               d.Vc(VX2,k,j,i) = 0.;
-              d.Vc(VX3,k,j,i) =  Omega*R*sqrt(R/d.x[IDIR](i)-2.5*cs*cs);
+              d.Vc(VX3,k,j,i) =  Omega*R;
 
               real T = d.Vc(PRS,k,j,i)/d.Vc(RHO,k,j,i)*units.GetKelvin()*mu;
               d.RadVc[0](ER,k,j,i) = idfx::units.ar*std::pow(T,4.)/idfx::units.GetEnergy();
