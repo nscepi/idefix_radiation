@@ -27,6 +27,7 @@ real kappagasGlob;
 real MGlob;
 real GGlob;
 real densityFloorGlob;
+real TMriGlob;
 
 Column *columnGlob;
 LookupTable<1> *kappatableGlob;
@@ -78,19 +79,26 @@ void MyKappa(DataBlock &data, IdefixArray3D<real> &kappap, IdefixArray3D<real> &
 
 
 void MyViscosity(DataBlock &data, const real t, IdefixArray3D<real> &eta1, IdefixArray3D<real> &eta2) {
-  
+  auto units = idfx::units;
+
   IdefixArray3D<real> InvDt = data.hydro->InvDt;
   IdefixArray4D<real> Vc=data.hydro->Vc;
   IdefixArray1D<real> r=data.x[IDIR];
   IdefixArray1D<real> th=data.x[JDIR];
-  real alpha = alphaDZGlob;
+  real alphaDZ = alphaDZGlob;
+  real alphaMRI = alphaMRIGlob;
   real CG = MGlob*GGlob;
   real R0 = R0Glob;
+  real T_MRI = TMriGlob;
+  real mu = muGlob;
+
   idefix_for("MyViscosity",0,data.np_tot[KDIR],0,data.np_tot[JDIR],0,data.np_tot[IDIR],
               KOKKOS_LAMBDA (int k, int j, int i) {
                 real R = FMAX(r(i)*sin(th(j)),R0);
                 real cs2 = Vc(PRS,k,j,i)/Vc(RHO,k,j,i);
+                real T = std::sqrt(cs2)*units.GetKelvin()*mu;
                 real Omega = std::sqrt(CG)*std::pow(R,-1.5);
+                real alpha = (alphaMRI-alphaDZ)*0.5*(1.-std::tanh((T_MRI-T)/25.))+alphaDZ;
                 eta1(k,j,i) = alpha*cs2*Vc(RHO,k,j,i)/Omega;
                 eta2(k,j,i) = 0.;
               });
@@ -226,6 +234,7 @@ Setup::Setup(Input &input, Grid &grid, DataBlock &data, Output &output)
   rhosGlob = input.Get<real>("Setup","rhos",0);
   rhosindexGlob = input.Get<real>("Setup","rhos_index",0);
   TwidthGlob = input.Get<real>("Setup","Twidth",0);
+  TMriGlob = input.Get<real>("Setup","TMRI",0);
   f0Glob = input.Get<real>("Setup","f0",0);
   kappastarGlob = input.Get<real>("Setup","kappa_star",0);
   kappagasGlob = input.Get<real>("Setup","kappa_gas",0);
