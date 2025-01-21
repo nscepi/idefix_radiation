@@ -97,27 +97,6 @@ void MyViscosity(DataBlock &data, const real t, IdefixArray3D<real> &eta1, Idefi
 
 }
 
-void FargoVelocity(DataBlock &data, IdefixArray2D<real> &Vphi) {
-  IdefixArray1D<real> x1 = data.x[IDIR];
-  IdefixArray1D<real> x2 = data.x[JDIR];
-
-  real R0 = R0Glob;
-  real T0 = T0Glob;
-  real epsilon = epsilonGlob;
-  real CG = MGlob*GGlob;
-
-  idefix_for("FargoVphi",0,data.np_tot[JDIR],0, data.np_tot[IDIR],
-      KOKKOS_LAMBDA (int j, int i) {
-      
-      real R = FMAX(x1(i)*std::sin(x2(j)),R0);
-      real H = epsilon*R;
-      real Omega = std::sqrt(CG)*std::pow(R,-1.5);
-      real cs = H*Omega;
-      Vphi(j,i) = Omega*R;
-  });
-}
-
-
 // Compute user variables which will be written in vtk files
 void ComputeUserVars(DataBlock & data, UserDefVariablesContainer &variables) {
   // Mirror data on Host
@@ -275,8 +254,6 @@ Setup::Setup(Input &input, Grid &grid, DataBlock &data, Output &output)
   data.radiation[0]->EnrollKappa(&MyKappa); 
   data.hydro->EnrollInternalBoundary(&InternalBoundary);
   data.hydro->viscosity->EnrollViscousDiffusivity(&MyViscosity);
-  if(data.haveFargo)
-    data.fargo->EnrollVelocity(&FargoVelocity);
   //output.EnrollUserDefVariables(&ComputeUserVars);
 }
 
