@@ -185,9 +185,6 @@ void RadSource::SourceFullImplicit(const real dt) {
               UGas[MX2] = m2tot - URad[FR2]/reduced_c;,
               UGas[MX3] = m3tot - URad[FR3]/reduced_c;)
 
-      // Update primitive  variables
-      K_ConsToPrim<DefaultPhysics>(VGas, UGas, &eos);
-
       for(int nv = 0 ; nv < RadiationPhysics::nvar ; nv++) {
         UcRad(nv,k,j,i) = URad[nv];
       }
