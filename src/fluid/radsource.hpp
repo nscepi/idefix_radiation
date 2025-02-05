@@ -66,7 +66,7 @@ class RadSource {
       kappa = this->kappa_0;
     } else if (kappa_type == Type_opac::kramers) {
       real T = VcGas(PRS,k,j,i)/(VcGas(RHO,k,j,i))*this->unit_Kelvin*mu;
-      kappa = this->kappa_0*std::pow(VcGas(RHO,k,j,i)*this->unit_density/this->rho_0,2.)*std::pow(T/this->T_0,-3.5);
+      kappa = this->kappa_0*VcGas(RHO,k,j,i)*this->unit_density/this->rho_0*std::pow(T/this->T_0,-3.5);
     } else if (kappa_type == Type_opac::usertable) {
       real T = VcGas(PRS,k,j,i)/(VcGas(RHO,k,j,i))*this->unit_Kelvin*mu;
       real logT = std::log10(T);
