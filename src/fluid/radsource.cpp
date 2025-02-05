@@ -115,7 +115,7 @@ void RadSource::SourceFullImplicit(const real dt) {
         kappa_p = kappa_0;
         kappa_r = kappa_0;
       } else if (kappa_type == Type_opac::kramers) {
-        kappa_p = kappa_0*std::pow(VGas[RHO]*units.GetDensity()/rho_0,2.)*std::pow(T/T_0,-3.5);
+        kappa_p = kappa_0*VGas[RHO]*units.GetDensity()/rho_0*std::pow(T/T_0,-3.5);
         kappa_r = kappa_p;
       } else if (kappa_type == Type_opac::usertable) {
         real logT = std::log10(T);
@@ -316,7 +316,7 @@ void RadSource::SourceFixedPointRad(const real dt) {
         kappa_p = kappa_0;
         kappa_r = kappa_0;
       } else if (kappa_type == Type_opac::kramers) {
-        kappa_p = kappa_0*std::pow(VGas[RHO]*units.GetDensity()/rho_0,2.)*std::pow(T/T_0,-3.5);
+        kappa_p = kappa_0*VGas[RHO]*units.GetDensity()/rho_0*std::pow(T/T_0,-3.5);
         kappa_r = kappa_p;
       } else if (kappa_type == Type_opac::usertable) {
         real logT = std::log10(T);
@@ -499,7 +499,7 @@ void RadSource::SourceFixedPointGas(const real dt) {
         kappa_p = kappa_0;
         kappa_r = kappa_0;
       } else if (kappa_type == Type_opac::kramers) {
-        kappa_p = kappa_0*std::pow(VGas[RHO]*units.GetDensity()/rho_0,2.)*std::pow(T/T_0,-3.5);
+        kappa_p = kappa_0*VGas[RHO]*units.GetDensity()/rho_0*std::pow(T/T_0,-3.5);
         kappa_r = kappa_p;
       } else if (kappa_type == Type_opac::usertable) {
         real logT = std::log10(T);
