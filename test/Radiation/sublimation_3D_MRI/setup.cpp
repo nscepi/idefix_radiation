@@ -172,6 +172,7 @@ void UserdefBoundaryRad(Fluid<RadiationPhysics> *radiation, int dir, BoundarySid
 
   IdefixArray1D<real> x1 = data->x[IDIR];
   IdefixArray1D<real> x2 = data->x[JDIR];
+
   if(dir==IDIR) {
     int ighost,nxi,iend,ibeg;
     if(side == left) {
@@ -184,7 +185,7 @@ void UserdefBoundaryRad(Fluid<RadiationPhysics> *radiation, int dir, BoundarySid
         ibeg, iend,
         KOKKOS_LAMBDA (int k, int j, int i) {
           Vc(ER,k,j,i) = Vc(ER,k,j,ighost);    
-          Vc(FR1,k,j,i) = flux_stellar*std::pow(data->x[IDIR](ighost),-2.);              
+          Vc(FR1,k,j,i) = flux_stellar*std::pow(x1(ighost),-2.);              
           Vc(FR2,k,j,i) = Vc(FR2,k,j,ighost);
           Vc(FR3,k,j,i) = Vc(FR3,k,j,ighost);
         });
