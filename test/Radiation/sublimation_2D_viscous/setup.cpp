@@ -28,8 +28,10 @@ real MGlob;
 real GGlob;
 real densityFloorGlob;
 real TMriGlob;
+real rhoindexGlob;
 
 Column *columnGlob;
+Column *columnGlob2;
 LookupTable<1> *kappatableGlob;
 
 
@@ -71,7 +73,7 @@ void MyKappa(DataBlock &data, IdefixArray3D<real> &kappap, IdefixArray3D<real> &
                 } else {
                   f_gtod = f_delta*0.25*(1.-std::tanh(std::pow((T-Tsublim)/Twidth,3.)));
                 }
-                f_gtod *= 1.-std::tanh(2./3.-tau(k,j,i));
+                //f_gtod *= 1.-std::tanh(2./3.-tau(k,j,i));
                 kappap(k,j,i) = kappa_star*f_gtod+kappa_gas;
                 kappar(k,j,i) = kappa_star*f_gtod+kappa_gas;
               });
@@ -105,6 +107,110 @@ void MyViscosity(DataBlock &data, const real t, IdefixArray3D<real> &eta1, Idefi
 
 }
 
+void UserdefBoundaryNoStress(Fluid<DefaultPhysics> *hydro, int dir, BoundarySide side, real t) {
+  IdefixArray4D<real> Vc = hydro->Vc;
+  auto *data = hydro->data;
+  IdefixArray1D<real> x1 = data->x[IDIR];
+  IdefixArray1D<real> x2 = data->x[JDIR];
+  real rhomin = densityFloorGlob/idfx::units.GetDensity();
+  
+  if(dir==IDIR) {
+    int ighost,nxi,iend,ibeg;
+    if(side == left) {
+      ighost = data->nghost[IDIR];
+      ibeg = 0;
+      iend = data->beg[IDIR];
+      idefix_for("UserDefBoundary",
+        0, data->np_tot[KDIR],
+        0, data->np_tot[JDIR],
+        ibeg, iend,
+        KOKKOS_LAMBDA (int k, int j, int i) {
+          Vc(RHO,k,j,i) = Vc(RHO,k,j,ighost);
+          Vc(VX3,k,j,i) = x1(i)*std::sin(x2(j))*Vc(VX3,k,j,ighost)/(x1(ighost)*std::sin(x2(j)));
+
+          Vc(PRS,k,j,i) = Vc(PRS,k,j,ighost)/Vc(RHO,k,j,ighost)*Vc(RHO,k,j,i);
+          if(Vc(VX1,k,j,ighost)>=ZERO_F){
+            Vc(VX1,k,j,i)=ZERO_F;
+          }else {
+            Vc(VX1,k,j,i) = Vc(VX1,k,j,ighost);
+          }
+          Vc(VX2,k,j,i) = Vc(VX2,k,j,ighost);
+        });
+    } else if (side ==right) {
+      ighost = data->nghost[IDIR];
+      nxi = data->np_int[IDIR];
+      ibeg = data->end[IDIR];
+      iend = data->np_tot[IDIR];
+      idefix_for("UserDefBoundary",
+        0, data->np_tot[KDIR],
+        0, data->np_tot[JDIR],
+        ibeg, iend,
+        KOKKOS_LAMBDA (int k, int j, int i) {
+          Vc(RHO,k,j,i) = Vc(RHO,k,j,ighost+nxi-1);
+          Vc(VX3,k,j,i) = Vc(VX3,k,j,ighost+nxi-1);
+
+          Vc(PRS,k,j,i) = Vc(PRS,k,j,ighost+nxi-1)/Vc(RHO,k,j,ighost+nxi-1)*Vc(RHO,k,j,i);
+          if(Vc(VX1,k,j,ighost+nxi-1)<=ZERO_F){
+            Vc(VX1,k,j,i)=ZERO_F;
+          }else {
+            Vc(VX1,k,j,i) = Vc(VX1,k,j,ighost+nxi-1);
+          }
+          Vc(VX2,k,j,i) = Vc(VX2,k,j,ighost+nxi-1);
+        });
+    }
+  }
+}
+
+void UserdefBoundaryRad(Fluid<RadiationPhysics> *radiation, int dir, BoundarySide side, real t) {
+  IdefixArray4D<real> Vc = radiation->Vc;
+  auto *data = radiation->data;
+  auto units=idfx::units;
+
+  real T0 = T0Glob;
+  real flux_stellar = std::pow(rsGlob/units.GetLength(),2.)*units.sigma_sb*std::pow(TsGlob,4.)/units.GetEnergy()/units.c;
+
+  IdefixArray1D<real> x1 = data->x[IDIR];
+  IdefixArray1D<real> x2 = data->x[JDIR];
+  if(dir==IDIR) {
+    int ighost,nxi,iend,ibeg;
+    if(side == left) {
+      ighost = data->nghost[IDIR];
+      ibeg = 0;
+      iend = data->beg[IDIR];
+      idefix_for("UserDefBoundaryRad",
+        0, data->np_tot[KDIR],
+        0, data->np_tot[JDIR],
+        ibeg, iend,
+        KOKKOS_LAMBDA (int k, int j, int i) {
+          Vc(ER,k,j,i) = Vc(ER,k,j,ighost);    
+          Vc(FR1,k,j,i) = flux_stellar*std::pow(data->x[IDIR](ighost),-2.);              
+          Vc(FR2,k,j,i) = Vc(FR2,k,j,ighost);
+          Vc(FR3,k,j,i) = Vc(FR3,k,j,ighost);
+        });
+    } else if (side==right){
+      ighost = data->nghost[IDIR];
+      nxi = data->np_int[IDIR];
+      ibeg = data->end[IDIR];
+      iend =data->np_tot[IDIR];
+      idefix_for("UserDefBoundaryRad",
+        0, data->np_tot[KDIR],
+        0, data->np_tot[JDIR],
+        ibeg, iend,
+        KOKKOS_LAMBDA (int k, int j, int i) {
+          Vc(ER,k,j,i) = units.ar*std::pow(10.,4.)/units.GetEnergy();
+          if (Vc(FR1,k,j,ighost+nxi-1) <=ZERO_F){
+            Vc(FR1,k,j,i) = ZERO_F;
+          } else {
+            Vc(FR1,k,j,i) = Vc(FR1,k,j,ighost+nxi-1);
+          }
+          Vc(FR2,k,j,i) = Vc(FR2,k,j,ighost+nxi-1);
+          Vc(FR3,k,j,i) = Vc(FR3,k,j,ighost+nxi-1);
+        });
+    }
+  }
+}
+
+
 // Compute user variables which will be written in vtk files
 void ComputeUserVars(DataBlock & data, UserDefVariablesContainer &variables) {
   // Mirror data on Host
@@ -124,6 +230,7 @@ void ComputeUserVars(DataBlock & data, UserDefVariablesContainer &variables) {
   IdefixHostArray3D<real> dV=d.dV;
  
   IdefixArray3D<real> tau;
+  //IdefixArray3D<real> tau2;
   IdefixArray4D<real> Vc=(&data)->hydro->Vc;
   IdefixArray3D<real> kappa=(&data)->radiation[0]->radsource->kappapArr;
 
@@ -147,9 +254,12 @@ void ComputeUserVars(DataBlock & data, UserDefVariablesContainer &variables) {
   columnGlob->ComputeColumn(kapparho);
   tau = columnGlob->GetColumn();
   
-  
+  //columnGlob->ComputeColumn(Vc,RHO);
+  //tau = columnGlob->GetColumn();
+
 
   Kokkos::deep_copy(variables["tau"], tau);
+  //Kokkos::deep_copy(variables["tau2"], tau2);
   Kokkos::deep_copy(variables["dV"], dV);
 
   if(kappatypeGlob=="constant") {
@@ -207,10 +317,12 @@ void InternalBoundary(Hydro *hydro, const real t) {
     0, data->np_tot[JDIR],
     0, data->np_tot[IDIR],
               KOKKOS_LAMBDA (int k, int j, int i) {
-                if(Vc(RHO,k,j,i)*units.GetDensity() < densityFloor) {
+                if(Vc(RHO,k,j,i)*units.GetDensity() <= densityFloor) {
                   real T= Vc(PRS,k,j,i)/Vc(RHO,k,j,i);
                   Vc(RHO,k,j,i)=densityFloor/units.GetDensity();
                   Vc(PRS,k,j,i)=T*Vc(RHO,k,j,i);
+                  Vc(VX1,k,j,i)=ZERO_F;
+                  Vc(VX2,k,j,i)=ZERO_F;
                 }
               });
 }
@@ -228,6 +340,7 @@ Setup::Setup(Input &input, Grid &grid, DataBlock &data, Output &output)
   epsilonGlob = input.Get<real>("Setup","epsilon",0);
   R0Glob = input.Get<real>("Setup","R0",0);
   rho0Glob = input.Get<real>("Setup","rho0",0);
+  rhoindexGlob = input.Get<real>("Setup","rhoindex",0);
   rhominGlob = input.Get<real>("Setup","rhomin",0);
   T0Glob = input.Get<real>("Setup","T0",0);
   TsubGlob = input.Get<real>("Setup","Tsub",0);
@@ -256,14 +369,20 @@ Setup::Setup(Input &input, Grid &grid, DataBlock &data, Output &output)
   }
 
   columnGlob = new Column(IDIR,1,&data);
-  columnGlob->ComputeColumn(Vc,RHO);
+  columnGlob2 = new Column(IDIR,1,&data);
+  
   auto temp_array = columnGlob->GetColumn();
+  auto temp_array2 = columnGlob2->GetColumn();
   data.dump->RegisterVariable(temp_array,"tau");
+  data.dump->RegisterVariable(temp_array2,"tau2");
 
   data.radiation[0]->EnrollKappa(&MyKappa); 
   data.hydro->EnrollInternalBoundary(&InternalBoundary);
   data.hydro->viscosity->EnrollViscousDiffusivity(&MyViscosity);
-  //output.EnrollUserDefVariables(&ComputeUserVars);
+  output.EnrollUserDefVariables(&ComputeUserVars);
+  data.hydro->EnrollUserDefBoundary(&UserdefBoundaryNoStress);
+  data.radiation[0]->EnrollUserDefBoundary(&UserdefBoundaryRad);
+
 }
 
 Setup::~Setup() {
@@ -282,6 +401,7 @@ void Setup::InitFlow(DataBlock &data) {
     real R0 = R0Glob;
     real rho0 = rho0Glob;
     real rhomin = rhominGlob;
+    real rhoindex = rhoindexGlob;
     real T0 = T0Glob;
     real mu = muGlob;
     real epsilon = epsilonGlob;
@@ -297,7 +417,7 @@ void Setup::InitFlow(DataBlock &data) {
               real Omega = std::sqrt(CG)*std::pow(R,-1.5);
               real cs = H*Omega;
 
-              d.Vc(RHO,k,j,i) = (rho0*(R0/R)*std::exp(-0.25*M_PI*z2/(H*H))+rhomin)/idfx::units.GetDensity();
+              d.Vc(RHO,k,j,i) = (rho0*std::pow(R0/R,rhoindex)*std::exp(-0.25*M_PI*z2/(H*H))+rhomin)/idfx::units.GetDensity();
               d.Vc(PRS,k,j,i) = d.Vc(RHO,k,j,i)*T0/units.GetKelvin()/mu;
               d.Vc(VX1,k,j,i) = 0.;
               d.Vc(VX2,k,j,i) = 0.;
