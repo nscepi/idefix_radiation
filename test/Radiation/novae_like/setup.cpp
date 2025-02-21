@@ -1,7 +1,5 @@
 #include "idefix.hpp"
 #include "setup.hpp"
-#include "column.hpp"
-#include "lookupTable.hpp"
 
 real R0Glob;
 real rho0Glob;
@@ -9,30 +7,13 @@ real rhominGlob;
 real T0Glob;
 real muGlob;
 real gammaGlob;
-real rsGlob;
-real TsGlob;
-real kappaGlob;
-real kappairrGlob;
-std::string kappatypeGlob;
 real alphaMRIGlob;
-real alphaDZGlob;
-real epsilonGlob;
-real TsubGlob;
-real rhosGlob;
-real rhosindexGlob;
-real TwidthGlob;
-real f0Glob;
-real kappastarGlob;
-real kappagasGlob;
 real MGlob;
 real GGlob;
 real densityFloorGlob;
-real TMriGlob;
 real rhoindexGlob;
+real x1begGlob;
 
-Column *columnGlob;
-Column *columnGlob2;
-LookupTable<1> *kappatableGlob;
 
 void MyViscosity(DataBlock &data, const real t, IdefixArray3D<real> &eta1, IdefixArray3D<real> &eta2) {
   auto units = idfx::units;
@@ -41,20 +22,16 @@ void MyViscosity(DataBlock &data, const real t, IdefixArray3D<real> &eta1, Idefi
   IdefixArray4D<real> Vc=data.hydro->Vc;
   IdefixArray1D<real> r=data.x[IDIR];
   IdefixArray1D<real> th=data.x[JDIR];
-  real alphaDZ = alphaDZGlob;
   real alphaMRI = alphaMRIGlob;
   real CG = MGlob*GGlob;
   real R0 = R0Glob;
-  real T_MRI = TMriGlob;
-  real mu = muGlob;
 
   idefix_for("MyViscosity",0,data.np_tot[KDIR],0,data.np_tot[JDIR],0,data.np_tot[IDIR],
               KOKKOS_LAMBDA (int k, int j, int i) {
                 real R = FMAX(r(i)*sin(th(j)),R0);
                 real cs2 = Vc(PRS,k,j,i)/Vc(RHO,k,j,i);
-                real T = std::sqrt(cs2)*units.GetKelvin()*mu;
                 real Omega = std::sqrt(CG)*std::pow(R,-1.5);
-                real alpha = (alphaMRI-alphaDZ)*0.5*(1.-std::tanh((T_MRI-T)/25.))+alphaDZ;
+                real alpha = alphaMRI;
                 eta1(k,j,i) = alpha*cs2*Vc(RHO,k,j,i)/Omega;
                 eta2(k,j,i) = 0.;
               });
@@ -211,6 +188,8 @@ void InternalBoundary(Hydro *hydro, const real t) {
 
   real densityFloor = densityFloorGlob;
   real rhoindex = rhoindexGlob;
+  real x1beg = x1begGlob;
+  
   idefix_for("InternalBoundary",
     0, data->np_tot[KDIR],
     0, data->np_tot[JDIR],
@@ -236,7 +215,6 @@ Setup::Setup(Input &input, Grid &grid, DataBlock &data, Output &output)
 
   // Mirror data on Host
   alphaMRIGlob = input.Get<real>("Setup","alphaMRI",0);
-  epsilonGlob = input.Get<real>("Setup","epsilon",0);
   R0Glob = input.Get<real>("Setup","R0",0);
   rho0Glob = input.Get<real>("Setup","rho0",0);
   rhoindexGlob = input.Get<real>("Setup","rhoindex",0);
@@ -250,6 +228,8 @@ Setup::Setup(Input &input, Grid &grid, DataBlock &data, Output &output)
   muGlob = input.Get<real>("Hydro","mu",0);
   gammaGlob=data.hydro->eos->GetGamma();
 
+  x1begGlob = grid.xbeg[IDIR];
+
   data.hydro->EnrollInternalBoundary(&InternalBoundary);
   data.hydro->viscosity->EnrollViscousDiffusivity(&MyViscosity);
   data.hydro->EnrollUserDefBoundary(&UserdefBoundaryNoStress);
@@ -257,9 +237,6 @@ Setup::Setup(Input &input, Grid &grid, DataBlock &data, Output &output)
 
 }
 
-Setup::~Setup() {
-  delete columnGlob;
-}
 // This routine initialize the flow
 // Note that data is on the device.
 // One can therefore define locally
@@ -276,7 +253,6 @@ void Setup::InitFlow(DataBlock &data) {
     real rhoindex = rhoindexGlob;
     real T0 = T0Glob;
     real mu = muGlob;
-    real epsilon = epsilonGlob;
     real CG = MGlob*GGlob;
 
     for(int k = 0; k < d.np_tot[KDIR] ; k++) {
