@@ -98,7 +98,7 @@ void MyViscosity(DataBlock &data, const real t, IdefixArray3D<real> &eta1, Idefi
               KOKKOS_LAMBDA (int k, int j, int i) {
                 real R = FMAX(r(i)*sin(th(j)),R0);
                 real cs2 = Vc(PRS,k,j,i)/Vc(RHO,k,j,i);
-                real T = std::sqrt(cs2)*units.GetKelvin()*mu;
+                real T = cs2*units.GetKelvin()*mu;
                 real Omega = std::sqrt(CG)*std::pow(R,-1.5);
                 real alpha = (alphaMRI-alphaDZ)*0.5*(1.-std::tanh((T_MRI-T)/25.))+alphaDZ;
                 eta1(k,j,i) = alpha*cs2*Vc(RHO,k,j,i)/Omega;
