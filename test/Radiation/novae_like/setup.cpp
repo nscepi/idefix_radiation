@@ -195,7 +195,7 @@ void InternalBoundary(Hydro *hydro, const real t) {
     0, data->np_tot[JDIR],
     0, data->np_tot[IDIR],
               KOKKOS_LAMBDA (int k, int j, int i) {
-                real densfloor = densityFloor*std::pow(x1(0)/x1(i),rhoindex);
+                real densfloor = densityFloor*std::pow(x1beg/x1(i),rhoindex);
                 if(Vc(RHO,k,j,i)*units.GetDensity() <= densfloor) {
                   real T= Vc(PRS,k,j,i)/Vc(RHO,k,j,i);
                   Vc(RHO,k,j,i)=densfloor/units.GetDensity();
