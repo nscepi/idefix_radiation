@@ -254,6 +254,7 @@ void Setup::InitFlow(DataBlock &data) {
     real T0 = T0Glob;
     real mu = muGlob;
     real CG = MGlob*GGlob;
+    real x1beg = x1begGlob;
 
     for(int k = 0; k < d.np_tot[KDIR] ; k++) {
         for(int j = 0; j < d.np_tot[JDIR] ; j++) {
@@ -265,7 +266,7 @@ void Setup::InitFlow(DataBlock &data) {
               real cs = std::sqrt(T0/units.GetKelvin()/mu);
               real H = cs/Omega;
 
-              real densfloor = densityFloor*std::pow(d.x[IDIR](0)/d.x[IDIR](i),rhoindex);
+              real densfloor = densityFloor*std::pow(x1beg/d.x[IDIR](i),rhoindex);
               d.Vc(RHO,k,j,i) = (rho0*std::pow(R0/R,rhoindex)*std::exp(-0.25*M_PI*z2/(H*H))+densfloor)/idfx::units.GetDensity();
               d.Vc(PRS,k,j,i) = d.Vc(RHO,k,j,i)*T0/units.GetKelvin()/mu;
               d.Vc(VX1,k,j,i) = 0.;
