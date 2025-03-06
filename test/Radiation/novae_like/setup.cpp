@@ -68,13 +68,14 @@ void ComputeUserVars(DataBlock & data, UserDefVariablesContainer &variables) {
 
 }
 
+
 void UserdefBoundaryNoStress(Fluid<DefaultPhysics> *hydro, int dir, BoundarySide side, real t) {
   IdefixArray4D<real> Vc = hydro->Vc;
   auto *data = hydro->data;
   IdefixArray1D<real> x1 = data->x[IDIR];
   IdefixArray1D<real> x2 = data->x[JDIR];
   real rhomin = densityFloorGlob/idfx::units.GetDensity();
-
+  
   if(dir==IDIR) {
     int ighost,nxi,iend,ibeg;
     if(side == left) {
@@ -87,8 +88,7 @@ void UserdefBoundaryNoStress(Fluid<DefaultPhysics> *hydro, int dir, BoundarySide
         ibeg, iend,
         KOKKOS_LAMBDA (int k, int j, int i) {
           Vc(RHO,k,j,i) = Vc(RHO,k,j,ighost);
-          real delta_vphi_r = Vc(VX3,k,j,ighost+1)/x1(ighost+1)-Vc(VX3,k,j,ighost)/x1(ighost);
-          Vc(VX3,k,j,i) = x1(i)*(Vc(VX3,k,j,ighost)/x1(ighost)+(ighost-i)*delta_vphi_r);
+          Vc(VX3,k,j,i) = x1(i)*std::sin(x2(j))*Vc(VX3,k,j,ighost)/(x1(ighost)*std::sin(x2(j)));
 
           Vc(PRS,k,j,i) = Vc(PRS,k,j,ighost)/Vc(RHO,k,j,ighost)*Vc(RHO,k,j,i);
           if(Vc(VX1,k,j,ighost)>=ZERO_F){
@@ -143,13 +143,12 @@ void UserdefBoundaryRad(Fluid<RadiationPhysics> *radiation, int dir, BoundarySid
         0, data->np_tot[JDIR],
         ibeg, iend,
         KOKKOS_LAMBDA (int k, int j, int i) {
-          //Vc(ER,k,j,i) = units.ar*std::pow(10.,4.)/units.GetEnergy();
-          Vc(ER,k,j,i) = Vc(ER,k,j,ighost);;
+          Vc(ER,k,j,i) = Vc(ER,k,j,ighost);    
           if (Vc(FR1,k,j,ighost) >=ZERO_F){
             Vc(FR1,k,j,i) = ZERO_F;
           } else {
             Vc(FR1,k,j,i) = Vc(FR1,k,j,ighost);
-          }          
+          }
           Vc(FR2,k,j,i) = Vc(FR2,k,j,ighost);
           Vc(FR3,k,j,i) = Vc(FR3,k,j,ighost);
         });
@@ -163,8 +162,7 @@ void UserdefBoundaryRad(Fluid<RadiationPhysics> *radiation, int dir, BoundarySid
         0, data->np_tot[JDIR],
         ibeg, iend,
         KOKKOS_LAMBDA (int k, int j, int i) {
-          //Vc(ER,k,j,i) = units.ar*std::pow(10.,4.)/units.GetEnergy();
-          Vc(ER,k,j,i) = Vc(ER,k,j,ighost+nxi-1);
+          Vc(ER,k,j,i) = units.ar*std::pow(10.,4.)/units.GetEnergy();
           if (Vc(FR1,k,j,ighost+nxi-1) <=ZERO_F){
             Vc(FR1,k,j,i) = ZERO_F;
           } else {
@@ -176,6 +174,7 @@ void UserdefBoundaryRad(Fluid<RadiationPhysics> *radiation, int dir, BoundarySid
     }
   }
 }
+
 
 void InternalBoundary(Hydro *hydro, const real t) {
   auto *data = hydro->data;

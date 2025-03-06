@@ -68,12 +68,13 @@ void MyKappa(DataBlock &data, IdefixArray3D<real> &kappap, IdefixArray3D<real> &
                 real T = Vc(PRS,k,j,i)/Vc(RHO,k,j,i)*units.GetKelvin()*mu;
                 real f_delta = 0.2/(Vc(RHO,k,j,i)*units.GetDensity()*kappa_star*dr(i)*units.GetLength())-kappa_gas/kappa_star;
                 real f_gtod;
-                if ((T < Tsublim) || (tau(k,j,i) > 3.)){
-                  f_gtod = f0;
-                } else {
-                  f_gtod = f_delta*0.25*(1.-std::tanh(std::pow((T-Tsublim)/Twidth,3.)));
-                }
+                //if ((T < Tsublim) || (tau(k,j,i) > 3.)){
+                //  f_gtod = f0;
+                //} else {
+                //  f_gtod = f_delta*0.25*(1.-std::tanh(std::pow((T-Tsublim)/Twidth,3.)));
+                //}
                 //f_gtod *= 1.-std::tanh(2./3.-tau(k,j,i));
+                f_gtod = 1.e-3;
                 kappap(k,j,i) = kappa_star*f_gtod+kappa_gas;
                 kappar(k,j,i) = kappa_star*f_gtod+kappa_gas;
               });
@@ -100,7 +101,7 @@ void MyViscosity(DataBlock &data, const real t, IdefixArray3D<real> &eta1, Idefi
                 real cs2 = Vc(PRS,k,j,i)/Vc(RHO,k,j,i);
                 real T = cs2*units.GetKelvin()*mu;
                 real Omega = std::sqrt(CG)*std::pow(R,-1.5);
-                real alpha = (alphaMRI-alphaDZ)*0.5*(1.-std::tanh((T_MRI-T)/25.))+alphaDZ;
+                real alpha = (alphaMRI-alphaDZ)*0.5*(1.-std::tanh((T_MRI-T)/250.))+alphaDZ;
                 eta1(k,j,i) = alpha*cs2*Vc(RHO,k,j,i)/Omega;
                 eta2(k,j,i) = 0.;
               });
@@ -183,7 +184,11 @@ void UserdefBoundaryRad(Fluid<RadiationPhysics> *radiation, int dir, BoundarySid
         ibeg, iend,
         KOKKOS_LAMBDA (int k, int j, int i) {
           Vc(ER,k,j,i) = Vc(ER,k,j,ighost);    
-          Vc(FR1,k,j,i) = flux_stellar*std::pow(data->x[IDIR](ighost),-2.);              
+          if (Vc(FR1,k,j,ighost) >=ZERO_F){
+            Vc(FR1,k,j,i) = ZERO_F;
+          } else {
+            Vc(FR1,k,j,i) = Vc(FR1,k,j,ighost);
+          }
           Vc(FR2,k,j,i) = Vc(FR2,k,j,ighost);
           Vc(FR3,k,j,i) = Vc(FR3,k,j,ighost);
         });
