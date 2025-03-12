@@ -11,6 +11,156 @@
 #include "lookupTable.hpp"
 #include "column.hpp"
 
+void RadSource::RelativistCorrection(const real dt) {
+  idfx::pushRegion("RadSource::RelativistCorrection");
+
+  auto UcGas = this->UcGas;
+  auto VcGas = this->VcGas;
+  auto UcRad = this->UcRad;
+  auto VcRad = this->VcRad;
+ 
+  auto units = idfx::units;
+
+  auto kp1D = this->kappa_planck_1D;
+  auto kr1D = this->kappa_ross_1D;
+  auto xi1D = this->xi_1D;
+
+  // Local copy of opacity parameters
+  const Type_opac kappa_type = this->kappa_type;
+  IdefixArray3D<real> kappapArr;
+  IdefixArray3D<real> kapparArr;
+  IdefixArray3D<real> xiArr;
+  real kappa_0,rho_0,T_0,xi_0;
+  if (kappa_type == Type_opac::constant) {
+    kappa_0 = this->kappa_0;
+  } else if (kappa_type == Type_opac::kramers) {
+    kappa_0 = this->kappa_0;
+    T_0 = this->T_0;
+    rho_0 = this->rho_0;
+  } else if (kappa_type == Type_opac::userfunc) {
+    kappapArr = this->kappapArr;
+    kapparArr = this->kapparArr;
+  }
+
+  const Type_opac xi_type = this->xi_type;
+  if (xi_type == Type_opac::constant) {
+    xi_0 = this->xi_0;
+  } else if (xi_type == Type_opac::userfunc) {
+    xiArr = this->xiArr;
+  }
+
+  idefix_for("RadSourceRelativistCorrection",0,data->np_tot[KDIR],0,data->np_tot[JDIR],0,data->np_tot[IDIR],
+    KOKKOS_LAMBDA (int k, int j, int i) {
+
+      real URad[RadiationPhysics::nvar];
+      real VRad[RadiationPhysics::nvar];
+      real VGas[DefaultPhysics::nvar];
+
+      real kappa_p, kappa_r, xi;
+      real reduced_c = this->reduced_c;
+
+      for(int nv = 0 ; nv < RadiationPhysics::nvar ; nv++) {
+        URad[nv] = UcRad(nv,k,j,i);
+        VRad[nv] = UcRad(nv,k,j,i);
+      }
+      for(int nv = 0 ; nv < DefaultPhysics::nvar ; nv++) {
+        VGas[nv] = VcGas(nv,k,j,i);
+      }
+
+      real T = VGas[PRS]/(VGas[RHO])*units.GetKelvin()*mu;
+
+      // Compute opacities
+      if (kappa_type == Type_opac::constant) {
+        kappa_p = kappa_0;
+        kappa_r = kappa_0;
+      } else if (kappa_type == Type_opac::kramers) {
+        kappa_p = kappa_0*VGas[RHO]*units.GetDensity()/rho_0*std::pow(T/T_0,-3.5);
+        kappa_r = kappa_p;
+      } else if (kappa_type == Type_opac::usertable) {
+        real logT = std::log10(T);
+        kappa_p = kp1D.Get(&logT);
+        kappa_r = kr1D.Get(&logT);
+      } else if (kappa_type == Type_opac::userfunc) {
+        kappa_p = kappapArr(k,j,i);
+        kappa_r = kapparArr(k,j,i);
+      }
+
+      if (xi_type == Type_opac::constant) {
+        xi = xi_0;
+      } else if (xi_type == Type_opac::usertable) {
+        real logT = std::log10(T);
+        xi = xi1D.Get(&logT);
+      } else if (xi_type== Type_opac::userfunc) {
+        xi = xiArr(k,j,i);
+      }
+
+      // Compute beta parameter vector
+      EXPAND(real beta1 = VGas[VX1]*units.GetVelocity()/units.c;,
+             real beta2 = VGas[VX2]*units.GetVelocity()/units.c;,
+             real beta3 = VGas[VX3]*units.GetVelocity()/units.c;)   
+
+      // Dot product of beta and Fr
+      real betaFr = EXPAND(VRad[FR1]*beta1,+VRad[FR2]*beta2,+VRad[FR3]*beta3);
+
+      // Compute beta**2
+      real betasq = EXPAND(beta1*beta1,+beta2*beta2,+beta3*beta3);
+
+      // Compute radiation pressure tensor
+      real Fnorm2 = EXPAND(VRad[FR1]*VRad[FR1] , + VRad[FR2]*VRad[FR2], + VRad[FR3]*VRad[FR3]);
+      real inv_Fnorm2 = (Fnorm2 <= 1.e-100 ? 1.e-100 : ONE_F / Fnorm2);
+      real Er2 = VRad[ER]*VRad[ER];
+      real f_param2 = (Er2 < 1.e-100 ? Fnorm2/(1.e-100) : Fnorm2/(Er2));
+      real chi  = 3.+4.*f_param2;
+      chi /= 5.+2.*std::sqrt(4.-3.*f_param2);
+  
+      // Add momentum-like part of the radiation pressure tensor
+      EXPAND ( real P11 = HALF_F*(3.*chi-1.)*VRad[ER]*VRad[FR1]*VRad[FR1]*inv_Fnorm2;, 
+               real P12 = HALF_F*(3.*chi-1.)*VRad[ER]*VRad[FR1]*VRad[FR2]*inv_Fnorm2;
+               real P22 = HALF_F*(3.*chi-1.)*VRad[ER]*VRad[FR2]*VRad[FR2]*inv_Fnorm2;,
+               real P13 = HALF_F*(3.*chi-1.)*VRad[ER]*VRad[FR1]*VRad[FR3]*inv_Fnorm2;
+               real P23 = HALF_F*(3.*chi-1.)*VRad[ER]*VRad[FR2]*VRad[FR3]*inv_Fnorm2;
+               real P33 = HALF_F*(3.*chi-1.)*VRad[ER]*VRad[FR3]*VRad[FR3]*inv_Fnorm2;)
+
+
+      // Add pressure-like part of the radiation pressure tensor
+      EXPAND ( P11 += HALF_F*(1.-chi)*VRad[ER];,
+               P22 += HALF_F*(1.-chi)*VRad[ER];,
+               P33 += HALF_F*(1.-chi)*VRad[ER];)
+      
+      // Compute beta.(beta.P)
+      real beta2P = EXPAND(beta1*beta1*P11, +2.*beta1*beta2*P12+beta2*beta2*P22, +2.*beta1*beta3*P13+2.*beta2*beta3*P23+beta3*beta3*P33);
+      
+      // Add relativistic correction to energy source term
+      real G0 = -2.*betaFr*kappa_p;
+      G0 += xi*(betaFr - betasq*VRad[ER] - beta2P);
+      G0 *= VGas[RHO]*units.GetDensity()*reduced_c*units.GetVelocity()*dt*units.GetTime();
+
+      // Add relativistic correction to flux source term
+      EXPAND ( real G1 = -2.*kappa_p*betaFr*beta1;,
+               real G2 = -2.*kappa_p*betaFr*beta2;,
+               real G3 = -2.*kappa_p*betaFr*beta3;)
+
+      EXPAND ( G1 -= xi*(+beta1*P11+VRad[ER]*beta1);,
+               G1 -= xi*beta2*P12;
+               G2 -= xi*(beta1*P12+beta2*P22+VRad[ER]*beta2);,
+               G1 -= xi*beta3*P13;
+               G2 -= xi*beta3*P23;
+               G3 -= xi*(beta1*P13+beta2*P23+beta3*P33+VRad[ER]*beta3);)
+
+      URad[ER] -= G0*dt*units.GetTime()*reduced_c*units.GetVelocity(); 
+      EXPAND( URad[FR1] -= G1*dt*units.GetTime()*reduced_c*units.GetVelocity();,
+              URad[FR2] -= G2*dt*units.GetTime()*reduced_c*units.GetVelocity();, 
+              URad[FR3] -= G3*dt*units.GetTime()*reduced_c*units.GetVelocity();)
+
+      for(int nv = 0 ; nv < RadiationPhysics::nvar ; nv++) {
+        UcRad(nv,k,j,i) = URad[nv];
+      }
+  });
+
+    
+
+}
+
 void RadSource::SourceFullImplicit(const real dt) {
   idfx::pushRegion("RadSource::Source_full_implicit");
 
