@@ -53,6 +53,7 @@ void RadSource::RelativistCorrection(const real dt) {
     KOKKOS_LAMBDA (int k, int j, int i) {
 
       real URad[RadiationPhysics::nvar];
+      real UGas[RadiationPhysics::nvar];
       real VRad[RadiationPhysics::nvar];
       real VGas[DefaultPhysics::nvar];
 
@@ -132,28 +133,37 @@ void RadSource::RelativistCorrection(const real dt) {
       
       // Add relativistic correction to energy source term
       real G0 = -2.*betaFr*kappa_p;
-      G0 += xi*(betaFr - betasq*VRad[ER] - beta2P);
-      G0 *= VGas[RHO]*units.GetDensity()*reduced_c*units.GetVelocity()*dt*units.GetTime();
+      G0 += (xi+kappa_p)*(betaFr - betasq*VRad[ER] - beta2P);
+      G0 *= VGas[RHO]*units.GetDensity();
 
       // Add relativistic correction to flux source term
-      EXPAND ( real G1 = -2.*kappa_p*betaFr*beta1;,
-               real G2 = -2.*kappa_p*betaFr*beta2;,
-               real G3 = -2.*kappa_p*betaFr*beta3;)
+      EXPAND ( real G1 = -2.*kappa_r*betaFr*beta1;,
+               real G2 = -2.*kappa_r*betaFr*beta2;,
+               real G3 = -2.*kappa_r*betaFr*beta3;)
 
-      EXPAND ( G1 -= xi*(+beta1*P11+VRad[ER]*beta1);,
-               G1 -= xi*beta2*P12;
-               G2 -= xi*(beta1*P12+beta2*P22+VRad[ER]*beta2);,
-               G1 -= xi*beta3*P13;
-               G2 -= xi*beta3*P23;
-               G3 -= xi*(beta1*P13+beta2*P23+beta3*P33+VRad[ER]*beta3);)
+      EXPAND ( G1 -= (xi+kappa_r)*(+beta1*P11+VRad[ER]*beta1);,
+               G1 -= (xi+kappa_r)*beta2*P12;
+               G2 -= (xi+kappa_r)*(beta1*P12+beta2*P22+VRad[ER]*beta2);,
+               G1 -= (xi+kappa_r)*beta3*P13;
+               G2 -= (xi+kappa_r)*beta3*P23;
+               G3 -= (xi+kappa_r)*(beta1*P13+beta2*P23+beta3*P33+VRad[ER]*beta3);)
+      EXPAND ( G1 *= VGas[RHO]*units.GetDensity();,
+               G2 *= VGas[RHO]*units.GetDensity();,
+               G3 *= VGas[RHO]*units.GetDensity();)
 
       URad[ER] -= G0*dt*units.GetTime()*reduced_c*units.GetVelocity(); 
-      EXPAND( URad[FR1] -= G1*dt*units.GetTime()*reduced_c*units.GetVelocity();,
-              URad[FR2] -= G2*dt*units.GetTime()*reduced_c*units.GetVelocity();, 
-              URad[FR3] -= G3*dt*units.GetTime()*reduced_c*units.GetVelocity();)
+      UGas[ER] += G0*dt*units.GetTime()*reduced_c*units.GetVelocity(); 
+      EXPAND( URad[FR1] -= G1*dt*units.GetTime()*reduced_c*units.GetVelocity();
+              UGas[MX1] += G1*dt/units.GetLength();,
+              URad[FR2] -= G2*dt*units.GetTime()*reduced_c*units.GetVelocity(); 
+              UGas[MX2] += G2*dt/units.GetLength();,
+              URad[FR3] -= G3*dt*units.GetTime()*reduced_c*units.GetVelocity();
+              UGas[MX3] += G3*dt/units.GetLength();)
+
 
       for(int nv = 0 ; nv < RadiationPhysics::nvar ; nv++) {
         UcRad(nv,k,j,i) = URad[nv];
+        UcGas(nv,k,j,i) = UGas[nv];
       }
   });
 
