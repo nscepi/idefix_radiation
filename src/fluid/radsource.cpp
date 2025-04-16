@@ -49,11 +49,11 @@ void RadSource::RelativistCorrection(const real dt) {
     xiArr = this->xiArr;
   }
 
-  idefix_for("RadSourceRelativistCorrection",0,data->np_tot[KDIR],0,data->np_tot[JDIR],0,data->np_tot[IDIR],
+   idefix_for("RadSourceRelativistCorrection",0,data->np_tot[KDIR],0,data->np_tot[JDIR],0,data->np_tot[IDIR],
     KOKKOS_LAMBDA (int k, int j, int i) {
 
       real URad[RadiationPhysics::nvar];
-      real UGas[RadiationPhysics::nvar];
+      real UGas[DefaultPhysics::nvar];
       real VRad[RadiationPhysics::nvar];
       real VGas[DefaultPhysics::nvar];
 
@@ -62,12 +62,20 @@ void RadSource::RelativistCorrection(const real dt) {
 
       for(int nv = 0 ; nv < RadiationPhysics::nvar ; nv++) {
         URad[nv] = UcRad(nv,k,j,i);
-        VRad[nv] = UcRad(nv,k,j,i);
+        VRad[nv] = VcRad(nv,k,j,i);
       }
       for(int nv = 0 ; nv < DefaultPhysics::nvar ; nv++) {
         VGas[nv] = VcGas(nv,k,j,i);
+        UGas[nv] = UcGas(nv,k,j,i);
       }
 
+      // Compute total modified energy and momentum
+      real Etot = UGas[ENG]+URad[ER]*units.c/(reduced_c*units.GetVelocity());
+      EXPAND(real m1tot = UGas[MX1]+URad[FR1]/reduced_c;,
+             real m2tot = UGas[MX2]+URad[FR2]/reduced_c;,
+             real m3tot = UGas[MX3]+URad[FR3]/reduced_c;)
+
+      real mu = eos.GetMu(VGas[PRS],VGas[RHO]);
       real T = VGas[PRS]/(VGas[RHO])*units.GetKelvin()*mu;
 
       // Compute opacities
@@ -122,7 +130,6 @@ void RadSource::RelativistCorrection(const real dt) {
                real P23 = HALF_F*(3.*chi-1.)*VRad[ER]*VRad[FR2]*VRad[FR3]*inv_Fnorm2;
                real P33 = HALF_F*(3.*chi-1.)*VRad[ER]*VRad[FR3]*VRad[FR3]*inv_Fnorm2;)
 
-
       // Add pressure-like part of the radiation pressure tensor
       EXPAND ( P11 += HALF_F*(1.-chi)*VRad[ER];,
                P22 += HALF_F*(1.-chi)*VRad[ER];,
@@ -137,11 +144,12 @@ void RadSource::RelativistCorrection(const real dt) {
       G0 *= VGas[RHO]*units.GetDensity();
 
       // Add relativistic correction to flux source term
-      EXPAND ( real G1 = -2.*kappa_r*betaFr*beta1;,
-               real G2 = -2.*kappa_r*betaFr*beta2;,
-               real G3 = -2.*kappa_r*betaFr*beta3;)
+      EXPAND ( real G1 = kappa_r*beta1*(VRad[ER]-units.ar*std::pow(T,4)/units.GetEnergy()-2.*betaFr);,
+              real G2 = kappa_r*beta2*(VRad[ER]-units.ar*std::pow(T,4)/units.GetEnergy()-2.*betaFr);,
+               real G3 = kappa_r*beta3*(VRad[ER]-units.ar*std::pow(T,4)/units.GetEnergy()-2.*betaFr);)
+      
 
-      EXPAND ( G1 -= (xi+kappa_r)*(+beta1*P11+VRad[ER]*beta1);,
+      EXPAND ( G1 -= (xi+kappa_r)*(beta1*P11+VRad[ER]*beta1);,
                G1 -= (xi+kappa_r)*beta2*P12;
                G2 -= (xi+kappa_r)*(beta1*P12+beta2*P22+VRad[ER]*beta2);,
                G1 -= (xi+kappa_r)*beta3*P13;
@@ -151,20 +159,30 @@ void RadSource::RelativistCorrection(const real dt) {
                G2 *= VGas[RHO]*units.GetDensity();,
                G3 *= VGas[RHO]*units.GetDensity();)
 
+
       URad[ER] -= G0*dt*units.GetTime()*reduced_c*units.GetVelocity(); 
-      UGas[ER] += G0*dt*units.GetTime()*reduced_c*units.GetVelocity(); 
-      EXPAND( URad[FR1] -= G1*dt*units.GetTime()*reduced_c*units.GetVelocity();
-              UGas[MX1] += G1*dt/units.GetLength();,
-              URad[FR2] -= G2*dt*units.GetTime()*reduced_c*units.GetVelocity(); 
-              UGas[MX2] += G2*dt/units.GetLength();,
-              URad[FR3] -= G3*dt*units.GetTime()*reduced_c*units.GetVelocity();
-              UGas[MX3] += G3*dt/units.GetLength();)
+      EXPAND( URad[FR1] -= G1*dt*units.GetTime()*reduced_c*units.GetVelocity();,
+              URad[FR2] -= G2*dt*units.GetTime()*reduced_c*units.GetVelocity();, 
+              URad[FR3] -= G3*dt*units.GetTime()*reduced_c*units.GetVelocity();)
 
-
+      if ((Etot - URad[ER]*units.c/(reduced_c*units.GetVelocity()))<=ZERO_F) {
+        Kokkos::abort("ENG=0 in RadSourceRelativistCorrection");
+      } else {
+        UGas[ENG] = Etot - URad[ER]*units.c/(reduced_c*units.GetVelocity());
+      }
+      EXPAND( UGas[MX1] = m1tot - URad[FR1]/reduced_c;,
+              UGas[MX2] = m2tot - URad[FR2]/reduced_c;,
+              UGas[MX3] = m3tot - URad[FR3]/reduced_c;)
+              
       for(int nv = 0 ; nv < RadiationPhysics::nvar ; nv++) {
         UcRad(nv,k,j,i) = URad[nv];
+        VcRad(nv,k,j,i) = URad[nv];
+      }
+
+      for(int nv = 0 ; nv < DefaultPhysics::nvar ; nv++) {
         UcGas(nv,k,j,i) = UGas[nv];
       }
+      
   });
 
     
@@ -230,6 +248,7 @@ void RadSource::SourceFullImplicit(const real dt) {
     KOKKOS_LAMBDA (int k, int j, int i) {
   
       real URad[RadiationPhysics::nvar];
+      real VRad[RadiationPhysics::nvar];
       real UGas[DefaultPhysics::nvar];
       real VGas[DefaultPhysics::nvar];
 
@@ -237,6 +256,7 @@ void RadSource::SourceFullImplicit(const real dt) {
 
       for(int nv = 0 ; nv < RadiationPhysics::nvar ; nv++) {
         URad[nv] = UcRad(nv,k,j,i);
+        VRad[nv] = VcRad(nv,k,j,i);
       }
       for(int nv = 0 ; nv < DefaultPhysics::nvar ; nv++) {
         UGas[nv] = UcGas(nv,k,j,i);
@@ -244,7 +264,7 @@ void RadSource::SourceFullImplicit(const real dt) {
       }
 
       // Compute total modified energy
-      real Etot = UGas[ENG]+URad[ER]*units.c/(reduced_c*units.GetVelocity());
+      real Etot = UGas[ENG]+VRad[ER]*units.c/(reduced_c*units.GetVelocity());
       
       // Add irradiation heating if needed
       if (irr_flag){  
@@ -252,17 +272,17 @@ void RadSource::SourceFullImplicit(const real dt) {
       }
       
       // Compute total modified momentum
-      EXPAND(real m1tot = UGas[MX1]+URad[FR1]/reduced_c;,
-             real m2tot = UGas[MX2]+URad[FR2]/reduced_c;,
-             real m3tot = UGas[MX3]+URad[FR3]/reduced_c;)
+      EXPAND(real m1tot = UGas[MX1]+VRad[FR1]/reduced_c;,
+             real m2tot = UGas[MX2]+VRad[FR2]/reduced_c;,
+             real m3tot = UGas[MX3]+VRad[FR3]/reduced_c;)
       
       // Store conserved variables after hyperbolic step
-      real Er_hyp = URad[ER];
-      EXPAND(real Fr1_hyp = URad[FR1];,
-             real Fr2_hyp = URad[FR2];,
-             real Fr3_hyp = URad[FR3];)
+      real Er_hyp = VRad[ER];
+      EXPAND(real Fr1_hyp = VRad[FR1];,
+             real Fr2_hyp = VRad[FR2];,
+             real Fr3_hyp = VRad[FR3];)
 
-      real Fnorm = std::sqrt(EXPAND(URad[FR1]*URad[FR1] , + URad[FR2]*URad[FR2], + URad[FR3]*URad[FR3]));
+      real Fnorm = std::sqrt(EXPAND(VRad[FR1]*VRad[FR1] , + VRad[FR2]*VRad[FR2], + VRad[FR3]*VRad[FR3]));
         
       real mu = eos.GetMu(VGas[PRS],VGas[RHO]);
       real cv = units.k_B/(units.u*mu);
@@ -333,10 +353,9 @@ void RadSource::SourceFullImplicit(const real dt) {
       EXPAND( URad[FR1] = Fr1_hyp/(1.+xx_red);,
               URad[FR2] = Fr2_hyp/(1.+xx_red);,
               URad[FR3] = Fr3_hyp/(1.+xx_red);)
-      Fnorm = std::sqrt(EXPAND(URad[FR1]*URad[FR1] , + URad[FR2]*URad[FR2], + URad[FR3]*URad[FR3]));
 
       if ((Etot - URad[ER]*units.c/(reduced_c*units.GetVelocity()))<=ZERO_F) {
-        Kokkos::abort("ENG=0 in Radsource");
+        Kokkos::abort("ENG=0 in RadSourceFullImplicit");
       } else {
         UGas[ENG] = Etot - URad[ER]*units.c/(reduced_c*units.GetVelocity());
       }
@@ -517,7 +536,7 @@ void RadSource::SourceFixedPointRad(const real dt) {
 
         // Update gas conservative variables
         if ((Etot - URad[ER]*units.c/(reduced_c*units.GetVelocity()))<=ZERO_F) {
-          Kokkos::abort("ENG=0 in Radsource");
+          Kokkos::abort("ENG=0 in RadSourceFixedPointRad");
         } else {
           UGas[ENG] = Etot - URad[ER]*units.c/(reduced_c*units.GetVelocity());
         }
@@ -706,7 +725,7 @@ void RadSource::SourceFixedPointGas(const real dt) {
 
         // Stop if URad <= 0
         if (URad[ER]<=ZERO_F) {
-          Kokkos::abort("ERad=0 in Radsource");
+          Kokkos::abort("ERad=0 in RadSourceFixedPointGas");
         }
 
         EXPAND( URad[FR1] = (m1tot - UGas[MX1])*reduced_c;,
