@@ -33,6 +33,9 @@ class RadSource {
   void SourceFullImplicit(const real);
   void SourceFixedPointRad(const real);
   void SourceFixedPointGas(const real);
+  
+  // Add Relativistic Corrections in an explicit way as in Melon & Fuksman & Klahr 2022
+  void RelativistCorrection(const real);
 
   // Compute divergence of external irradiation flux
   void IrrFlux(IdefixArray3D<real>);

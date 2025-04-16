@@ -74,7 +74,10 @@ void Fluid<Phys>::EvolveStage(const real t, const real dt) {
   if(haveDrag) drag->AddDragForce(dt);
 
   // Step 6: add radiation source terms 
-  if constexpr(Phys::radiation) radsource->AddRadSource(dt);
+  if constexpr(Phys::radiation) {
+    radsource->RelativistCorrection(dt);
+    radsource->AddRadSource(dt);
+  }
 
   if constexpr(Phys::mhd) {
     #if DIMENSIONS >= 2
