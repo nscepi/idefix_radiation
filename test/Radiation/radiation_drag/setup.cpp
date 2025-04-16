@@ -70,7 +70,7 @@ void InternalBoundary(Fluid<DefaultPhysics> *hydro, const real t) {
 void InternalBoundaryRad(Fluid<RadiationPhysics> *radiation, const real t) {
   IdefixArray4D<real> Vc = radiation->Vc;
   auto *data = radiation->data;
-
+  auto units = idfx::units;
   real mu = muGlob;
   real cs = idfx::units.c/BigCGlob;
   real T = cs*cs*mu*idfx::units.u/idfx::units.k_B;
@@ -79,7 +79,7 @@ void InternalBoundaryRad(Fluid<RadiationPhysics> *radiation, const real t) {
 
   idefix_for("InternalBoundary",0,data->np_tot[KDIR],0,data->np_tot[JDIR],0,data->np_tot[IDIR],
     KOKKOS_LAMBDA (int k, int j, int i) {
-        Vc(ER,k,j,i) = idfx::units.ar*std::pow(T,4.);
+        Vc(ER,k,j,i) = units.ar*std::pow(T,4.);
         //std::printf("Er=%e in InternalBoundary\n",Vc(ER,k,j,i));
     });
 
