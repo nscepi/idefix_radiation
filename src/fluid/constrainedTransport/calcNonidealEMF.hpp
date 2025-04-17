@@ -22,6 +22,7 @@ void ConstrainedTransport<Phys>::CalcNonidealEMF(real t) {
   IdefixArray3D<real> ey = this->ey;
   IdefixArray3D<real> ez = this->ez;
   IdefixArray4D<real> J = hydro->J;
+  IdefixArray4D<real> Jperp = hydro->Jperp;
   IdefixArray4D<real> Vs = hydro->Vs;
   IdefixArray4D<real> Vc = hydro->Vc;
 
@@ -78,18 +79,8 @@ void ConstrainedTransport<Phys>::CalcNonidealEMF(real t) {
       // Ambipolar diffusion
       if(haveAmbipolar) {
         if(ambipolar == UserDefFunction) xA = AVERAGE_3D_YZ(xAmbiArr,k,j,i);
-        Bx1 = AVERAGE_4D_XYZ(Vs, BX1s, k,j,i+1);
-        Bx2 = AVERAGE_4D_Z(Vs, BX2s, k, j, i);
-        Bx3 = AVERAGE_4D_Y(Vs, BX3s, k, j, i);
 
-        // Jx1 is already defined above
-        Jx2 = AVERAGE_4D_XY(J, JDIR, k, j, i+1);
-        Jx3 = AVERAGE_4D_XZ(J, KDIR, k, j, i+1);
-
-        real JdotB = (Jx1*Bx1 + Jx2*Bx2 + Jx3*Bx3);
-        real BdotB = (Bx1*Bx1 + Bx2*Bx2 + Bx3*Bx3);
-
-        ex(k,j,i) += xA * (BdotB*Jx1 - JdotB * Bx1);
+        ex(k,j,i) += xA * Jperp(IDIR,k,j,i);
       }
 
       // -----------------------
@@ -106,18 +97,8 @@ void ConstrainedTransport<Phys>::CalcNonidealEMF(real t) {
       // Ambipolar diffusion
       if(haveAmbipolar) {
         if(ambipolar == UserDefFunction) xA = AVERAGE_3D_XZ(xAmbiArr,k,j,i);
-        Bx1 = AVERAGE_4D_Z(Vs, BX1s, k, j, i);
-        Bx2 = AVERAGE_4D_XYZ(Vs, BX2s, k, j+1, i);
-        Bx3 = AVERAGE_4D_X(Vs, BX3s, k, j, i);
 
-        // Jx2 is already defined above
-        Jx1 = AVERAGE_4D_XY(J, IDIR, k, j+1, i);
-        Jx3 = AVERAGE_4D_YZ(J, KDIR, k, j+1, i);
-
-        real JdotB = (Jx1*Bx1 + Jx2*Bx2 + Jx3*Bx3);
-        real BdotB = (Bx1*Bx1 + Bx2*Bx2 + Bx3*Bx3);
-
-        ey(k,j,i) += xA * (BdotB*Jx2 - JdotB * Bx2);
+        ey(k,j,i) += xA * Jperp(JDIR,k,j,i);
       }
   #endif
       // -----------------------
@@ -134,39 +115,8 @@ void ConstrainedTransport<Phys>::CalcNonidealEMF(real t) {
       // Ambipolar diffusion
       if(haveAmbipolar) {
         if(ambipolar == UserDefFunction) xA = AVERAGE_3D_XY(xAmbiArr,k,j,i);
-        Bx1 = AVERAGE_4D_Y(Vs, BX1s, k, j, i);
-  #if DIMENSIONS >= 2
-        Bx2 = AVERAGE_4D_X(Vs, BX2s, k, j, i);
-  #else
-    #if COMPONENTS >= 2
-        Bx2 = AVERAGE_4D_XY(Vc, BX2, k, j, i);
-    #else
-        Bx2 = 0.0;
-    #endif
-  #endif
 
-  #if DIMENSIONS == 3
-        Bx3 = AVERAGE_4D_XYZ(Vs, BX3s, k+1, j, i);
-  #else
-      #if COMPONENTS == 3
-        Bx3 = AVERAGE_4D_XY(Vc, BX3, k, j, i);
-      #else
-        Bx3 = 0.0;
-      #endif
-  #endif
-
-        // Jx3 is already defined above
-  #if DIMENSIONS == 3
-        Jx1 = AVERAGE_4D_XZ(J, IDIR, k+1, j, i);
-        Jx2 = AVERAGE_4D_YZ(J, JDIR, k+1, j, i);
-  #else
-        Jx1 = AVERAGE_4D_X(J, IDIR, k, j, i);
-        Jx2 = AVERAGE_4D_Y(J, JDIR, k, j, i);
-  #endif
-        real JdotB = (Jx1*Bx1 + Jx2*Bx2 + Jx3*Bx3);
-        real BdotB = (Bx1*Bx1 + Bx2*Bx2 + Bx3*Bx3);
-
-        ez(k,j,i) += xA * (BdotB * Jx3 - JdotB * Bx3);
+        ez(k,j,i) += xA * Jperp(KDIR,k,j,i);
       }
     }
   );

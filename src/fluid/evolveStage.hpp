@@ -42,6 +42,7 @@ void Fluid<Phys>::EvolveStage(const real t, const real dt) {
   idfx::pushRegion("Fluid_"+prefix+"::EvolveStage");
   // Compute current when needed
   if(needExplicitCurrent) CalcCurrent();
+  if(needExplicitPerpCurrent) CalcPerpCurrent();
 
   if(hallStatus.status == UserDefFunction) {
     if(hallDiffusivityFunc)

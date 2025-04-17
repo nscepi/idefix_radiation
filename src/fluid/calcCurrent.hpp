@@ -192,4 +192,91 @@ void Fluid<Phys>::CalcCurrent() {
 
   idfx::popRegion();
 }
+
+
+// Compute the electrical current on faces
+template <typename Phys>
+void Fluid<Phys>::CalcPerpCurrent() {
+  idfx::pushRegion("Fluid::CalcPerpCurrent");
+  IdefixArray4D<real> Vc = this->Vc;
+  IdefixArray4D<real> Vs = this->Vs;
+  IdefixArray4D<real> J = this->J;
+  IdefixArray4D<real> Jperp = this->Jperp;
+
+  idefix_for("CalcCurrent",
+    data->beg[KDIR],data->end[KDIR]+KOFFSET,
+    data->beg[JDIR],data->end[JDIR]+JOFFSET,
+    data->beg[IDIR],data->end[IDIR]+IOFFSET,
+KOKKOS_LAMBDA (int k, int j, int i) {
+    real Bx1, Bx2, Bx3;
+    real Jx1, Jx2, Jx3;
+    real JdotB, BdotB;
+
+    // Along x
+    Bx1 = AVERAGE_4D_XYZ(Vs, BX1s, k,j,i+1);
+    Bx2 = AVERAGE_4D_Z(Vs, BX2s, k, j, i);
+    Bx3 = AVERAGE_4D_Y(Vs, BX3s, k, j, i);
+
+    // Jx1 is already defined above
+    Jx1 = J(IDIR,k,j,i);
+    Jx2 = AVERAGE_4D_XY(J, JDIR, k, j, i+1);
+    Jx3 = AVERAGE_4D_XZ(J, KDIR, k, j, i+1);
+
+    JdotB = (Jx1*Bx1 + Jx2*Bx2 + Jx3*Bx3);
+    BdotB = (Bx1*Bx1 + Bx2*Bx2 + Bx3*Bx3);
+
+    Jperp(IDIR,k,j,i) = BdotB*Jx1 - JdotB*Bx1;
+
+    // Along y
+
+    Bx1 = AVERAGE_4D_Z(Vs, BX1s, k, j, i);
+    Bx2 = AVERAGE_4D_XYZ(Vs, BX2s, k, j+1, i);
+    Bx3 = AVERAGE_4D_X(Vs, BX3s, k, j, i);
+
+    Jx1 = AVERAGE_4D_XY(J, IDIR, k, j+1, i);
+    Jx2 = J(JDIR,k,j,i);
+    Jx3 = AVERAGE_4D_YZ(J, KDIR, k, j+1, i);
+
+    JdotB = (Jx1*Bx1 + Jx2*Bx2 + Jx3*Bx3);
+    BdotB = (Bx1*Bx1 + Bx2*Bx2 + Bx3*Bx3);
+
+    Jperp(JDIR,k,j,i) = BdotB*Jx2 - JdotB * Bx2;
+
+    // Along z
+    Bx1 = AVERAGE_4D_Y(Vs, BX1s, k, j, i);
+    #if DIMENSIONS >= 2
+        Bx2 = AVERAGE_4D_X(Vs, BX2s, k, j, i);
+    #else
+      #if COMPONENTS >= 2
+          Bx2 = AVERAGE_4D_XY(Vc, BX2, k, j, i);
+      #else
+          Bx2 = 0.0;
+      #endif
+    #endif
+
+    #if DIMENSIONS == 3
+        Bx3 = AVERAGE_4D_XYZ(Vs, BX3s, k+1, j, i);
+    #else
+      #if COMPONENTS == 3
+        Bx3 = AVERAGE_4D_XY(Vc, BX3, k, j, i);
+      #else
+        Bx3 = 0.0;
+      #endif
+    #endif
+
+    Jx3 = J(KDIR,k,j,i);
+    #if DIMENSIONS == 3
+        Jx1 = AVERAGE_4D_XZ(J, IDIR, k+1, j, i);
+        Jx2 = AVERAGE_4D_YZ(J, JDIR, k+1, j, i);
+    #else
+        Jx1 = AVERAGE_4D_X(J, IDIR, k, j, i);
+        Jx2 = AVERAGE_4D_Y(J, JDIR, k, j, i);
+    #endif
+    JdotB = (Jx1*Bx1 + Jx2*Bx2 + Jx3*Bx3);
+    BdotB = (Bx1*Bx1 + Bx2*Bx2 + Bx3*Bx3);
+
+    Jperp(KDIR,k,j,i) = BdotB * Jx3 - JdotB * Bx3;
+  });
+  idfx::popRegion();
+}
 #endif //FLUID_CALCCURRENT_HPP_

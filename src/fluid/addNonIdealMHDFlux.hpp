@@ -25,6 +25,7 @@ void Fluid<Phys>::AddNonIdealMHDFlux(const real t) {
     IdefixArray4D<real> Vs   = this->Vs;
     IdefixArray3D<real> dMax = this->dMax;
     IdefixArray4D<real> J    = this->J;
+    IdefixArray4D<real> Jperp    = this->Jperp;
     IdefixArray3D<real> etaArr = this->etaOhmic;
     IdefixArray3D<real> xAmbiArr = this->xAmbipolar;
 
@@ -85,6 +86,7 @@ void Fluid<Phys>::AddNonIdealMHDFlux(const real t) {
               data->beg[IDIR],data->end[IDIR]+ioffset,
       KOKKOS_LAMBDA (int k, int j, int i) {
         real Jx1, Jx2, Jx3;
+        real Jperpx1, Jperpx2, Jperpx3;
         real Bx1, Bx2, Bx3;
         real eta,xA;
         real locdmax = 0.0;
@@ -143,18 +145,18 @@ void Fluid<Phys>::AddNonIdealMHDFlux(const real t) {
           }
 
           if(haveAmbipolar) {
+            EXPAND(                                              ,
+              Jperpx3 = AVERAGE_4D_Y(Jperp, KDIR, k, jp1, i);      ,
+              Jperpx2 = AVERAGE_4D_Z(Jperp, JDIR, kp1, j, i);
+              Jperpx1 = AVERAGE_4D_XYZ(Jperp, IDIR, kp1, jp1, i);  )
+
             if(ambipolar == UserDefFunction)
               xA = AVERAGE_3D_X(xAmbiArr,k,j,i);
 
-            [[maybe_unused]] real BdotB = EXPAND( Bx1*Bx1, +Bx2*Bx2, +Bx3*Bx3);
+            [[maybe_unused]] real Fx2 = -xA * Jperpx3;
+            [[maybe_unused]] real Fx3 = xA * Jperpx2;
 
-            [[maybe_unused]] real Fx2 = -xA * BdotB * Jx3;
-            [[maybe_unused]] real Fx3 = xA * BdotB * Jx2;
-            #if COMPONENTS == 3
-              real JdotB = Jx1 * Bx1 + Jx2 * Bx2 + Jx3 * Bx3;
-              Fx2 += xA * JdotB * Bx3;
-              Fx3 += -xA * JdotB * Bx2;
-            #endif
+            [[maybe_unused]] real BdotB = EXPAND( Bx1*Bx1, +Bx2*Bx2, +Bx3*Bx3);
             #if (DIMENSIONS < 2 && COMPONENTS >= 2)
               Flux(BX2,k,j,i) += Fx2;
             #endif
@@ -205,18 +207,17 @@ void Fluid<Phys>::AddNonIdealMHDFlux(const real t) {
 
 
           if(haveAmbipolar) {
+            EXPAND( Jperpx3 = AVERAGE_4D_X(Jperp, KDIR, k, j, ip1);   ,
+                                                              ,
+                    Jperpx1 = AVERAGE_4D_Z(Jperp, IDIR, kp1, j, i);
+                    Jperpx2 = AVERAGE_4D_XYZ(Jperp, JDIR, kp1, j, ip1);  )
             if(ambipolar == UserDefFunction)
               xA = AVERAGE_3D_Y(xAmbiArr,k,j,i);
 
             [[maybe_unused]] real BdotB = EXPAND( Bx1*Bx1, +Bx2*Bx2, +Bx3*Bx3);
 
-            [[maybe_unused]] real Fx1 = xA * BdotB * Jx3;
-            [[maybe_unused]] real Fx3 = -xA * BdotB * Jx1;
-            #if COMPONENTS == 3
-              real JdotB = Jx1 * Bx1 + Jx2 * Bx2 + Jx3 * Bx3;
-              Fx1 += -xA * JdotB * Bx3;
-              Fx3 += xA * JdotB * Bx1;
-            #endif
+            [[maybe_unused]] real Fx1 = xA * Jperpx3;
+            [[maybe_unused]] real Fx3 = -xA * Jperpx1;
 
             // This term is always overwritten by CT, since this sweep is performed whenver
             // DIMENSIONS>=2
@@ -262,18 +263,17 @@ void Fluid<Phys>::AddNonIdealMHDFlux(const real t) {
           }
 
           if(haveAmbipolar) {
+            Jperpx1 = AVERAGE_4D_Y(Jperp, IDIR, k, jp1, i);
+            Jperpx2 = AVERAGE_4D_X(Jperp, JDIR, k, j, ip1);
+            Jperpx3 = AVERAGE_4D_XYZ(Jperp, KDIR, k, jp1, ip1);
             if(ambipolar == UserDefFunction)
               xA = AVERAGE_3D_Z(xAmbiArr,k,j,i);
 
             [[maybe_unused]] real BdotB = Bx1*Bx1 + Bx2*Bx2 + Bx3*Bx3;
 
-            [[maybe_unused]] real Fx1 = -xA * BdotB * Jx2;
-            [[maybe_unused]] real Fx2 = xA * BdotB * Jx1;
-            #if COMPONENTS == 3
-              real JdotB = Jx1 * Bx1 + Jx2 * Bx2 + Jx3 * Bx3;
-              Fx1 += xA * JdotB * Bx2;
-              Fx2 += -xA * JdotB * Bx1;
-            #endif
+            [[maybe_unused]] real Fx1 = -xA * Jperpx2;
+            [[maybe_unused]] real Fx2 = xA * Jperpx1;
+
             // This is never needed since this is overwritten by CT
             //Flux(BX1,k,j,i) += Fx1;
             //Flux(BX2,k,j,i) += Fx2;

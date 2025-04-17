@@ -62,6 +62,7 @@ class Fluid {
   template <int> void AddNonIdealMHDFlux(const real);
   template <int> void CalcRightHandSide(real, real );
   void CalcCurrent();
+  void CalcPerpCurrent();
   void AddSourceTerms(real, real );
   void CoarsenFlow(IdefixArray4D<real>&);
   void CoarsenMagField(IdefixArray4D<real>&);
@@ -91,6 +92,11 @@ class Fluid {
   bool haveCurrent{false};
   bool needExplicitCurrent{false};
   bool needRKLCurrent{false};
+
+  // perp Current
+  bool havePerpCurrent{false};
+  bool needExplicitPerpCurrent{false};
+  bool needRKLPerpCurrent{false};
 
   // Nonideal MHD effects coefficients
   ParabolicModuleStatus resistivityStatus, ambipolarStatus, hallStatus;
@@ -178,7 +184,8 @@ class Fluid {
   IdefixArray4D<real> Ve;      // Main edge-centered varariables (only when EVOLVE_VECTOR_POTENTIAL)
   IdefixArray4D<real> Uc;      // Main cell-centered conservative variables
   IdefixArray4D<real> J;       // Electrical current
-  // (only defined when non-ideal MHD effects are enabled)
+                               // (only defined when non-ideal MHD effects are enabled)
+  IdefixArray4D<real> Jperp;       // B^2J_perp, used when AD is enabled
 
   // Name of the fields (used in outputs)
   std::vector<std::string> VcName;
@@ -516,14 +523,17 @@ Fluid<Phys>::Fluid(Grid &grid, Input &input, DataBlock *datain, int n) {
 
       if(input.CheckEntry(std::string(Phys::prefix),"ambipolar")>=0) {
         std::string opType = input.Get<std::string>(std::string(Phys::prefix),"ambipolar",0);
+        havePerpCurrent = true;
         if(opType.compare("explicit") == 0 ) {
           haveExplicitParabolicTerms = true;
           ambipolarStatus.isExplicit = true;
           needExplicitCurrent = true;
+          needExplicitPerpCurrent = true;
         } else if(opType.compare("rkl") == 0 ) {
           haveRKLParabolicTerms = true;
           ambipolarStatus.isRKL = true;
           needRKLCurrent = true;
+          needRKLPerpCurrent = true;
         } else {
           std::stringstream msg;
           msg  << "Unknown integration type for ambipolar: " << opType;
@@ -610,6 +620,13 @@ Fluid<Phys>::Fluid(Grid &grid, Input &input, DataBlock *datain, int n) {
     J = IdefixArray4D<real>(prefix+"_J", 3,
                             data->np_tot[KDIR], data->np_tot[JDIR], data->np_tot[IDIR]);
   }
+
+  if(this->havePerpCurrent) {
+    // Allocate perp current (when hydro needs it)
+    Jperp = IdefixArray4D<real>(prefix+"_Jperp", 3,
+                            data->np_tot[KDIR], data->np_tot[JDIR], data->np_tot[IDIR]);
+  }
+
 
   // Allocate nonideal MHD effects array when a user-defined function is used
   if(this->resistivityStatus.status ==  UserDefFunction)

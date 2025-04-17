@@ -702,6 +702,7 @@ void RKLegendre<Phys>::EvolveStage(real t) {
   ResetStage();
 
   if(haveVs && hydro->needRKLCurrent) hydro->CalcCurrent();
+  if(haveVs && hydro->needRKLPerpCurrent) hydro->CalcPerpCurrent();
 
   // Loop on dimensions for the parabolic fluxes and RHS, starting from IDIR
   if(haveVc || stage == 1) LoopDir<IDIR>(t);
