@@ -148,6 +148,9 @@ class RadSource {
   // Have irradiation or not
   bool haveIrradiation{false};
 
+  // Have relativist correction or not
+  bool haveRelativistCorrection{false};
+
   // Dimension of irradiation flux table 
   int irr_ndim;
   
@@ -307,6 +310,9 @@ RadSource::RadSource(Input &input, Fluid<Phys> *hydroin):
   } else {
     IDEFIX_ERROR("A *source* line in your [Rad] block is required in your input file to define the solver for the radiation source terms.");
   }
+ 
+  // Information on relativist correction
+  haveRelativistCorrection = input.GetOrSet<bool>(BlockName,"relativist_correction",0,false);
 
   // Information on irradiation source term
   if(input.CheckEntry(BlockName,"irr")>=0) {

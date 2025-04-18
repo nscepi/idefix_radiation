@@ -935,6 +935,8 @@ void RadSource::ShowConfig() {
 void RadSource::AddRadSource(const real dt) {
   idfx::pushRegion("RadSource::AddRadSource");
 
+  if(haveRelativistCorrection) RadSource::RelativistCorrection(dt);
+
   switch(source_solver) {
     case Type_isolver::full_implicit:
       RadSource::SourceFullImplicit(dt);
