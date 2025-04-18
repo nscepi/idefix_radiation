@@ -215,12 +215,24 @@ KOKKOS_LAMBDA (int k, int j, int i) {
     // Along x
     Bx1 = AVERAGE_4D_XYZ(Vs, BX1s, k,j,i+1);
     Bx2 = AVERAGE_4D_Z(Vs, BX2s, k, j, i);
-    Bx3 = AVERAGE_4D_Y(Vs, BX3s, k, j, i);
+    #if DIMENSIONS == 3
+      Bx3 = AVERAGE_4D_Y(Vs, BX3s, k, j, i);
+    #else 
+      #if COMPONENTS == 3
+        Bx3 = AVERAGE_4D_Y(Vc, BX3, k, j, i);
+      #else
+        Bx3 = 0.0;
+      #endif
+    #endif
 
     // Jx1 is already defined above
     Jx1 = J(IDIR,k,j,i);
     Jx2 = AVERAGE_4D_XY(J, JDIR, k, j, i+1);
-    Jx3 = AVERAGE_4D_XZ(J, KDIR, k, j, i+1);
+    #if DIMENSIONS == 3
+      Jx3 = AVERAGE_4D_XZ(J, KDIR, k, j, i+1);
+    #else
+      Jx3 = AVERAGE_4D_X(J, KDIR, k, j, i+1);
+    #endif
 
     JdotB = (Jx1*Bx1 + Jx2*Bx2 + Jx3*Bx3);
     BdotB = (Bx1*Bx1 + Bx2*Bx2 + Bx3*Bx3);
@@ -231,11 +243,23 @@ KOKKOS_LAMBDA (int k, int j, int i) {
 
     Bx1 = AVERAGE_4D_Z(Vs, BX1s, k, j, i);
     Bx2 = AVERAGE_4D_XYZ(Vs, BX2s, k, j+1, i);
-    Bx3 = AVERAGE_4D_X(Vs, BX3s, k, j, i);
+    #if DIMENSIONS == 3
+      Bx3 = AVERAGE_4D_X(Vs, BX3s, k, j+1, i);
+    #else
+      #if COMPONENTS == 3
+        Bx3 = AVERAGE_4D_X(Vc, BX3, k, j+1, i);
+      #else
+        Bx3 = 0;
+      #endif
+    #endif
 
     Jx1 = AVERAGE_4D_XY(J, IDIR, k, j+1, i);
     Jx2 = J(JDIR,k,j,i);
-    Jx3 = AVERAGE_4D_YZ(J, KDIR, k, j+1, i);
+    #if DIMENSIONS == 3
+      Jx3 = AVERAGE_4D_YZ(J, KDIR, k, j+1, i);
+    #else
+      Jx3 = AVERAGE_4D_Y(J, KDIR, k, j, i+1);
+    #endif
 
     JdotB = (Jx1*Bx1 + Jx2*Bx2 + Jx3*Bx3);
     BdotB = (Bx1*Bx1 + Bx2*Bx2 + Bx3*Bx3);
