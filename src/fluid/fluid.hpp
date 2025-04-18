@@ -311,17 +311,17 @@ Fluid<Phys>::Fluid(Grid &grid, Input &input, DataBlock *datain, int n) {
       this->haveUserfuncKappa = true;
       this->kappapArr = IdefixArray3D<real>("kappapArray",data->np_tot[KDIR],
                                           data->np_tot[JDIR],
-                                          data->np_tot[IDIR]);        
+                                          data->np_tot[IDIR]);
       this->kapparArr = IdefixArray3D<real>("kapparArray",data->np_tot[KDIR],
                                           data->np_tot[JDIR],
-                                          data->np_tot[IDIR]);  
-      
+                                          data->np_tot[IDIR]);
+
     }
     if(input.Get<std::string>(std::string(Phys::prefix),"xi",0).compare("userfunc") == 0) {
       this->haveUserfuncXi = true;
       this->xiArr = IdefixArray3D<real>("xiArray",data->np_tot[KDIR],
                                           data->np_tot[JDIR],
-                                          data->np_tot[IDIR]);  
+                                          data->np_tot[IDIR]);
     }
   }
 

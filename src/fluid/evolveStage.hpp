@@ -54,7 +54,7 @@ void Fluid<Phys>::EvolveStage(const real t, const real dt) {
   if constexpr(Phys::eos) {
     eos->Refresh(*data, t);
   }
-  
+
   // Compute userfunc opacities
   if constexpr(Phys::radiation) {
     if (haveUserfuncKappa){
@@ -74,7 +74,7 @@ void Fluid<Phys>::EvolveStage(const real t, const real dt) {
   // Step 5: add drag when needed
   if(haveDrag) drag->AddDragForce(dt);
 
-  // Step 6: add radiation source terms 
+  // Step 6: add radiation source terms
   if constexpr(Phys::radiation) {
     radsource->RelativistCorrection(dt);
     radsource->AddRadSource(dt);
