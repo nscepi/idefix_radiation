@@ -25,16 +25,24 @@ void RadSource::RelativistCorrection(const real dt) {
   auto kr1D = this->kappa_ross_1D;
   auto xi1D = this->xi_1D;
 
+  auto kp2D = this->kappa_planck_2D;
+  auto kr2D = this->kappa_ross_2D;
+  auto xi2D = this->xi_2D;
+
   // Local copy of opacity parameters
   const Type_opac kappa_type = this->kappa_type;
+  const int kappa_ndim = this->kappa_ndim;
+  const int xi_ndim = this->xi_ndim;
+  
   IdefixArray3D<real> kappapArr;
   IdefixArray3D<real> kapparArr;
   IdefixArray3D<real> xiArr;
-  real kappa_0,rho_0,T_0,xi_0;
+  real kappa_0,kappap_0,kappar_0,rho_0,T_0,xi_0;
   if (kappa_type == Type_opac::constant) {
     kappa_0 = this->kappa_0;
   } else if (kappa_type == Type_opac::kramers) {
-    kappa_0 = this->kappa_0;
+    kappap_0 = this->kappap_0;
+    kappar_0 = this->kappar_0;
     T_0 = this->T_0;
     rho_0 = this->rho_0;
   } else if (kappa_type == Type_opac::userfunc) {
@@ -83,12 +91,21 @@ void RadSource::RelativistCorrection(const real dt) {
         kappa_p = kappa_0;
         kappa_r = kappa_0;
       } else if (kappa_type == Type_opac::kramers) {
-        kappa_p = kappa_0*VGas[RHO]*units.GetDensity()/rho_0*std::pow(T/T_0,-3.5);
-        kappa_r = kappa_p;
+        kappa_p = kappap_0*VGas[RHO]*units.GetDensity()/rho_0*std::pow(T/T_0,-3.5);
+        kappa_r = kappar_0*VGas[RHO]*units.GetDensity()/rho_0*std::pow(T/T_0,-3.5);
       } else if (kappa_type == Type_opac::usertable) {
         real logT = std::log10(T);
-        kappa_p = kp1D.Get(&logT);
-        kappa_r = kr1D.Get(&logT);
+        real logrho = std::log10(VGas[RHO]*units.GetDensity());
+        if (kappa_ndim == 1) {
+          kappa_p = kp1D.Get(&logT);
+          kappa_r = kr1D.Get(&logT);
+        } else if (kappa_ndim == 2) {
+          real x[2];
+          x[1] = FMIN(FMAX(logT,2.5),5.98);
+          x[0] = FMIN(-4.05,FMAX(-14.,logrho));
+          kappa_p = std::pow(10.,kp2D.Get(x));
+          kappa_r = std::pow(10.,kr2D.Get(x));
+        }
       } else if (kappa_type == Type_opac::userfunc) {
         kappa_p = kappapArr(k,j,i);
         kappa_r = kapparArr(k,j,i);
@@ -98,7 +115,15 @@ void RadSource::RelativistCorrection(const real dt) {
         xi = xi_0;
       } else if (xi_type == Type_opac::usertable) {
         real logT = std::log10(T);
-        xi = xi1D.Get(&logT);
+        real logrho = std::log10(VGas[RHO]*units.GetDensity());
+        if (xi_ndim == 1) {
+          xi = xi1D.Get(&logT);
+        } else if (xi_ndim == 2) {
+          real x[2];
+          x[1] = logT;
+          x[0] = logrho;
+          xi = std::pow(10.,xi2D.Get(x));
+        }
       } else if (xi_type== Type_opac::userfunc) {
         xi = xiArr(k,j,i);
       }
@@ -140,13 +165,13 @@ void RadSource::RelativistCorrection(const real dt) {
       
       // Add relativistic correction to energy source term
       real G0 = -2.*betaFr*kappa_p;
-      G0 += (xi+kappa_p)*(betaFr - betasq*VRad[ER] - beta2P);
+      G0 += (xi+kappa_r)*(betaFr - betasq*VRad[ER] - beta2P);
       G0 *= VGas[RHO]*units.GetDensity();
 
       // Add relativistic correction to flux source term
-      EXPAND ( real G1 = kappa_r*beta1*(VRad[ER]-units.ar*std::pow(T,4)/units.GetEnergy()-2.*betaFr);,
-              real G2 = kappa_r*beta2*(VRad[ER]-units.ar*std::pow(T,4)/units.GetEnergy()-2.*betaFr);,
-               real G3 = kappa_r*beta3*(VRad[ER]-units.ar*std::pow(T,4)/units.GetEnergy()-2.*betaFr);)
+      EXPAND ( real G1 = kappa_p*beta1*(VRad[ER]-units.ar*std::pow(T,4)/units.GetEnergy()-2.*betaFr);,
+              real G2 = kappa_p*beta2*(VRad[ER]-units.ar*std::pow(T,4)/units.GetEnergy()-2.*betaFr);,
+               real G3 = kappa_p*beta3*(VRad[ER]-units.ar*std::pow(T,4)/units.GetEnergy()-2.*betaFr);)
       
 
       EXPAND ( G1 -= (xi+kappa_r)*(beta1*P11+VRad[ER]*beta1);,
@@ -166,7 +191,13 @@ void RadSource::RelativistCorrection(const real dt) {
               URad[FR3] -= G3*dt*units.GetTime()*reduced_c*units.GetVelocity();)
 
       if ((Etot - URad[ER]*units.c/(reduced_c*units.GetVelocity()))<=ZERO_F) {
-        Kokkos::abort("ENG=0 in RadSourceRelativistCorrection");
+        #ifdef SMALL_ER
+        URad[ER] = SMALL_ER;
+        std::printf("URad[ER]=%e UGas[ENG]=%e Etot=%e T=%e rho=%e kappap=%e at i=%i j=%i and k=%i\n",URad[ER],UGas[ENG],Etot,T,VGas[RHO]*units.GetDensity(),kappa_p,i,j,k);
+        //UGas[ENG] = Etot - URad[ER]*units.c/(reduced_c*units.GetVelocity());
+        #else
+        Kokkos::abort("ENG=0 in RadSourceFullImplicit");
+        #endif      
       } else {
         UGas[ENG] = Etot - URad[ER]*units.c/(reduced_c*units.GetVelocity());
       }
@@ -176,7 +207,6 @@ void RadSource::RelativistCorrection(const real dt) {
               
       for(int nv = 0 ; nv < RadiationPhysics::nvar ; nv++) {
         UcRad(nv,k,j,i) = URad[nv];
-        VcRad(nv,k,j,i) = URad[nv];
       }
 
       for(int nv = 0 ; nv < DefaultPhysics::nvar ; nv++) {
@@ -207,6 +237,10 @@ void RadSource::SourceFullImplicit(const real dt) {
   auto kr1D = this->kappa_ross_1D;
   auto xi1D = this->xi_1D;
 
+  auto kp2D = this->kappa_planck_2D;
+  auto kr2D = this->kappa_ross_2D;
+  auto xi2D = this->xi_2D;
+
   EquationOfState eos = this->eos;
 
   real reduced_c = this->reduced_c;
@@ -221,14 +255,18 @@ void RadSource::SourceFullImplicit(const real dt) {
 
   // Local copy of opacity parameters
   const Type_opac kappa_type = this->kappa_type;
+  const int kappa_ndim = this->kappa_ndim;
+  const int xi_ndim = this->xi_ndim;
+
   IdefixArray3D<real> kappapArr;
   IdefixArray3D<real> kapparArr;
   IdefixArray3D<real> xiArr;
-  real kappa_0,rho_0,T_0,xi_0;
+  real kappa_0,kappap_0,kappar_0,rho_0,T_0,xi_0;
   if (kappa_type == Type_opac::constant) {
     kappa_0 = this->kappa_0;
   } else if (kappa_type == Type_opac::kramers) {
-    kappa_0 = this->kappa_0;
+    kappap_0 = this->kappap_0;
+    kappar_0 = this->kappar_0;
     T_0 = this->T_0;
     rho_0 = this->rho_0;
   } else if (kappa_type == Type_opac::userfunc) {
@@ -248,7 +286,6 @@ void RadSource::SourceFullImplicit(const real dt) {
     KOKKOS_LAMBDA (int k, int j, int i) {
   
       real URad[RadiationPhysics::nvar];
-      real VRad[RadiationPhysics::nvar];
       real UGas[DefaultPhysics::nvar];
       real VGas[DefaultPhysics::nvar];
 
@@ -256,7 +293,6 @@ void RadSource::SourceFullImplicit(const real dt) {
 
       for(int nv = 0 ; nv < RadiationPhysics::nvar ; nv++) {
         URad[nv] = UcRad(nv,k,j,i);
-        VRad[nv] = VcRad(nv,k,j,i);
       }
       for(int nv = 0 ; nv < DefaultPhysics::nvar ; nv++) {
         UGas[nv] = UcGas(nv,k,j,i);
@@ -264,7 +300,7 @@ void RadSource::SourceFullImplicit(const real dt) {
       }
 
       // Compute total modified energy
-      real Etot = UGas[ENG]+VRad[ER]*units.c/(reduced_c*units.GetVelocity());
+      real Etot = UGas[ENG]+URad[ER]*units.c/(reduced_c*units.GetVelocity());
       
       // Add irradiation heating if needed
       if (irr_flag){  
@@ -272,17 +308,17 @@ void RadSource::SourceFullImplicit(const real dt) {
       }
       
       // Compute total modified momentum
-      EXPAND(real m1tot = UGas[MX1]+VRad[FR1]/reduced_c;,
-             real m2tot = UGas[MX2]+VRad[FR2]/reduced_c;,
-             real m3tot = UGas[MX3]+VRad[FR3]/reduced_c;)
+      EXPAND(real m1tot = UGas[MX1]+URad[FR1]/reduced_c;,
+             real m2tot = UGas[MX2]+URad[FR2]/reduced_c;,
+             real m3tot = UGas[MX3]+URad[FR3]/reduced_c;)
       
       // Store conserved variables after hyperbolic step
-      real Er_hyp = VRad[ER];
-      EXPAND(real Fr1_hyp = VRad[FR1];,
-             real Fr2_hyp = VRad[FR2];,
-             real Fr3_hyp = VRad[FR3];)
+      real Er_hyp = URad[ER];
+      EXPAND(real Fr1_hyp = URad[FR1];,
+             real Fr2_hyp = URad[FR2];,
+             real Fr3_hyp = URad[FR3];)
 
-      real Fnorm = std::sqrt(EXPAND(VRad[FR1]*VRad[FR1] , + VRad[FR2]*VRad[FR2], + VRad[FR3]*VRad[FR3]));
+      real Fnorm = std::sqrt(EXPAND(URad[FR1]*URad[FR1] , + URad[FR2]*URad[FR2], + URad[FR3]*URad[FR3]));
         
       real mu = eos.GetMu(VGas[PRS],VGas[RHO]);
       real cv = units.k_B/(units.u*mu);
@@ -295,12 +331,21 @@ void RadSource::SourceFullImplicit(const real dt) {
         kappa_p = kappa_0;
         kappa_r = kappa_0;
       } else if (kappa_type == Type_opac::kramers) {
-        kappa_p = kappa_0*VGas[RHO]*units.GetDensity()/rho_0*std::pow(T/T_0,-3.5);
-        kappa_r = kappa_p;
+        kappa_p = kappap_0*VGas[RHO]*units.GetDensity()/rho_0*std::pow(T/T_0,-3.5);
+        kappa_r = kappar_0*VGas[RHO]*units.GetDensity()/rho_0*std::pow(T/T_0,-3.5);
       } else if (kappa_type == Type_opac::usertable) {
         real logT = std::log10(T);
-        kappa_p = kp1D.Get(&logT);
-        kappa_r = kr1D.Get(&logT);
+        real logrho = std::log10(VGas[RHO]*units.GetDensity());
+        if (kappa_ndim == 1) {
+          kappa_p = kp1D.Get(&logT);
+          kappa_r = kr1D.Get(&logT);
+        } else if (kappa_ndim == 2) {
+          real x[2];
+          x[1] = FMIN(FMAX(logT,2.5),5.98);
+          x[0] = FMIN(-4.05,FMAX(-14.,logrho));
+          kappa_p = std::pow(10.,kp2D.Get(x));
+          kappa_r = std::pow(10.,kr2D.Get(x));
+        }
       } else if (kappa_type == Type_opac::userfunc) {
         kappa_p = kappapArr(k,j,i);
         kappa_r = kapparArr(k,j,i);
@@ -310,7 +355,15 @@ void RadSource::SourceFullImplicit(const real dt) {
         xi = xi_0;
       } else if (xi_type == Type_opac::usertable) {
         real logT = std::log10(T);
-        xi = xi1D.Get(&logT);
+        real logrho = std::log10(VGas[RHO]*units.GetDensity());
+        if (xi_ndim == 1) {
+          xi = xi1D.Get(&logT);
+        } else if (xi_ndim == 2) {
+          real x[2];
+          x[1] = logT;
+          x[0] = logrho;
+          xi = std::pow(10.,xi2D.Get(x));
+        }
       } else if (xi_type== Type_opac::userfunc) {
         xi = xiArr(k,j,i);
       }
@@ -353,9 +406,17 @@ void RadSource::SourceFullImplicit(const real dt) {
       EXPAND( URad[FR1] = Fr1_hyp/(1.+xx_red);,
               URad[FR2] = Fr2_hyp/(1.+xx_red);,
               URad[FR3] = Fr3_hyp/(1.+xx_red);)
+      //if (i==2 && j==495) std::printf("Etot -ERad*c/redc=%e URad[ER]=%e Er_hyp=%e UGas[ENG]=%e Etot=%e T=%e arT4=%e rho=%e kappap=%e kappar=%e at i=%i j=%i and k=%i\n",(Etot - URad[ER]*units.c/(reduced_c*units.GetVelocity())),URad[ER],Er_hyp,UGas[ENG],Etot,T,units.ar*T3*T/units.GetEnergy(),VGas[RHO]*units.GetDensity(),kappa_p,kappa_r,i,j,k);
 
       if ((Etot - URad[ER]*units.c/(reduced_c*units.GetVelocity()))<=ZERO_F) {
+        #ifdef SMALL_ER
+        std::printf("URad[ER]=%e Er_hyp=%e UGas[ENG]=%e Etot=%e T=%e arT4=%e rho=%e kappap=%e kappar=%e at i=%i j=%i and k=%i\n",URad[ER],Er_hyp,UGas[ENG],Etot,T,units.ar*T3*T/units.GetEnergy(),VGas[RHO]*units.GetDensity(),kappa_p,kappa_r,i,j,k);
+        URad[ER] = units.ar*T3*T/units.GetEnergy();
+        UGas[ENG] = Etot - URad[ER]*units.c/(reduced_c*units.GetVelocity());
+        #else
         Kokkos::abort("ENG=0 in RadSourceFullImplicit");
+        #endif
+        
       } else {
         UGas[ENG] = Etot - URad[ER]*units.c/(reduced_c*units.GetVelocity());
       }
@@ -396,6 +457,10 @@ void RadSource::SourceFixedPointRad(const real dt) {
   auto kr1D = this->kappa_ross_1D;
   auto xi1D = this->xi_1D;
 
+  auto kp2D = this->kappa_planck_2D;
+  auto kr2D = this->kappa_ross_2D;
+  auto xi2D = this->xi_2D;
+
   real reduced_c = this->reduced_c;
 
   // Max iteration for fixed-point solver
@@ -415,14 +480,18 @@ void RadSource::SourceFixedPointRad(const real dt) {
 
   // Local copy of opacity parameters
   const Type_opac kappa_type = this->kappa_type;
-  real kappa_0,rho_0,T_0,xi_0;
+  const int kappa_ndim = this->kappa_ndim;
+  const int xi_ndim = this->xi_ndim;
+
+  real kappa_0,kappap_0,kappar_0,rho_0,T_0,xi_0;
   IdefixArray3D<real> kappapArr;
   IdefixArray3D<real> kapparArr;
   IdefixArray3D<real> xiArr;
   if (kappa_type == Type_opac::constant) {
     kappa_0 = this->kappa_0;
   } else if (kappa_type == Type_opac::kramers) {
-    kappa_0 = this->kappa_0;
+    kappap_0 = this->kappap_0;
+    kappar_0 = this->kappar_0;
     T_0 = this->T_0;
     rho_0 = this->rho_0;
   } else if (kappa_type == Type_opac::userfunc) {
@@ -495,12 +564,21 @@ void RadSource::SourceFixedPointRad(const real dt) {
         kappa_p = kappa_0;
         kappa_r = kappa_0;
       } else if (kappa_type == Type_opac::kramers) {
-        kappa_p = kappa_0*VGas[RHO]*units.GetDensity()/rho_0*std::pow(T/T_0,-3.5);
-        kappa_r = kappa_p;
+        kappa_p = kappap_0*VGas[RHO]*units.GetDensity()/rho_0*std::pow(T/T_0,-3.5);
+        kappa_r = kappar_0*VGas[RHO]*units.GetDensity()/rho_0*std::pow(T/T_0,-3.5);
       } else if (kappa_type == Type_opac::usertable) {
         real logT = std::log10(T);
-        kappa_p = kp1D.Get(&logT);
-        kappa_r = kr1D.Get(&logT);
+        real logrho = std::log10(VGas[RHO]*units.GetDensity());
+        if (kappa_ndim == 1) {
+          kappa_p = kp1D.Get(&logT);
+          kappa_r = kr1D.Get(&logT);
+        } else if (kappa_ndim == 2) {
+          real x[2];
+          x[1] = FMIN(FMAX(logT,2.5),5.98);
+          x[0] = FMIN(-4.05,FMAX(-14.,logrho));
+          kappa_p = std::pow(10.,kp2D.Get(x));
+          kappa_r = std::pow(10.,kr2D.Get(x));
+        }
       } else if (kappa_type == Type_opac::userfunc) {
         kappa_p = kappapArr(k,j,i);
         kappa_r = kapparArr(k,j,i);
@@ -510,7 +588,15 @@ void RadSource::SourceFixedPointRad(const real dt) {
         xi = xi_0;
       } else if (xi_type == Type_opac::usertable) {
         real logT = std::log10(T);
-        xi = xi1D.Get(&logT);
+        real logrho = std::log10(VGas[RHO]*units.GetDensity());
+        if (xi_ndim == 1) {
+          xi = xi1D.Get(&logT);
+        } else if (xi_ndim == 2) {
+          real x[2];
+          x[1] = logT;
+          x[0] = logrho;
+          xi = std::pow(10.,xi2D.Get(x));
+        }
       } else if (xi_type== Type_opac::userfunc) {
         xi = xiArr(k,j,i);
       }
@@ -594,6 +680,10 @@ void RadSource::SourceFixedPointGas(const real dt) {
   auto kr1D = this->kappa_ross_1D;
   auto xi1D = this->xi_1D;
 
+  auto kp2D = this->kappa_planck_2D;
+  auto kr2D = this->kappa_ross_2D;
+  auto xi2D = this->xi_2D;
+
   // Max iteration for fixed-point solver
   int MAX_ITER = 200;
   // Tolerance on ER and ENG for fixed-point solver
@@ -603,14 +693,18 @@ void RadSource::SourceFixedPointGas(const real dt) {
 
   // Local copy of opacity parameters
   const Type_opac kappa_type = this->kappa_type;
-  real kappa_0,rho_0,T_0,xi_0;
+  const int kappa_ndim = this->kappa_ndim;
+  const int xi_ndim = this->xi_ndim;
+
+  real kappa_0,kappap_0,kappar_0,rho_0,T_0,xi_0;
   IdefixArray3D<real> kappapArr;
   IdefixArray3D<real> kapparArr;
   IdefixArray3D<real> xiArr;
   if (kappa_type == Type_opac::constant) {
     kappa_0 = this->kappa_0;
   } else if (kappa_type == Type_opac::kramers) {
-    kappa_0 = this->kappa_0;
+    kappap_0 = this->kappap_0;
+    kappar_0 = this->kappar_0;
     T_0 = this->T_0;
     rho_0 = this->rho_0;
   } else if (kappa_type == Type_opac::userfunc) {
@@ -678,12 +772,21 @@ void RadSource::SourceFixedPointGas(const real dt) {
         kappa_p = kappa_0;
         kappa_r = kappa_0;
       } else if (kappa_type == Type_opac::kramers) {
-        kappa_p = kappa_0*VGas[RHO]*units.GetDensity()/rho_0*std::pow(T/T_0,-3.5);
-        kappa_r = kappa_p;
+        kappa_p = kappap_0*VGas[RHO]*units.GetDensity()/rho_0*std::pow(T/T_0,-3.5);
+        kappa_r = kappar_0*VGas[RHO]*units.GetDensity()/rho_0*std::pow(T/T_0,-3.5);
       } else if (kappa_type == Type_opac::usertable) {
         real logT = std::log10(T);
-        kappa_p = kp1D.Get(&logT);
-        kappa_r = kr1D.Get(&logT);
+        real logrho = std::log10(VGas[RHO]*units.GetDensity());
+        if (kappa_ndim == 1) {
+          kappa_p = kp1D.Get(&logT);
+          kappa_r = kr1D.Get(&logT);
+        } else if (kappa_ndim == 2) {
+          real x[2];
+          x[1] = logT;
+          x[0] = logrho;
+          kappa_p = std::pow(10.,kp2D.Get(x));
+          kappa_r = std::pow(10.,kr2D.Get(x));
+        }
       } else if (kappa_type == Type_opac::userfunc) {
         kappa_p = kappapArr(k,j,i);
         kappa_r = kapparArr(k,j,i);
@@ -693,7 +796,15 @@ void RadSource::SourceFixedPointGas(const real dt) {
         xi = xi_0;
       } else if (xi_type == Type_opac::usertable) {
         real logT = std::log10(T);
-        xi = xi1D.Get(&logT);
+        real logrho = std::log10(VGas[RHO]*units.GetDensity());
+        if (xi_ndim == 1) {
+          xi = xi1D.Get(&logT);
+        } else if (xi_ndim == 2) {
+          real x[2];
+          x[1] = logT;
+          x[0] = logrho;
+          xi = std::pow(10.,xi2D.Get(x));
+        }
       } else if (xi_type== Type_opac::userfunc) {
         xi = xiArr(k,j,i);
       }
