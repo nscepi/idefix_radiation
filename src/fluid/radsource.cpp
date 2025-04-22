@@ -57,6 +57,9 @@ void RadSource::RelativistCorrection(const real dt) {
     xiArr = this->xiArr;
   }
 
+  real reduced_c = this->reduced_c;
+
+
    idefix_for("RadSourceRelativistCorrection",0,data->np_tot[KDIR],0,data->np_tot[JDIR],0,data->np_tot[IDIR],
     KOKKOS_LAMBDA (int k, int j, int i) {
 
@@ -66,7 +69,6 @@ void RadSource::RelativistCorrection(const real dt) {
       real VGas[DefaultPhysics::nvar];
 
       real kappa_p, kappa_r, xi;
-      real reduced_c = this->reduced_c;
 
       for(int nv = 0 ; nv < RadiationPhysics::nvar ; nv++) {
         URad[nv] = UcRad(nv,k,j,i);

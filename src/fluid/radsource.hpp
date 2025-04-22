@@ -74,7 +74,6 @@ class RadSource {
       real T = VcGas(PRS,k,j,i)/(VcGas(RHO,k,j,i))*this->unit_Kelvin*mu;
       real logT = std::log10(T);
       real logrho = std::log10(VcGas(RHO,k,j,i)*this->unit_density);
-      real kappa_p,kappa_r;
       if (this->kappa_ndim == 1) {
         kappa = this->kappa_ross_1D.Get(&logT);
       } else if (this->kappa_ndim == 2) {
@@ -93,7 +92,6 @@ class RadSource {
       real T = VcGas(PRS,k,j,i)/(VcGas(RHO,k,j,i))*this->unit_Kelvin*mu;
       real logT = std::log10(T);
       real logrho = std::log10(VcGas(RHO,k,j,i)*this->unit_density);
-      real xi;
       if (this->xi_ndim == 1) {
         xi = this->xi_1D.Get(&logT);
       } else if (this->xi_ndim == 2) {
