@@ -29,6 +29,8 @@ void RadSource::RelativistCorrection(const real dt) {
   auto kr2D = this->kappa_ross_2D;
   auto xi2D = this->xi_2D;
 
+  EquationOfState eos = this->eos;
+
   // Local copy of opacity parameters
   const Type_opac kappa_type = this->kappa_type;
   const int kappa_ndim = this->kappa_ndim;
