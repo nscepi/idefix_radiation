@@ -71,7 +71,11 @@ void Fluid<Phys>::EvolveStage(const real t, const real dt) {
   if(haveSourceTerms) AddSourceTerms(t, dt);
 
   // Step 5: add drag when needed
-  if(haveDrag) drag->AddDragForce(dt);
+  if(haveDrag) {
+    if(!drag->IsImplicit()) {
+      drag->AddDragForce(dt);
+    }
+  }
 
   // Step 6: add radiation source terms 
   if constexpr(Phys::radiation) {
