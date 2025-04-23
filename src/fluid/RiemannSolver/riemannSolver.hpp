@@ -79,7 +79,6 @@ class RiemannSolver {
 
   IdefixArray4D<real> Vc;
   IdefixArray4D<real> Vs;
-  IdefixArray4D<real> Flux;
   IdefixArray3D<real> cMax;
   Fluid<Phys>* hydro;
   DataBlock *data;
@@ -101,7 +100,6 @@ class RiemannSolver {
 template <typename Phys>
 RiemannSolver<Phys>::RiemannSolver(Input &input, Fluid<Phys>* hydro) : Vc{hydro->Vc},
                                       Vs{hydro->Vs},
-                                      Flux{hydro->FluxRiemann},
                                       cMax{hydro->cMax},
                                       hydro{hydro},
                                       data{hydro->data}
@@ -171,12 +169,15 @@ RiemannSolver<Phys>::RiemannSolver(Input &input, Fluid<Phys>* hydro) : Vc{hydro-
 
   }
 
+<<<<<<< HEAD
   // Reduced velocity of light 
   if(input.CheckEntry(std::string(Phys::prefix),"reduced_c")>=0){
     this->reduced_c = hydro->reduced_c;
     //printf("reduced_c=%e\n",this->reduced_c);
   }
   
+=======
+>>>>>>> keepFlux
   // Shock flattening
   this->haveShockFlattening = input.CheckEntry(std::string(Phys::prefix),"shockFlattening")>=0;
   // Init shock flattening
