@@ -39,9 +39,10 @@ void RadSource::RelativistCorrection(const real dt) {
   IdefixArray3D<real> kappapArr;
   IdefixArray3D<real> kapparArr;
   IdefixArray3D<real> xiArr;
-  real kappa_0,kappap_0,kappar_0,rho_0,T_0,xi_0;
+  real kappap_0,kappar_0,rho_0,T_0,xi_0;
   if (kappa_type == Type_opac::constant) {
-    kappa_0 = this->kappa_0;
+    kappap_0 = this->kappap_0;
+    kappar_0 = this->kappar_0;
   } else if (kappa_type == Type_opac::kramers) {
     kappap_0 = this->kappap_0;
     kappar_0 = this->kappar_0;
@@ -92,8 +93,8 @@ void RadSource::RelativistCorrection(const real dt) {
 
       // Compute opacities
       if (kappa_type == Type_opac::constant) {
-        kappa_p = kappa_0;
-        kappa_r = kappa_0;
+        kappa_p = kappap_0;
+        kappa_r = kappar_0;
       } else if (kappa_type == Type_opac::kramers) {
         kappa_p = kappap_0*VGas[RHO]*units.GetDensity()/rho_0*std::pow(T/T_0,-3.5);
         kappa_r = kappar_0*VGas[RHO]*units.GetDensity()/rho_0*std::pow(T/T_0,-3.5);
@@ -265,9 +266,10 @@ void RadSource::SourceFullImplicit(const real dt) {
   IdefixArray3D<real> kappapArr;
   IdefixArray3D<real> kapparArr;
   IdefixArray3D<real> xiArr;
-  real kappa_0,kappap_0,kappar_0,rho_0,T_0,xi_0;
+  real kappap_0,kappar_0,rho_0,T_0,xi_0;
   if (kappa_type == Type_opac::constant) {
-    kappa_0 = this->kappa_0;
+    kappap_0 = this->kappap_0;
+    kappar_0 = this->kappar_0;
   } else if (kappa_type == Type_opac::kramers) {
     kappap_0 = this->kappap_0;
     kappar_0 = this->kappar_0;
@@ -332,8 +334,8 @@ void RadSource::SourceFullImplicit(const real dt) {
 
       // Compute opacities
       if (kappa_type == Type_opac::constant) {
-        kappa_p = kappa_0;
-        kappa_r = kappa_0;
+        kappa_p = kappap_0;
+        kappa_r = kappar_0;
       } else if (kappa_type == Type_opac::kramers) {
         kappa_p = kappap_0*VGas[RHO]*units.GetDensity()/rho_0*std::pow(T/T_0,-3.5);
         kappa_r = kappar_0*VGas[RHO]*units.GetDensity()/rho_0*std::pow(T/T_0,-3.5);
@@ -487,12 +489,13 @@ void RadSource::SourceFixedPointRad(const real dt) {
   const int kappa_ndim = this->kappa_ndim;
   const int xi_ndim = this->xi_ndim;
 
-  real kappa_0,kappap_0,kappar_0,rho_0,T_0,xi_0;
+  real kappap_0,kappar_0,rho_0,T_0,xi_0;
   IdefixArray3D<real> kappapArr;
   IdefixArray3D<real> kapparArr;
   IdefixArray3D<real> xiArr;
   if (kappa_type == Type_opac::constant) {
-    kappa_0 = this->kappa_0;
+    kappap_0 = this->kappap_0;
+    kappar_0 = this->kappar_0;
   } else if (kappa_type == Type_opac::kramers) {
     kappap_0 = this->kappap_0;
     kappar_0 = this->kappar_0;
@@ -565,8 +568,8 @@ void RadSource::SourceFixedPointRad(const real dt) {
 
       // Assume kappa and xi are constant during iteration (to check)
       if (kappa_type == Type_opac::constant) {
-        kappa_p = kappa_0;
-        kappa_r = kappa_0;
+        kappa_p = kappap_0;
+        kappa_r = kappar_0;
       } else if (kappa_type == Type_opac::kramers) {
         kappa_p = kappap_0*VGas[RHO]*units.GetDensity()/rho_0*std::pow(T/T_0,-3.5);
         kappa_r = kappar_0*VGas[RHO]*units.GetDensity()/rho_0*std::pow(T/T_0,-3.5);
@@ -700,12 +703,13 @@ void RadSource::SourceFixedPointGas(const real dt) {
   const int kappa_ndim = this->kappa_ndim;
   const int xi_ndim = this->xi_ndim;
 
-  real kappa_0,kappap_0,kappar_0,rho_0,T_0,xi_0;
+  real kappap_0,kappar_0,rho_0,T_0,xi_0;
   IdefixArray3D<real> kappapArr;
   IdefixArray3D<real> kapparArr;
   IdefixArray3D<real> xiArr;
   if (kappa_type == Type_opac::constant) {
-    kappa_0 = this->kappa_0;
+    kappap_0 = this->kappap_0;
+    kappar_0 = this->kappar_0;
   } else if (kappa_type == Type_opac::kramers) {
     kappap_0 = this->kappap_0;
     kappar_0 = this->kappar_0;
@@ -773,8 +777,8 @@ void RadSource::SourceFixedPointGas(const real dt) {
 
       // Compute opacities (out of while loop so that opacity is contant throughout the fixed_point iteration)
       if (kappa_type == Type_opac::constant) {
-        kappa_p = kappa_0;
-        kappa_r = kappa_0;
+        kappa_p = kappap_0;
+        kappa_r = kappar_0;
       } else if (kappa_type == Type_opac::kramers) {
         kappa_p = kappap_0*VGas[RHO]*units.GetDensity()/rho_0*std::pow(T/T_0,-3.5);
         kappa_r = kappar_0*VGas[RHO]*units.GetDensity()/rho_0*std::pow(T/T_0,-3.5);

@@ -66,7 +66,7 @@ class RadSource {
     real mu = eos.GetMu(VcGas(PRS,k,j,i),VcGas(RHO,k,j,i));
     
     if (kappa_type == Type_opac::constant) {
-      kappa = this->kappa_0;
+      kappa = this->kappar_0;
     } else if (kappa_type == Type_opac::kramers) {
       real T = VcGas(PRS,k,j,i)/(VcGas(RHO,k,j,i))*this->unit_Kelvin*mu;
       kappa = this->kappar_0*VcGas(RHO,k,j,i)*this->unit_density/this->rho_0*std::pow(T/this->T_0,-3.5);
@@ -114,7 +114,6 @@ class RadSource {
 
  private:
   DataBlock* data;
-  real kappa_0;
   real kappap_0;
   real kappar_0;
   real xi_0;
@@ -245,7 +244,8 @@ RadSource::RadSource(Input &input, Fluid<Phys> *hydroin):
     std::string kappaType = input.Get<std::string>(BlockName,"kappa",0);
     if(kappaType.compare("constant") == 0) {
       this->kappa_type = Type_opac::constant;
-      this->kappa_0 = input.Get<real>(BlockName,"kappa",n+1);
+      this->kappap_0 = input.Get<real>(BlockName,"kappa",n+1);
+      this->kappar_0 = input.Get<real>(BlockName,"kappa",n+2);
     } else if(kappaType.compare("kramers") == 0) {
       this->kappap_0 = input.Get<real>(BlockName,"kappa",n+1);
       this->kappar_0 = input.Get<real>(BlockName,"kappa",n+2);
