@@ -20,9 +20,14 @@ real alphaGlob;
 real alphaBetaGlob;
 real muGlob;
 real ToutGlob;
+real kappapGlob;
+real kapparGlob;
+std::string kappatypeGlob;
+real kramersTindexGlob;
+real kramersrhoindexGlob;
 
-LookupTable<2> *kappapGlob;
-LookupTable<2> *kapparGlob;
+LookupTable<2> *kappaptabGlob;
+LookupTable<2> *kappartabGlob;
 
 std::vector<real> taus;
 
@@ -483,8 +488,16 @@ void ComputeUserVars(DataBlock & data, UserDefVariablesContainer &variables) {
        real x[2];
        x[0] = FMIN(-4.05,FMAX(-14.,logrho));
        x[1] = FMIN(FMAX(std::log10(T),2.5),5.98);
-       kappap(k,j,i) = std::pow(10.,kappapGlob->GetHost(x));
-       kappar(k,j,i) = std::pow(10.,kapparGlob->GetHost(x));
+       if (kappatypeGlob.compare("usertable") == 0){ 
+        kappap(k,j,i) = std::pow(10.,kappaptabGlob->GetHost(x));
+        kappar(k,j,i) = std::pow(10.,kappartabGlob->GetHost(x));
+       } else if (kappatypeGlob.compare("constant") == 0) {
+        kappap(k,j,i) = kappapGlob;
+        kappar(k,j,i) = kapparGlob;
+       } else if (kappatypeGlob.compare("usertable") == 0) {
+        kappap(k,j,i) = kappapGlob*Vc(RHO,k,j,i)*units.GetDensity()/kramersrhoindexGlob*std::pow(T/kramersTindexGlob,-3.5);
+        kappar(k,j,i) = kapparGlob*Vc(RHO,k,j,i)*units.GetDensity()/kramersrhoindexGlob*std::pow(T/kramersTindexGlob,-3.5);
+       }
        rhokappapEr(k,j,i) = d.Vc(RHO,k,j,i)*units.GetDensity()*kappap(k,j,i)*d.RadVc[0](ER,k,j,i)*units.GetEnergy();
        rhokapparFr(k,j,i) = d.Vc(RHO,k,j,i)*units.GetDensity()*kappar(k,j,i)*d.RadVc[0](FR1,k,j,i)*units.GetEnergy();
        rhokapparFt(k,j,i) = d.Vc(RHO,k,j,i)*units.GetDensity()*kappar(k,j,i)*d.RadVc[0](FR2,k,j,i)*units.GetEnergy();
@@ -605,12 +618,22 @@ Setup::Setup(Input &input, Grid &grid, DataBlock &data, Output &output) {
   // assume disc surface at 6.5 h
   analysis = new Analysis(grid, data,std::string("profile.dat"), HidealGlob*epsilonGlob);
   output.EnrollAnalysis(&analysisFunction);
-
-  std::string kappapfile = input.Get<std::string>("Rad","kappa",2);
-  std::string kapparfile = input.Get<std::string>("Rad","kappa",3);
-  kappapGlob = new LookupTable<2>(kappapfile,',');
-  kapparGlob = new LookupTable<2>(kapparfile,',');
-
+  
+  kappatypeGlob = input.Get<std::string>("Rad","kappa",0);
+  if (kappatypeGlob.compare("usertable") == 0){
+    std::string kappapfile = input.Get<std::string>("Rad","kappa",2);
+    std::string kapparfile = input.Get<std::string>("Rad","kappa",3);
+    kappaptabGlob = new LookupTable<2>(kappapfile,',');
+    kappartabGlob = new LookupTable<2>(kapparfile,',');
+   } else if (kappatypeGlob.compare("constant") == 0) { 
+    kappapGlob = input.Get<real>("Rad","kappa",1);
+    kapparGlob = input.Get<real>("Rad","kappa",2);
+   } else if (kappatypeGlob.compare("kramers") == 0) { 
+    kramersTindexGlob = input.Get<real>("Rad","kappa",4);
+    kramersrhoindexGlob = input.Get<real>("Rad","kappa",3);
+    kappapGlob = input.Get<real>("Rad","kappa",1);
+    kapparGlob = input.Get<real>("Rad","kappa",2);
+   }
 }
 
 
