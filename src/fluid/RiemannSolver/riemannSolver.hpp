@@ -169,15 +169,12 @@ RiemannSolver<Phys>::RiemannSolver(Input &input, Fluid<Phys>* hydro) : Vc{hydro-
 
   }
 
-<<<<<<< HEAD
   // Reduced velocity of light 
   if(input.CheckEntry(std::string(Phys::prefix),"reduced_c")>=0){
     this->reduced_c = hydro->reduced_c;
     //printf("reduced_c=%e\n",this->reduced_c);
   }
   
-=======
->>>>>>> keepFlux
   // Shock flattening
   this->haveShockFlattening = input.CheckEntry(std::string(Phys::prefix),"shockFlattening")>=0;
   // Init shock flattening
