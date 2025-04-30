@@ -422,7 +422,6 @@ void ComputeUserVars(DataBlock & data, UserDefVariablesContainer &variables) {
   IdefixHostArray3D<real> FluxRadFrt = variables["FluxRadFrt"];
   IdefixHostArray3D<real> FluxRadFtr = variables["FluxRadFtr"];
   IdefixHostArray3D<real> FluxRadFtt = variables["FluxRadFtt"];
-  IdefixHostArray3D<real> FluxRadFtr = variables["FluxRadFtr"];
 
   IdefixHostArray1D<real> x1=d.x[IDIR];
   IdefixHostArray1D<real> x2=d.x[JDIR];
@@ -460,7 +459,7 @@ void ComputeUserVars(DataBlock & data, UserDefVariablesContainer &variables) {
         
         Pvr(k,j,i) = d.Vc(PRS,k,j,i)*d.Vc(VX1,k,j,i);
         Pvt(k,j,i) = d.Vc(PRS,k,j,i)*d.Vc(VX2,k,j,i);
-        real rhov2 = d.Vc(RHO)*(d.Vc(VX1,k,j,i)*d.Vc(VX1,k,j,i)+d.Vc(VX2,k,j,i)*d.Vc(VX2,k,j,i)+d.Vc(VX3,k,j,i)*d.Vc(VX3,k,j,i));
+        real rhov2 = d.Vc(RHO,k,j,i)*(d.Vc(VX1,k,j,i)*d.Vc(VX1,k,j,i)+d.Vc(VX2,k,j,i)*d.Vc(VX2,k,j,i)+d.Vc(VX3,k,j,i)*d.Vc(VX3,k,j,i));
         rhov2vr(k,j,i) = rhov2*d.Vc(VX1,k,j,i);
         rhov2vt(k,j,i) = rhov2*d.Vc(VX2,k,j,i);
         real B2 = d.Vc(BX1,k,j,i)*d.Vc(BX1,k,j,i)+d.Vc(BX2,k,j,i)*d.Vc(BX2,k,j,i)+d.Vc(BX3,k,j,i)*d.Vc(BX3,k,j,i);
