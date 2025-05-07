@@ -357,6 +357,61 @@ void ComputeUserVars(DataBlock & data, UserDefVariablesContainer &variables) {
 
   // custom scratch array
   IdefixArray3D<real> scrh("Scratch", data.np_tot[KDIR], data.np_tot[JDIR], data.np_tot[IDIR]);
+ 
+  IdefixArray3D<real> FluxRadErr("FluxRadErr", data.np_tot[KDIR], data.np_tot[JDIR], data.np_tot[IDIR]);
+  IdefixArray3D<real> FluxRadErt("FluxRadErt", data.np_tot[KDIR], data.np_tot[JDIR], data.np_tot[IDIR]);
+  IdefixArray3D<real> FluxRadFrr("FluxRadFrr", data.np_tot[KDIR], data.np_tot[JDIR], data.np_tot[IDIR]);
+  IdefixArray3D<real> FluxRadFrt("FluxRadFrt", data.np_tot[KDIR], data.np_tot[JDIR], data.np_tot[IDIR]);
+  IdefixArray3D<real> FluxRadFtr("FluxRadFtr", data.np_tot[KDIR], data.np_tot[JDIR], data.np_tot[IDIR]);
+  IdefixArray3D<real> FluxRadFtt("FluxRadFtt", data.np_tot[KDIR], data.np_tot[JDIR], data.np_tot[IDIR]);
+
+  IdefixArray3D<real> Fluxrhor("Fluxrhor", data.np_tot[KDIR], data.np_tot[JDIR], data.np_tot[IDIR]);
+  IdefixArray3D<real> Fluxrhot("Fluxrhot", data.np_tot[KDIR], data.np_tot[JDIR], data.np_tot[IDIR]);
+  IdefixArray3D<real> Fluxmrr("Fluxmrr", data.np_tot[KDIR], data.np_tot[JDIR], data.np_tot[IDIR]);
+  IdefixArray3D<real> Fluxmrt("Fluxmrt", data.np_tot[KDIR], data.np_tot[JDIR], data.np_tot[IDIR]);
+  IdefixArray3D<real> Fluxmtr("Fluxmtr", data.np_tot[KDIR], data.np_tot[JDIR], data.np_tot[IDIR]);
+  IdefixArray3D<real> Fluxmtt("Fluxmtt", data.np_tot[KDIR], data.np_tot[JDIR], data.np_tot[IDIR]);
+  IdefixArray3D<real> FluxEngr("FluxEngr", data.np_tot[KDIR], data.np_tot[JDIR], data.np_tot[IDIR]);
+  IdefixArray3D<real> FluxEngt("FluxEngt", data.np_tot[KDIR], data.np_tot[JDIR], data.np_tot[IDIR]);
+
+  IdefixArray4D<real> FluxRiemannIDIR = data.hydro->FluxRiemann[IDIR];
+  IdefixArray4D<real> FluxRiemannJDIR = data.hydro->FluxRiemann[JDIR];
+  IdefixArray4D<real> RadFluxRiemannIDIR = data.radiation[0]->FluxRiemann[IDIR];
+  IdefixArray4D<real> RadFluxRiemannJDIR = data.radiation[0]->FluxRiemann[JDIR];
+  
+  idefix_for("UserVar",0,data.np_tot[KDIR],0,data.np_tot[JDIR],0,data.np_tot[IDIR],
+   KOKKOS_LAMBDA (int k, int j, int i) {
+      Fluxrhor(k,j,i) = FluxRiemannIDIR(RHO,k,j,i);
+      Fluxrhot(k,j,i) = FluxRiemannJDIR(RHO,k,j,i);
+      Fluxmrr(k,j,i) = FluxRiemannIDIR(VX1,k,j,i);
+      Fluxmrt(k,j,i) = FluxRiemannJDIR(VX1,k,j,i);
+      Fluxmtr(k,j,i) = FluxRiemannIDIR(VX2,k,j,i);
+      Fluxmtt(k,j,i) = FluxRiemannJDIR(VX2,k,j,i);
+      FluxEngr(k,j,i) = FluxRiemannIDIR(ENG,k,j,i);
+      FluxEngt(k,j,i) = FluxRiemannJDIR(ENG,k,j,i);
+      FluxRadErr(k,j,i) = RadFluxRiemannIDIR(ER,k,j,i);
+      FluxRadErt(k,j,i) = RadFluxRiemannJDIR(ER,k,j,i);
+      FluxRadFrr(k,j,i) = RadFluxRiemannIDIR(FR1,k,j,i);
+      FluxRadFrt(k,j,i) = RadFluxRiemannJDIR(FR1,k,j,i);
+      FluxRadFtr(k,j,i) = RadFluxRiemannIDIR(FR2,k,j,i);
+      FluxRadFtt(k,j,i) = RadFluxRiemannJDIR(FR2,k,j,i);
+    });
+
+  Kokkos::deep_copy(variables["Fluxrhor"], Fluxrhor);
+  Kokkos::deep_copy(variables["Fluxrhot"], Fluxrhot);
+  Kokkos::deep_copy(variables["Fluxmrr"], Fluxmrr);
+  Kokkos::deep_copy(variables["Fluxmrt"], Fluxmrt);
+  Kokkos::deep_copy(variables["Fluxmtr"], Fluxmtr);
+  Kokkos::deep_copy(variables["Fluxmtt"], Fluxmtt);
+  Kokkos::deep_copy(variables["FluxEngr"], FluxEngr);
+  Kokkos::deep_copy(variables["FluxEngt"], FluxEngt);
+
+  Kokkos::deep_copy(variables["FluxRadErr"], FluxRadErr);
+  Kokkos::deep_copy(variables["FluxRadErt"], FluxRadErt);
+  Kokkos::deep_copy(variables["FluxRadFrr"], FluxRadFrr);
+  Kokkos::deep_copy(variables["FluxRadFrt"], FluxRadFrt);
+  Kokkos::deep_copy(variables["FluxRadFtr"], FluxRadFtr);
+  Kokkos::deep_copy(variables["FluxRadFtt"], FluxRadFtt);
 
   // Mirror data on Host
   DataBlockHost d(data);
@@ -396,15 +451,6 @@ void ComputeUserVars(DataBlock & data, UserDefVariablesContainer &variables) {
   IdefixHostArray3D<real> BVBr = variables["BVBr"];
   IdefixHostArray3D<real> BVBt = variables["BVBt"];
   
-  IdefixArray3D<real> Fluxrhor;
-  IdefixArray3D<real> Fluxrhot;
-  IdefixArray3D<real> Fluxmrr;
-  IdefixArray3D<real> Fluxmrt;
-  IdefixArray3D<real> Fluxmtr;
-  IdefixArray3D<real> Fluxmtt;
-  IdefixArray3D<real> FluxEngr;
-  IdefixArray3D<real> FluxEngt;
-  
   IdefixHostArray3D<real> Emfr = variables["Emfr"];
   IdefixHostArray3D<real> Emft = variables["Emft"];
   IdefixHostArray3D<real> Emfp = variables["Emfp"];
@@ -415,13 +461,7 @@ void ComputeUserVars(DataBlock & data, UserDefVariablesContainer &variables) {
   IdefixHostArray3D<real> rhokapparFr = variables["rhokapparFr"];
   IdefixHostArray3D<real> rhokapparFt = variables["rhokapparFt"];
   IdefixHostArray3D<real> rhokappaparT4 = variables["rhokappaparT4"];
-  
-  IdefixArray3D<real> FluxRadErr;
-  IdefixArray3D<real> FluxRadErt;
-  IdefixArray3D<real> FluxRadFrr;
-  IdefixArray3D<real> FluxRadFrt;
-  IdefixArray3D<real> FluxRadFtr;
-  IdefixArray3D<real> FluxRadFtt;
+ 
 
   IdefixHostArray1D<real> x1=d.x[IDIR];
   IdefixHostArray1D<real> x2=d.x[JDIR];
@@ -465,15 +505,6 @@ void ComputeUserVars(DataBlock & data, UserDefVariablesContainer &variables) {
         BVBr(k,j,i) = BV*d.Vc(BX1,k,j,i);
         BVBt(k,j,i) = BV*d.Vc(BX2,k,j,i);
 
-        Fluxrhor(k,j,i) = data.hydro->FluxRiemann[IDIR](RHO,k,j,i);
-        Fluxrhot(k,j,i) = data.hydro->FluxRiemann[JDIR](RHO,k,j,i);
-        Fluxmrr(k,j,i) = data.hydro->FluxRiemann[IDIR](VX1,k,j,i);
-        Fluxmrt(k,j,i) = data.hydro->FluxRiemann[JDIR](VX1,k,j,i);
-        Fluxmtr(k,j,i) = data.hydro->FluxRiemann[IDIR](VX2,k,j,i);
-        Fluxmtt(k,j,i) = data.hydro->FluxRiemann[JDIR](VX2,k,j,i);
-        FluxEngr(k,j,i) = data.hydro->FluxRiemann[IDIR](ENG,k,j,i);
-        FluxEngt(k,j,i) = data.hydro->FluxRiemann[JDIR](ENG,k,j,i);
-
         Emfr(k,j,i) = d.Ex1(k,j,i);
         Emft(k,j,i) = d.Ex2(k,j,i);
         Emfp(k,j,i) = d.Ex3(k,j,i);
@@ -498,31 +529,10 @@ void ComputeUserVars(DataBlock & data, UserDefVariablesContainer &variables) {
        rhokapparFt(k,j,i) = d.Vc(RHO,k,j,i)*units.GetDensity()*kappar(k,j,i)*d.RadVc[0](FR2,k,j,i)*units.GetEnergy();
        rhokappaparT4(k,j,i) = d.Vc(RHO,k,j,i)*units.GetDensity()*kappap(k,j,i)*units.ar*std::pow(T,4.);
 
-       FluxRadErr(k,j,i) = data.radiation[0]->FluxRiemann[IDIR](ER,k,j,i);
-       FluxRadErt(k,j,i) = data.radiation[0]->FluxRiemann[JDIR](ER,k,j,i);
-       FluxRadFrr(k,j,i) = data.radiation[0]->FluxRiemann[IDIR](FR1,k,j,i);
-       FluxRadFrt(k,j,i) = data.radiation[0]->FluxRiemann[JDIR](FR1,k,j,i);
-       FluxRadFtr(k,j,i) = data.radiation[0]->FluxRiemann[IDIR](FR2,k,j,i);
-       FluxRadFtt(k,j,i) = data.radiation[0]->FluxRiemann[JDIR](FR2,k,j,i);
 
       }
     }
   }
-  Kokkos::deep_copy(variables["Fluxrhor"], Fluxrhor);
-  Kokkos::deep_copy(variables["Fluxrhot"], Fluxrhot);
-  Kokkos::deep_copy(variables["Fluxmrr"], Fluxmrr);
-  Kokkos::deep_copy(variables["Fluxmrt"], Fluxmrt);
-  Kokkos::deep_copy(variables["Fluxmtr"], Fluxmtr);
-  Kokkos::deep_copy(variables["Fluxmtt"], Fluxmtt);
-  Kokkos::deep_copy(variables["FluxEngr"], FluxEngr);
-  Kokkos::deep_copy(variables["FluxEngt"], FluxEngt);
-
-  Kokkos::deep_copy(variables["FluxRadErr"], FluxRadErr);
-  Kokkos::deep_copy(variables["FluxRadErt"], FluxRadErt);
-  Kokkos::deep_copy(variables["FluxRadFrr"], FluxRadFrr);
-  Kokkos::deep_copy(variables["FluxRadFrt"], FluxRadFrt);
-  Kokkos::deep_copy(variables["FluxRadFtr"], FluxRadFtr);
-  Kokkos::deep_copy(variables["FluxRadFtt"], FluxRadFtt);
 
 }
 
