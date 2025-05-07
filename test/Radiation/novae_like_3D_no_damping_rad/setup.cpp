@@ -396,14 +396,14 @@ void ComputeUserVars(DataBlock & data, UserDefVariablesContainer &variables) {
   IdefixHostArray3D<real> BVBr = variables["BVBr"];
   IdefixHostArray3D<real> BVBt = variables["BVBt"];
   
-  IdefixArray3D<real> Fluxrhor = variables["Fluxrhor"];
-  IdefixArray3D<real> Fluxrhot = variables["Fluxrhot"];
-  IdefixArray3D<real> Fluxmrr = variables["Fluxmrr"];
-  IdefixArray3D<real> Fluxmrt = variables["Fluxmrt"];
-  IdefixArray3D<real> Fluxmtr = variables["Fluxmtr"];
-  IdefixArray3D<real> Fluxmtt = variables["Fluxmtt"];
-  IdefixArray3D<real> FluxEngr = variables["FluxEngr"];
-  IdefixArray3D<real> FluxEngt = variables["FluxEngt"];
+  IdefixArray3D<real> Fluxrhor;
+  IdefixArray3D<real> Fluxrhot;
+  IdefixArray3D<real> Fluxmrr;
+  IdefixArray3D<real> Fluxmrt;
+  IdefixArray3D<real> Fluxmtr;
+  IdefixArray3D<real> Fluxmtt;
+  IdefixArray3D<real> FluxEngr;
+  IdefixArray3D<real> FluxEngt;
   
   IdefixHostArray3D<real> Emfr = variables["Emfr"];
   IdefixHostArray3D<real> Emft = variables["Emft"];
@@ -416,12 +416,12 @@ void ComputeUserVars(DataBlock & data, UserDefVariablesContainer &variables) {
   IdefixHostArray3D<real> rhokapparFt = variables["rhokapparFt"];
   IdefixHostArray3D<real> rhokappaparT4 = variables["rhokappaparT4"];
   
-  IdefixArray3D<real> FluxRadErr = variables["FluxRadErr"];
-  IdefixArray3D<real> FluxRadErt = variables["FluxRadErt"];
-  IdefixArray3D<real> FluxRadFrr = variables["FluxRadFrr"];
-  IdefixArray3D<real> FluxRadFrt = variables["FluxRadFrt"];
-  IdefixArray3D<real> FluxRadFtr = variables["FluxRadFtr"];
-  IdefixArray3D<real> FluxRadFtt = variables["FluxRadFtt"];
+  IdefixArray3D<real> FluxRadErr;
+  IdefixArray3D<real> FluxRadErt;
+  IdefixArray3D<real> FluxRadFrr;
+  IdefixArray3D<real> FluxRadFrt;
+  IdefixArray3D<real> FluxRadFtr;
+  IdefixArray3D<real> FluxRadFtt;
 
   IdefixHostArray1D<real> x1=d.x[IDIR];
   IdefixHostArray1D<real> x2=d.x[JDIR];
