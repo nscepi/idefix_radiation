@@ -198,10 +198,10 @@ void RadSource::RelativistCorrection(const real dt) {
       if ((Etot - URad[ER]*units.c/(reduced_c*units.GetVelocity()))<=ZERO_F) {
         #ifdef SMALL_ER
         URad[ER] = SMALL_ER;
-        std::printf("URad[ER]=%e UGas[ENG]=%e Etot=%e T=%e rho=%e kappap=%e at i=%i j=%i and k=%i\n",URad[ER],UGas[ENG],Etot,T,VGas[RHO]*units.GetDensity(),kappa_p,i,j,k);
+        //std::printf("URad[ER]=%e UGas[ENG]=%e Etot=%e T=%e rho=%e kappap=%e at i=%i j=%i and k=%i\n",URad[ER],UGas[ENG],Etot,T,VGas[RHO]*units.GetDensity(),kappa_p,i,j,k);
         //UGas[ENG] = Etot - URad[ER]*units.c/(reduced_c*units.GetVelocity());
         #else
-        Kokkos::abort("ENG=0 in RadSourceFullImplicit");
+        Kokkos::abort("ENG=0 in RadSourceRelativistCorrection");
         #endif      
       } else {
         UGas[ENG] = Etot - URad[ER]*units.c/(reduced_c*units.GetVelocity());
@@ -416,7 +416,7 @@ void RadSource::SourceFullImplicit(const real dt) {
 
       if ((Etot - URad[ER]*units.c/(reduced_c*units.GetVelocity()))<=ZERO_F) {
         #ifdef SMALL_ER
-        std::printf("URad[ER]=%e Er_hyp=%e UGas[ENG]=%e Etot=%e T=%e arT4=%e rho=%e kappap=%e kappar=%e at i=%i j=%i and k=%i\n",URad[ER],Er_hyp,UGas[ENG],Etot,T,units.ar*T3*T/units.GetEnergy(),VGas[RHO]*units.GetDensity(),kappa_p,kappa_r,i,j,k);
+        //std::printf("URad[ER]=%e Er_hyp=%e UGas[ENG]=%e Etot=%e T=%e arT4=%e rho=%e kappap=%e kappar=%e at i=%i j=%i and k=%i\n",URad[ER],Er_hyp,UGas[ENG],Etot,T,units.ar*T3*T/units.GetEnergy(),VGas[RHO]*units.GetDensity(),kappa_p,kappa_r,i,j,k);
         URad[ER] = units.ar*T3*T/units.GetEnergy();
         UGas[ENG] = Etot - URad[ER]*units.c/(reduced_c*units.GetVelocity());
         #else
