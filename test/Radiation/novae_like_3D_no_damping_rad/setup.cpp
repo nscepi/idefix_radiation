@@ -396,14 +396,14 @@ void ComputeUserVars(DataBlock & data, UserDefVariablesContainer &variables) {
   IdefixHostArray3D<real> BVBr = variables["BVBr"];
   IdefixHostArray3D<real> BVBt = variables["BVBt"];
   
-  IdefixHostArray3D<real> Fluxrhor = variables["Fluxrhor"];
-  IdefixHostArray3D<real> Fluxrhot = variables["Fluxrhot"];
-  IdefixHostArray3D<real> Fluxmrr = variables["Fluxmrr"];
-  IdefixHostArray3D<real> Fluxmrt = variables["Fluxmrt"];
-  IdefixHostArray3D<real> Fluxmtr = variables["Fluxmtr"];
-  IdefixHostArray3D<real> Fluxmtt = variables["Fluxmtt"];
-  IdefixHostArray3D<real> FluxEngr = variables["FluxEngr"];
-  IdefixHostArray3D<real> FluxEngt = variables["FluxEngt"];
+  IdefixArray3D<real> Fluxrhor = variables["Fluxrhor"];
+  IdefixArray3D<real> Fluxrhot = variables["Fluxrhot"];
+  IdefixArray3D<real> Fluxmrr = variables["Fluxmrr"];
+  IdefixArray3D<real> Fluxmrt = variables["Fluxmrt"];
+  IdefixArray3D<real> Fluxmtr = variables["Fluxmtr"];
+  IdefixArray3D<real> Fluxmtt = variables["Fluxmtt"];
+  IdefixArray3D<real> FluxEngr = variables["FluxEngr"];
+  IdefixArray3D<real> FluxEngt = variables["FluxEngt"];
   
   IdefixHostArray3D<real> Emfr = variables["Emfr"];
   IdefixHostArray3D<real> Emft = variables["Emft"];
@@ -416,21 +416,17 @@ void ComputeUserVars(DataBlock & data, UserDefVariablesContainer &variables) {
   IdefixHostArray3D<real> rhokapparFt = variables["rhokapparFt"];
   IdefixHostArray3D<real> rhokappaparT4 = variables["rhokappaparT4"];
   
-  IdefixHostArray3D<real> FluxRadErr = variables["FluxRadErr"];
-  IdefixHostArray3D<real> FluxRadErt = variables["FluxRadErt"];
-  IdefixHostArray3D<real> FluxRadFrr = variables["FluxRadFrr"];
-  IdefixHostArray3D<real> FluxRadFrt = variables["FluxRadFrt"];
-  IdefixHostArray3D<real> FluxRadFtr = variables["FluxRadFtr"];
-  IdefixHostArray3D<real> FluxRadFtt = variables["FluxRadFtt"];
+  IdefixArray3D<real> FluxRadErr = variables["FluxRadErr"];
+  IdefixArray3D<real> FluxRadErt = variables["FluxRadErt"];
+  IdefixArray3D<real> FluxRadFrr = variables["FluxRadFrr"];
+  IdefixArray3D<real> FluxRadFrt = variables["FluxRadFrt"];
+  IdefixArray3D<real> FluxRadFtr = variables["FluxRadFtr"];
+  IdefixArray3D<real> FluxRadFtt = variables["FluxRadFtt"];
 
   IdefixHostArray1D<real> x1=d.x[IDIR];
   IdefixHostArray1D<real> x2=d.x[JDIR];
   IdefixHostArray4D<real> Vc=d.Vc;
-  IdefixArray3D<real>::HostMirror scrhHost = Kokkos::create_mirror_view(scrh);
   
-  Kokkos::deep_copy(scrhHost,scrh);
-  IdefixArray3D<real>::HostMirror xHHost;
-
   for(int k = d.beg[KDIR]; k < d.end[KDIR] ; k++) {
     for(int j = d.beg[JDIR]; j < d.end[JDIR] ; j++) {
       for(int i = d.beg[IDIR]; i < d.end[IDIR] ; i++) {
@@ -478,9 +474,9 @@ void ComputeUserVars(DataBlock & data, UserDefVariablesContainer &variables) {
         FluxEngr(k,j,i) = data.hydro->FluxRiemann[IDIR](ENG,k,j,i);
         FluxEngt(k,j,i) = data.hydro->FluxRiemann[JDIR](ENG,k,j,i);
 
-        Emfr(k,j,i) = data.hydro->emf->ex(k,j,i);
-        Emft(k,j,i) = data.hydro->emf->ey(k,j,i);
-        Emfp(k,j,i) = data.hydro->emf->ez(k,j,i);
+        Emfr(k,j,i) = d.Ex1(k,j,i);
+        Emft(k,j,i) = d.Ex2(k,j,i);
+        Emfp(k,j,i) = d.Ex3(k,j,i);
 
        real T = Vc(PRS,k,j,i)/Vc(RHO,k,j,i)*units.GetKelvin()*muGlob;
        real logrho = std::log10(Vc(RHO,k,j,i)*units.GetDensity());
@@ -512,35 +508,6 @@ void ComputeUserVars(DataBlock & data, UserDefVariablesContainer &variables) {
       }
     }
   }
-
-  Kokkos::deep_copy(variables["InvDt"], InvDt);
-
-  Kokkos::deep_copy(variables["rhovr"], rhovr);
-  Kokkos::deep_copy(variables["rhovt"], rhovt);
-  
-  Kokkos::deep_copy(variables["rhovrvr"], rhovrvr);
-  Kokkos::deep_copy(variables["rhovrvt"], rhovrvt);
-  Kokkos::deep_copy(variables["rhovrvp"], rhovrvp);
-  Kokkos::deep_copy(variables["rhovtvt"], rhovtvt);
-  Kokkos::deep_copy(variables["rhovtvp"], rhovtvp);
-  Kokkos::deep_copy(variables["rhovpvp"], rhovpvp);
-
-  Kokkos::deep_copy(variables["BrBr"], BrBr);
-  Kokkos::deep_copy(variables["BrBt"], BrBt);
-  Kokkos::deep_copy(variables["BrBp"], BrBp);
-  Kokkos::deep_copy(variables["BtBt"], BtBt);
-  Kokkos::deep_copy(variables["BtBp"], BtBp);
-  Kokkos::deep_copy(variables["BpBp"], BpBp);
-
-  Kokkos::deep_copy(variables["Pvr"], Pvr);
-  Kokkos::deep_copy(variables["Pvt"], Pvt);
-  Kokkos::deep_copy(variables["rhov2vr"], rhov2vr);
-  Kokkos::deep_copy(variables["rhov2vt"], rhov2vt);
-  Kokkos::deep_copy(variables["B2vr"], B2vr);
-  Kokkos::deep_copy(variables["B2vt"], B2vt);
-  Kokkos::deep_copy(variables["BVBr"], BVBr);
-  Kokkos::deep_copy(variables["BVBt"], BVBt);
-
   Kokkos::deep_copy(variables["Fluxrhor"], Fluxrhor);
   Kokkos::deep_copy(variables["Fluxrhot"], Fluxrhot);
   Kokkos::deep_copy(variables["Fluxmrr"], Fluxmrr);
@@ -549,17 +516,6 @@ void ComputeUserVars(DataBlock & data, UserDefVariablesContainer &variables) {
   Kokkos::deep_copy(variables["Fluxmtt"], Fluxmtt);
   Kokkos::deep_copy(variables["FluxEngr"], FluxEngr);
   Kokkos::deep_copy(variables["FluxEngt"], FluxEngt);
-
-  Kokkos::deep_copy(variables["Emfr"], Emfr);
-  Kokkos::deep_copy(variables["Emft"], Emft);
-  Kokkos::deep_copy(variables["Emfp"], Emfp);
-
-  Kokkos::deep_copy(variables["kappap"], kappap);
-  Kokkos::deep_copy(variables["kappar"], kappar);
-  Kokkos::deep_copy(variables["rhokappapEr"], rhokappapEr);
-  Kokkos::deep_copy(variables["rhokapparFr"], rhokapparFr);
-  Kokkos::deep_copy(variables["rhokapparFt"], rhokapparFt);
-  Kokkos::deep_copy(variables["rhokappaparT4"], rhokappaparT4);
 
   Kokkos::deep_copy(variables["FluxRadErr"], FluxRadErr);
   Kokkos::deep_copy(variables["FluxRadErt"], FluxRadErt);
