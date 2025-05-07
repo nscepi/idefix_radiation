@@ -356,23 +356,11 @@ void UserdefBoundaryRad(Fluid<RadiationPhysics> *radiation, int dir, BoundarySid
 void ComputeUserVars(DataBlock & data, UserDefVariablesContainer &variables) {
 
   // custom scratch array
-  IdefixArray3D<real> scrh("Scratch", data.np_tot[KDIR], data.np_tot[JDIR], data.np_tot[IDIR]);
- 
-  IdefixArray3D<real> FluxRadErr("FluxRadErr", data.np_tot[KDIR], data.np_tot[JDIR], data.np_tot[IDIR]);
-  IdefixArray3D<real> FluxRadErt("FluxRadErt", data.np_tot[KDIR], data.np_tot[JDIR], data.np_tot[IDIR]);
-  IdefixArray3D<real> FluxRadFrr("FluxRadFrr", data.np_tot[KDIR], data.np_tot[JDIR], data.np_tot[IDIR]);
-  IdefixArray3D<real> FluxRadFrt("FluxRadFrt", data.np_tot[KDIR], data.np_tot[JDIR], data.np_tot[IDIR]);
-  IdefixArray3D<real> FluxRadFtr("FluxRadFtr", data.np_tot[KDIR], data.np_tot[JDIR], data.np_tot[IDIR]);
-  IdefixArray3D<real> FluxRadFtt("FluxRadFtt", data.np_tot[KDIR], data.np_tot[JDIR], data.np_tot[IDIR]);
-
-  IdefixArray3D<real> Fluxrhor("Fluxrhor", data.np_tot[KDIR], data.np_tot[JDIR], data.np_tot[IDIR]);
-  IdefixArray3D<real> Fluxrhot("Fluxrhot", data.np_tot[KDIR], data.np_tot[JDIR], data.np_tot[IDIR]);
-  IdefixArray3D<real> Fluxmrr("Fluxmrr", data.np_tot[KDIR], data.np_tot[JDIR], data.np_tot[IDIR]);
-  IdefixArray3D<real> Fluxmrt("Fluxmrt", data.np_tot[KDIR], data.np_tot[JDIR], data.np_tot[IDIR]);
-  IdefixArray3D<real> Fluxmtr("Fluxmtr", data.np_tot[KDIR], data.np_tot[JDIR], data.np_tot[IDIR]);
-  IdefixArray3D<real> Fluxmtt("Fluxmtt", data.np_tot[KDIR], data.np_tot[JDIR], data.np_tot[IDIR]);
-  IdefixArray3D<real> FluxEngr("FluxEngr", data.np_tot[KDIR], data.np_tot[JDIR], data.np_tot[IDIR]);
-  IdefixArray3D<real> FluxEngt("FluxEngt", data.np_tot[KDIR], data.np_tot[JDIR], data.np_tot[IDIR]);
+  IdefixArray3D<real> scrh1("Scratch1", data.np_tot[KDIR], data.np_tot[JDIR], data.np_tot[IDIR]);
+  IdefixArray3D<real> scrh2("Scratch2", data.np_tot[KDIR], data.np_tot[JDIR], data.np_tot[IDIR]);
+  IdefixArray3D<real> scrh3("Scratch3", data.np_tot[KDIR], data.np_tot[JDIR], data.np_tot[IDIR]);
+  IdefixArray3D<real> scrh4("Scratch4", data.np_tot[KDIR], data.np_tot[JDIR], data.np_tot[IDIR]);
+  IdefixArray3D<real> scrh5("Scratch5", data.np_tot[KDIR], data.np_tot[JDIR], data.np_tot[IDIR]);
 
   IdefixArray4D<real> FluxRiemannIDIR = data.hydro->FluxRiemann[IDIR];
   IdefixArray4D<real> FluxRiemannJDIR = data.hydro->FluxRiemann[JDIR];
@@ -381,37 +369,43 @@ void ComputeUserVars(DataBlock & data, UserDefVariablesContainer &variables) {
   
   idefix_for("UserVar",0,data.np_tot[KDIR],0,data.np_tot[JDIR],0,data.np_tot[IDIR],
    KOKKOS_LAMBDA (int k, int j, int i) {
-      Fluxrhor(k,j,i) = FluxRiemannIDIR(RHO,k,j,i);
-      Fluxrhot(k,j,i) = FluxRiemannJDIR(RHO,k,j,i);
-      Fluxmrr(k,j,i) = FluxRiemannIDIR(VX1,k,j,i);
-      Fluxmrt(k,j,i) = FluxRiemannJDIR(VX1,k,j,i);
-      Fluxmtr(k,j,i) = FluxRiemannIDIR(VX2,k,j,i);
-      Fluxmtt(k,j,i) = FluxRiemannJDIR(VX2,k,j,i);
-      FluxEngr(k,j,i) = FluxRiemannIDIR(ENG,k,j,i);
-      FluxEngt(k,j,i) = FluxRiemannJDIR(ENG,k,j,i);
-      FluxRadErr(k,j,i) = RadFluxRiemannIDIR(ER,k,j,i);
-      FluxRadErt(k,j,i) = RadFluxRiemannJDIR(ER,k,j,i);
-      FluxRadFrr(k,j,i) = RadFluxRiemannIDIR(FR1,k,j,i);
-      FluxRadFrt(k,j,i) = RadFluxRiemannJDIR(FR1,k,j,i);
-      FluxRadFtr(k,j,i) = RadFluxRiemannIDIR(FR2,k,j,i);
-      FluxRadFtt(k,j,i) = RadFluxRiemannJDIR(FR2,k,j,i);
-    });
+      scrh1(k,j,i) = FluxRiemannIDIR(RHO,k,j,i);
+      scrh2(k,j,i) = FluxRiemannJDIR(RHO,k,j,i);
+      scrh3(k,j,i) = FluxRiemannIDIR(VX1,k,j,i);
+      scrh4(k,j,i) = FluxRiemannJDIR(VX1,k,j,i);
+      scrh5(k,j,i) = FluxRiemannIDIR(VX2,k,j,i);
+   });
+  Kokkos::deep_copy(variables["Fluxrhor"], scrh1);
+  Kokkos::deep_copy(variables["Fluxrhot"], scrh2);
+  Kokkos::deep_copy(variables["Fluxmrr"], scrh3);
+  Kokkos::deep_copy(variables["Fluxmrt"], scrh4);
+  Kokkos::deep_copy(variables["Fluxmtr"], scrh5);
 
-  Kokkos::deep_copy(variables["Fluxrhor"], Fluxrhor);
-  Kokkos::deep_copy(variables["Fluxrhot"], Fluxrhot);
-  Kokkos::deep_copy(variables["Fluxmrr"], Fluxmrr);
-  Kokkos::deep_copy(variables["Fluxmrt"], Fluxmrt);
-  Kokkos::deep_copy(variables["Fluxmtr"], Fluxmtr);
-  Kokkos::deep_copy(variables["Fluxmtt"], Fluxmtt);
-  Kokkos::deep_copy(variables["FluxEngr"], FluxEngr);
-  Kokkos::deep_copy(variables["FluxEngt"], FluxEngt);
+  idefix_for("UserVar",0,data.np_tot[KDIR],0,data.np_tot[JDIR],0,data.np_tot[IDIR],
+   KOKKOS_LAMBDA (int k, int j, int i) {
+     scrh1(k,j,i) = FluxRiemannJDIR(VX2,k,j,i);
+     scrh2(k,j,i) = FluxRiemannIDIR(ENG,k,j,i);
+     scrh3(k,j,i) = FluxRiemannJDIR(ENG,k,j,i);
+     scrh4(k,j,i) = RadFluxRiemannIDIR(ER,k,j,i);
+     scrh5(k,j,i) = RadFluxRiemannJDIR(ER,k,j,i);
+   });
+  Kokkos::deep_copy(variables["Fluxmtt"], scrh1);
+  Kokkos::deep_copy(variables["FluxEngr"], scrh2);
+  Kokkos::deep_copy(variables["FluxEngt"], scrh3);
+  Kokkos::deep_copy(variables["FluxRadErr"], scrh4);
+  Kokkos::deep_copy(variables["FluxRadErt"], scrh5);
 
-  Kokkos::deep_copy(variables["FluxRadErr"], FluxRadErr);
-  Kokkos::deep_copy(variables["FluxRadErt"], FluxRadErt);
-  Kokkos::deep_copy(variables["FluxRadFrr"], FluxRadFrr);
-  Kokkos::deep_copy(variables["FluxRadFrt"], FluxRadFrt);
-  Kokkos::deep_copy(variables["FluxRadFtr"], FluxRadFtr);
-  Kokkos::deep_copy(variables["FluxRadFtt"], FluxRadFtt);
+  idefix_for("UserVar",0,data.np_tot[KDIR],0,data.np_tot[JDIR],0,data.np_tot[IDIR],
+   KOKKOS_LAMBDA (int k, int j, int i) {
+     scrh1(k,j,i) = RadFluxRiemannIDIR(FR1,k,j,i);
+     scrh2(k,j,i) = RadFluxRiemannJDIR(FR1,k,j,i);
+     scrh3(k,j,i) = RadFluxRiemannIDIR(FR2,k,j,i);
+     scrh4(k,j,i) = RadFluxRiemannJDIR(FR2,k,j,i);
+   });
+  Kokkos::deep_copy(variables["FluxRadFrr"], scrh1);
+  Kokkos::deep_copy(variables["FluxRadFrt"], scrh2);
+  Kokkos::deep_copy(variables["FluxRadFtr"], scrh3);
+  Kokkos::deep_copy(variables["FluxRadFtt"], scrh4);
 
   // Mirror data on Host
   DataBlockHost d(data);
@@ -423,45 +417,12 @@ void ComputeUserVars(DataBlock & data, UserDefVariablesContainer &variables) {
 
   // Make references to the user-defined arrays (variables is a container of IdefixHostArray3D)
   // Note that the labels should match the variable names in the input file
-  IdefixHostArray3D<real> InvDt  = variables["InvDt"];
-
-  IdefixHostArray3D<real> rhovr = variables["rhovr"];
-  IdefixHostArray3D<real> rhovt = variables["rhovt"];
-  
-  IdefixHostArray3D<real> rhovrvr = variables["rhovrvr"];
-  IdefixHostArray3D<real> rhovrvt = variables["rhovrvt"];
-  IdefixHostArray3D<real> rhovrvp = variables["rhovrvp"];
-  IdefixHostArray3D<real> rhovtvt = variables["rhovtvt"];
-  IdefixHostArray3D<real> rhovtvp = variables["rhovtvp"];
-  IdefixHostArray3D<real> rhovpvp = variables["rhovpvp"];
-  
-  IdefixHostArray3D<real> BrBr = variables["BrBr"];
-  IdefixHostArray3D<real> BrBt = variables["BrBt"];
-  IdefixHostArray3D<real> BrBp = variables["BrBp"];
-  IdefixHostArray3D<real> BtBt = variables["BtBt"];
-  IdefixHostArray3D<real> BtBp = variables["BtBp"];
-  IdefixHostArray3D<real> BpBp = variables["BpBp"];
-  
-  IdefixHostArray3D<real> Pvr = variables["Pvr"];
-  IdefixHostArray3D<real> Pvt = variables["Pvt"];
-  IdefixHostArray3D<real> rhov2vr = variables["rhov2vr"];
-  IdefixHostArray3D<real> rhov2vt = variables["rhov2vt"];
-  IdefixHostArray3D<real> B2vr = variables["B2vr"];
-  IdefixHostArray3D<real> B2vt = variables["B2vt"];
-  IdefixHostArray3D<real> BVBr = variables["BVBr"];
-  IdefixHostArray3D<real> BVBt = variables["BVBt"];
-  
-  IdefixHostArray3D<real> Emfr = variables["Emfr"];
-  IdefixHostArray3D<real> Emft = variables["Emft"];
-  IdefixHostArray3D<real> Emfp = variables["Emfp"];
-
-  IdefixHostArray3D<real> kappap = variables["kappap"];
-  IdefixHostArray3D<real> kappar = variables["kappar"];
-  IdefixHostArray3D<real> rhokappapEr = variables["rhokappapEr"];
-  IdefixHostArray3D<real> rhokapparFr = variables["rhokapparFr"];
-  IdefixHostArray3D<real> rhokapparFt = variables["rhokapparFt"];
-  IdefixHostArray3D<real> rhokappaparT4 = variables["rhokappaparT4"];
- 
+  IdefixHostArray3D<real> scrhHost1("ScratchHost1", data.np_tot[KDIR], data.np_tot[JDIR], data.np_tot[IDIR]);
+  IdefixHostArray3D<real> scrhHost2("ScratchHost2", data.np_tot[KDIR], data.np_tot[JDIR], data.np_tot[IDIR]);
+  IdefixHostArray3D<real> scrhHost3("ScratchHost3", data.np_tot[KDIR], data.np_tot[JDIR], data.np_tot[IDIR]);
+  IdefixHostArray3D<real> scrhHost4("ScratchHost4", data.np_tot[KDIR], data.np_tot[JDIR], data.np_tot[IDIR]);
+  IdefixHostArray3D<real> scrhHost5("ScratchHost5", data.np_tot[KDIR], data.np_tot[JDIR], data.np_tot[IDIR]);
+  IdefixHostArray3D<real> scrhHost6("ScratchHost6", data.np_tot[KDIR], data.np_tot[JDIR], data.np_tot[IDIR]);
 
   IdefixHostArray1D<real> x1=d.x[IDIR];
   IdefixHostArray1D<real> x2=d.x[JDIR];
@@ -470,70 +431,124 @@ void ComputeUserVars(DataBlock & data, UserDefVariablesContainer &variables) {
   for(int k = d.beg[KDIR]; k < d.end[KDIR] ; k++) {
     for(int j = d.beg[JDIR]; j < d.end[JDIR] ; j++) {
       for(int i = d.beg[IDIR]; i < d.end[IDIR] ; i++) {
-        real z=x1(i)*cos(x2(j));
-        real R=FMAX(FABS(x1(i)*sin(x2(j))),ONE_F);
-        real H=R*epsilonGlob;
-        real Omega=pow(R,-1.5);
-        InvDt(k,j,i) = d.InvDt(k,j,i);
-        
-        rhovr(k,j,i) = d.Vc(RHO,k,j,i)*d.Vc(VX1,k,j,i);
-        rhovt(k,j,i) = d.Vc(RHO,k,j,i)*d.Vc(VX2,k,j,i);
-
-        rhovrvr(k,j,i) = d.Vc(RHO,k,j,i)*d.Vc(VX1,k,j,i)*d.Vc(VX1,k,j,i);
-        rhovrvt(k,j,i) = d.Vc(RHO,k,j,i)*d.Vc(VX1,k,j,i)*d.Vc(VX2,k,j,i);
-        rhovrvp(k,j,i) = d.Vc(RHO,k,j,i)*d.Vc(VX1,k,j,i)*d.Vc(VX3,k,j,i);
-        rhovtvt(k,j,i) = d.Vc(RHO,k,j,i)*d.Vc(VX2,k,j,i)*d.Vc(VX2,k,j,i);
-        rhovtvp(k,j,i) = d.Vc(RHO,k,j,i)*d.Vc(VX2,k,j,i)*d.Vc(VX3,k,j,i);
-        rhovpvp(k,j,i) = d.Vc(RHO,k,j,i)*d.Vc(VX3,k,j,i)*d.Vc(VX3,k,j,i);
-        
-        BrBr(k,j,i) = d.Vc(BX1,k,j,i)*d.Vc(BX1,k,j,i);
-        BrBt(k,j,i) = d.Vc(BX1,k,j,i)*d.Vc(BX2,k,j,i);
-        BrBp(k,j,i) = d.Vc(BX1,k,j,i)*d.Vc(BX3,k,j,i);
-        BtBt(k,j,i) = d.Vc(BX2,k,j,i)*d.Vc(BX2,k,j,i);
-        BtBp(k,j,i) = d.Vc(BX2,k,j,i)*d.Vc(BX3,k,j,i);
-        BpBp(k,j,i) = d.Vc(BX3,k,j,i)*d.Vc(BX3,k,j,i);
-        
-        Pvr(k,j,i) = d.Vc(PRS,k,j,i)*d.Vc(VX1,k,j,i);
-        Pvt(k,j,i) = d.Vc(PRS,k,j,i)*d.Vc(VX2,k,j,i);
-        real rhov2 = d.Vc(RHO,k,j,i)*(d.Vc(VX1,k,j,i)*d.Vc(VX1,k,j,i)+d.Vc(VX2,k,j,i)*d.Vc(VX2,k,j,i)+d.Vc(VX3,k,j,i)*d.Vc(VX3,k,j,i));
-        rhov2vr(k,j,i) = rhov2*d.Vc(VX1,k,j,i);
-        rhov2vt(k,j,i) = rhov2*d.Vc(VX2,k,j,i);
-        real B2 = d.Vc(BX1,k,j,i)*d.Vc(BX1,k,j,i)+d.Vc(BX2,k,j,i)*d.Vc(BX2,k,j,i)+d.Vc(BX3,k,j,i)*d.Vc(BX3,k,j,i);
-        B2vr(k,j,i) = B2*d.Vc(VX1,k,j,i);
-        B2vt(k,j,i) = B2*d.Vc(VX2,k,j,i);
-        real BV = d.Vc(BX1,k,j,i)*d.Vc(VX1,k,j,i)+d.Vc(BX2,k,j,i)*d.Vc(VX2,k,j,i)+d.Vc(BX3,k,j,i)*d.Vc(VX3,k,j,i);
-        BVBr(k,j,i) = BV*d.Vc(BX1,k,j,i);
-        BVBt(k,j,i) = BV*d.Vc(BX2,k,j,i);
-
-        Emfr(k,j,i) = d.Ex1(k,j,i);
-        Emft(k,j,i) = d.Ex2(k,j,i);
-        Emfp(k,j,i) = d.Ex3(k,j,i);
-
-       real T = Vc(PRS,k,j,i)/Vc(RHO,k,j,i)*units.GetKelvin()*muGlob;
-       real logrho = std::log10(Vc(RHO,k,j,i)*units.GetDensity());
-       real x[2];
-       x[0] = FMIN(-4.05,FMAX(-14.,logrho));
-       x[1] = FMIN(FMAX(std::log10(T),2.5),5.98);
-       if (kappatypeGlob.compare("usertable") == 0){ 
-        kappap(k,j,i) = std::pow(10.,kappaptabGlob->GetHost(x));
-        kappar(k,j,i) = std::pow(10.,kappartabGlob->GetHost(x));
-       } else if (kappatypeGlob.compare("constant") == 0) {
-        kappap(k,j,i) = kappapGlob;
-        kappar(k,j,i) = kapparGlob;
-       } else if (kappatypeGlob.compare("usertable") == 0) {
-        kappap(k,j,i) = kappapGlob*Vc(RHO,k,j,i)*units.GetDensity()/kramersrhoindexGlob*std::pow(T/kramersTindexGlob,-3.5);
-        kappar(k,j,i) = kapparGlob*Vc(RHO,k,j,i)*units.GetDensity()/kramersrhoindexGlob*std::pow(T/kramersTindexGlob,-3.5);
-       }
-       rhokappapEr(k,j,i) = d.Vc(RHO,k,j,i)*units.GetDensity()*kappap(k,j,i)*d.RadVc[0](ER,k,j,i)*units.GetEnergy();
-       rhokapparFr(k,j,i) = d.Vc(RHO,k,j,i)*units.GetDensity()*kappar(k,j,i)*d.RadVc[0](FR1,k,j,i)*units.GetEnergy();
-       rhokapparFt(k,j,i) = d.Vc(RHO,k,j,i)*units.GetDensity()*kappar(k,j,i)*d.RadVc[0](FR2,k,j,i)*units.GetEnergy();
-       rhokappaparT4(k,j,i) = d.Vc(RHO,k,j,i)*units.GetDensity()*kappap(k,j,i)*units.ar*std::pow(T,4.);
-
-
+        scrhHost1(k,j,i) = d.InvDt(k,j,i);
+        scrhHost2(k,j,i) = d.Vc(RHO,k,j,i)*d.Vc(VX1,k,j,i);
+        scrhHost3(k,j,i) = d.Vc(RHO,k,j,i)*d.Vc(VX2,k,j,i); 
       }
     }
   }
+  Kokkos::deep_copy(variables["InvDt"], scrhHost1);
+  Kokkos::deep_copy(variables["rhovr"], scrhHost2);
+  Kokkos::deep_copy(variables["rhovt"], scrhHost3);
 
+  for(int k = d.beg[KDIR]; k < d.end[KDIR] ; k++) {
+    for(int j = d.beg[JDIR]; j < d.end[JDIR] ; j++) {
+      for(int i = d.beg[IDIR]; i < d.end[IDIR] ; i++) {
+        scrhHost1(k,j,i) = d.Vc(RHO,k,j,i)*d.Vc(VX1,k,j,i)*d.Vc(VX1,k,j,i);
+        scrhHost2(k,j,i) = d.Vc(RHO,k,j,i)*d.Vc(VX1,k,j,i)*d.Vc(VX2,k,j,i);
+        scrhHost3(k,j,i) = d.Vc(RHO,k,j,i)*d.Vc(VX1,k,j,i)*d.Vc(VX3,k,j,i);
+        scrhHost4(k,j,i) = d.Vc(RHO,k,j,i)*d.Vc(VX2,k,j,i)*d.Vc(VX2,k,j,i);
+        scrhHost5(k,j,i) = d.Vc(RHO,k,j,i)*d.Vc(VX2,k,j,i)*d.Vc(VX3,k,j,i);
+        scrhHost6(k,j,i) = d.Vc(RHO,k,j,i)*d.Vc(VX3,k,j,i)*d.Vc(VX3,k,j,i);
+      }
+    }
+  }
+  Kokkos::deep_copy(variables["rhovrvr"], scrhHost1);
+  Kokkos::deep_copy(variables["rhovrvt"], scrhHost2);
+  Kokkos::deep_copy(variables["rhovrvp"], scrhHost3);
+  Kokkos::deep_copy(variables["rhovtvt"], scrhHost4);
+  Kokkos::deep_copy(variables["rhovtvp"], scrhHost5);
+  Kokkos::deep_copy(variables["rhovpvp"], scrhHost6);
+        
+  for(int k = d.beg[KDIR]; k < d.end[KDIR] ; k++) {
+    for(int j = d.beg[JDIR]; j < d.end[JDIR] ; j++) {
+      for(int i = d.beg[IDIR]; i < d.end[IDIR] ; i++) {
+        scrhHost1(k,j,i) = d.Vc(BX1,k,j,i)*d.Vc(BX1,k,j,i);
+        scrhHost2(k,j,i) = d.Vc(BX1,k,j,i)*d.Vc(BX2,k,j,i);
+        scrhHost3(k,j,i) = d.Vc(BX1,k,j,i)*d.Vc(BX3,k,j,i);
+        scrhHost4(k,j,i) = d.Vc(BX2,k,j,i)*d.Vc(BX2,k,j,i);
+        scrhHost5(k,j,i) = d.Vc(BX2,k,j,i)*d.Vc(BX3,k,j,i);
+        scrhHost6(k,j,i) = d.Vc(BX3,k,j,i)*d.Vc(BX3,k,j,i);
+      }
+    }
+  }
+  Kokkos::deep_copy(variables["BrBr"], scrhHost1);
+  Kokkos::deep_copy(variables["BrBt"], scrhHost2);
+  Kokkos::deep_copy(variables["BrBp"], scrhHost3);
+  Kokkos::deep_copy(variables["BtBt"], scrhHost4);
+  Kokkos::deep_copy(variables["BtBp"], scrhHost5);
+  Kokkos::deep_copy(variables["BpBp"], scrhHost6);
+        
+  for(int k = d.beg[KDIR]; k < d.end[KDIR] ; k++) {
+    for(int j = d.beg[JDIR]; j < d.end[JDIR] ; j++) {
+      for(int i = d.beg[IDIR]; i < d.end[IDIR] ; i++) {
+        scrhHost1(k,j,i) = d.Vc(PRS,k,j,i)*d.Vc(VX1,k,j,i);
+        scrhHost2(k,j,i) = d.Vc(PRS,k,j,i)*d.Vc(VX2,k,j,i);
+        real rhov2 = d.Vc(RHO,k,j,i)*(d.Vc(VX1,k,j,i)*d.Vc(VX1,k,j,i)+d.Vc(VX2,k,j,i)*d.Vc(VX2,k,j,i)+d.Vc(VX3,k,j,i)*d.Vc(VX3,k,j,i));
+        scrhHost3(k,j,i) = rhov2*d.Vc(VX1,k,j,i);
+        scrhHost4(k,j,i) = rhov2*d.Vc(VX2,k,j,i);
+        real B2 = d.Vc(BX1,k,j,i)*d.Vc(BX1,k,j,i)+d.Vc(BX2,k,j,i)*d.Vc(BX2,k,j,i)+d.Vc(BX3,k,j,i)*d.Vc(BX3,k,j,i);
+        scrhHost5(k,j,i) = B2*d.Vc(VX1,k,j,i);
+        scrhHost6(k,j,i) = B2*d.Vc(VX2,k,j,i);
+      }
+    }
+  }
+  Kokkos::deep_copy(variables["Pvr"], scrhHost1);
+  Kokkos::deep_copy(variables["Pvt"], scrhHost2);
+  Kokkos::deep_copy(variables["rhov2vr"], scrhHost3);
+  Kokkos::deep_copy(variables["rhov2vt"], scrhHost4);
+  Kokkos::deep_copy(variables["B2vr"], scrhHost5);
+  Kokkos::deep_copy(variables["B2vt"], scrhHost6);
+
+  for(int k = d.beg[KDIR]; k < d.end[KDIR] ; k++) {
+    for(int j = d.beg[JDIR]; j < d.end[JDIR] ; j++) {
+      for(int i = d.beg[IDIR]; i < d.end[IDIR] ; i++) {
+        real BV = d.Vc(BX1,k,j,i)*d.Vc(VX1,k,j,i)+d.Vc(BX2,k,j,i)*d.Vc(VX2,k,j,i)+d.Vc(BX3,k,j,i)*d.Vc(VX3,k,j,i);
+        scrhHost1(k,j,i) = BV*d.Vc(BX1,k,j,i);
+        scrhHost2(k,j,i) = BV*d.Vc(BX2,k,j,i);
+        scrhHost3(k,j,i) = d.Ex1(k,j,i);
+        scrhHost4(k,j,i) = d.Ex2(k,j,i);
+        scrhHost5(k,j,i) = d.Ex3(k,j,i);
+      }
+    }
+  }
+  Kokkos::deep_copy(variables["BVBr"], scrhHost1);
+  Kokkos::deep_copy(variables["BVBt"], scrhHost2);
+  Kokkos::deep_copy(variables["Emfr"], scrhHost3);
+  Kokkos::deep_copy(variables["Emft"], scrhHost4);
+  Kokkos::deep_copy(variables["Emfp"], scrhHost5);
+
+  for(int k = d.beg[KDIR]; k < d.end[KDIR] ; k++) {
+    for(int j = d.beg[JDIR]; j < d.end[JDIR] ; j++) {
+      for(int i = d.beg[IDIR]; i < d.end[IDIR] ; i++) {
+        real T = Vc(PRS,k,j,i)/Vc(RHO,k,j,i)*units.GetKelvin()*muGlob;
+        real logrho = std::log10(Vc(RHO,k,j,i)*units.GetDensity());
+        real x[2];
+        x[0] = FMIN(-4.05,FMAX(-14.,logrho));
+        x[1] = FMIN(FMAX(std::log10(T),2.5),5.98);
+        if (kappatypeGlob.compare("usertable") == 0){ 
+          scrhHost1(k,j,i) = std::pow(10.,kappaptabGlob->GetHost(x));
+          scrhHost2(k,j,i) = std::pow(10.,kappartabGlob->GetHost(x));
+        } else if (kappatypeGlob.compare("constant") == 0) {
+          scrhHost1(k,j,i) = kappapGlob;
+          scrhHost2(k,j,i) = kapparGlob;
+        } else if (kappatypeGlob.compare("usertable") == 0) {
+          scrhHost1(k,j,i) = kappapGlob*Vc(RHO,k,j,i)*units.GetDensity()/kramersrhoindexGlob*std::pow(T/kramersTindexGlob,-3.5);
+          scrhHost2(k,j,i) = kapparGlob*Vc(RHO,k,j,i)*units.GetDensity()/kramersrhoindexGlob*std::pow(T/kramersTindexGlob,-3.5);
+        }
+        scrhHost3(k,j,i) = d.Vc(RHO,k,j,i)*units.GetDensity()*scrhHost1(k,j,i)*d.RadVc[0](ER,k,j,i)*units.GetEnergy();
+        scrhHost4(k,j,i) = d.Vc(RHO,k,j,i)*units.GetDensity()*scrhHost2(k,j,i)*d.RadVc[0](FR1,k,j,i)*units.GetEnergy();
+        scrhHost5(k,j,i) = d.Vc(RHO,k,j,i)*units.GetDensity()*scrhHost2(k,j,i)*d.RadVc[0](FR2,k,j,i)*units.GetEnergy();
+        scrhHost6(k,j,i) = d.Vc(RHO,k,j,i)*units.GetDensity()*scrhHost1(k,j,i)*units.ar*std::pow(T,4.);
+      }
+    }
+  }
+  Kokkos::deep_copy(variables["kappap"], scrhHost1);
+  Kokkos::deep_copy(variables["kappar"], scrhHost2);
+  Kokkos::deep_copy(variables["rhokappapEr"], scrhHost3);
+  Kokkos::deep_copy(variables["rhokapparFr"], scrhHost4);
+  Kokkos::deep_copy(variables["rhokapparFt"], scrhHost5);
+  Kokkos::deep_copy(variables["rhokappaparT4"], scrhHost6);
 }
 
 void analysisFunction(DataBlock& data) {
