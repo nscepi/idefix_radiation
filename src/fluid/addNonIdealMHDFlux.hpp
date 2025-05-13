@@ -153,8 +153,8 @@ void Fluid<Phys>::AddNonIdealMHDFlux(const real t) {
             if(ambipolar == UserDefFunction)
               xA = AVERAGE_3D_X(xAmbiArr,k,j,i);
 
-            [[maybe_unused]] real Fx2 = -xA * Jperpx3;
-            [[maybe_unused]] real Fx3 = xA * Jperpx2;
+            [[maybe_unused]] real Fx2 = -Jperpx3;
+            [[maybe_unused]] real Fx3 = Jperpx2;
 
             [[maybe_unused]] real BdotB = EXPAND( Bx1*Bx1, +Bx2*Bx2, +Bx3*Bx3);
             #if (DIMENSIONS < 2 && COMPONENTS >= 2)
@@ -216,8 +216,8 @@ void Fluid<Phys>::AddNonIdealMHDFlux(const real t) {
 
             [[maybe_unused]] real BdotB = EXPAND( Bx1*Bx1, +Bx2*Bx2, +Bx3*Bx3);
 
-            [[maybe_unused]] real Fx1 = xA * Jperpx3;
-            [[maybe_unused]] real Fx3 = -xA * Jperpx1;
+            [[maybe_unused]] real Fx1 = Jperpx3;
+            [[maybe_unused]] real Fx3 = -Jperpx1;
 
             // This term is always overwritten by CT, since this sweep is performed whenver
             // DIMENSIONS>=2
@@ -271,8 +271,8 @@ void Fluid<Phys>::AddNonIdealMHDFlux(const real t) {
 
             [[maybe_unused]] real BdotB = Bx1*Bx1 + Bx2*Bx2 + Bx3*Bx3;
 
-            [[maybe_unused]] real Fx1 = -xA * Jperpx2;
-            [[maybe_unused]] real Fx2 = xA * Jperpx1;
+            [[maybe_unused]] real Fx1 = - Jperpx2;
+            [[maybe_unused]] real Fx2 =  Jperpx1;
 
             // This is never needed since this is overwritten by CT
             //Flux(BX1,k,j,i) += Fx1;

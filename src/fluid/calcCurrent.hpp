@@ -202,6 +202,17 @@ void Fluid<Phys>::CalcPerpCurrent() {
   IdefixArray4D<real> Vs = this->Vs;
   IdefixArray4D<real> J = this->J;
   IdefixArray4D<real> Jperp = this->Jperp;
+  HydroModuleStatus ambipolar   = ambipolarStatus.status;
+  IdefixArray3D<real> xAmbiArr = this->xAmbipolar;
+  real xAConstant  = this->xA;
+
+  if(ambipolar == UserDefFunction) {
+      if(ambipolarDiffusivityFunc)
+        ambipolarDiffusivityFunc(*data, t, xAmbiArr);
+      else
+        IDEFIX_ERROR("No user-defined ambipolar diffusivity function has been enrolled");
+    }
+  }
 
   idefix_for("CalcCurrent",
     data->beg[KDIR],data->end[KDIR]+KOFFSET,
@@ -211,8 +222,11 @@ KOKKOS_LAMBDA (int k, int j, int i) {
     real Bx1, Bx2, Bx3;
     real Jx1, Jx2, Jx3;
     real JdotB, BdotB;
+    real xA;
 
+    if(ambipolar == Constant)    xA = xAConstant;
     // Along x
+    if(ambipolar == UserDefFunction) xA = AVERAGE_3D_YZ(xAmbiArr,k,j,i);
     Bx1 = AVERAGE_4D_XYZ(Vs, BX1s, k,j,i+1);
     Bx2 = AVERAGE_4D_Z(Vs, BX2s, k, j, i);
     #if DIMENSIONS == 3
@@ -237,9 +251,11 @@ KOKKOS_LAMBDA (int k, int j, int i) {
     JdotB = (Jx1*Bx1 + Jx2*Bx2 + Jx3*Bx3);
     BdotB = (Bx1*Bx1 + Bx2*Bx2 + Bx3*Bx3);
 
-    Jperp(IDIR,k,j,i) = BdotB*Jx1 - JdotB*Bx1;
+    Jperp(IDIR,k,j,i) = xA*(BdotB*Jx1 - JdotB*Bx1);
 
     // Along y
+
+    if(ambipolar == UserDefFunction) xA = AVERAGE_3D_XZ(xAmbiArr,k,j,i);
 
     Bx1 = AVERAGE_4D_Z(Vs, BX1s, k, j, i);
     Bx2 = AVERAGE_4D_XYZ(Vs, BX2s, k, j+1, i);
@@ -264,9 +280,11 @@ KOKKOS_LAMBDA (int k, int j, int i) {
     JdotB = (Jx1*Bx1 + Jx2*Bx2 + Jx3*Bx3);
     BdotB = (Bx1*Bx1 + Bx2*Bx2 + Bx3*Bx3);
 
-    Jperp(JDIR,k,j,i) = BdotB*Jx2 - JdotB * Bx2;
+    Jperp(JDIR,k,j,i) = xA*(BdotB*Jx2 - JdotB * Bx2);
 
     // Along z
+    if(ambipolar == UserDefFunction) xA = AVERAGE_3D_XY(xAmbiArr,k,j,i);
+
     Bx1 = AVERAGE_4D_Y(Vs, BX1s, k, j, i);
     #if DIMENSIONS >= 2
         Bx2 = AVERAGE_4D_X(Vs, BX2s, k, j, i);
@@ -299,7 +317,7 @@ KOKKOS_LAMBDA (int k, int j, int i) {
     JdotB = (Jx1*Bx1 + Jx2*Bx2 + Jx3*Bx3);
     BdotB = (Bx1*Bx1 + Bx2*Bx2 + Bx3*Bx3);
 
-    Jperp(KDIR,k,j,i) = BdotB * Jx3 - JdotB * Bx3;
+    Jperp(KDIR,k,j,i) = xA*(BdotB * Jx3 - JdotB * Bx3);
   });
   idfx::popRegion();
 }

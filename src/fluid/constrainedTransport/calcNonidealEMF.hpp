@@ -80,7 +80,7 @@ void ConstrainedTransport<Phys>::CalcNonidealEMF(real t) {
       if(haveAmbipolar) {
         if(ambipolar == UserDefFunction) xA = AVERAGE_3D_YZ(xAmbiArr,k,j,i);
 
-        ex(k,j,i) += xA * Jperp(IDIR,k,j,i);
+        ex(k,j,i) += Jperp(IDIR,k,j,i);
       }
 
       // -----------------------
@@ -98,7 +98,7 @@ void ConstrainedTransport<Phys>::CalcNonidealEMF(real t) {
       if(haveAmbipolar) {
         if(ambipolar == UserDefFunction) xA = AVERAGE_3D_XZ(xAmbiArr,k,j,i);
 
-        ey(k,j,i) += xA * Jperp(JDIR,k,j,i);
+        ey(k,j,i) += Jperp(JDIR,k,j,i);
       }
   #endif
       // -----------------------
@@ -116,7 +116,7 @@ void ConstrainedTransport<Phys>::CalcNonidealEMF(real t) {
       if(haveAmbipolar) {
         if(ambipolar == UserDefFunction) xA = AVERAGE_3D_XY(xAmbiArr,k,j,i);
 
-        ez(k,j,i) += xA * Jperp(KDIR,k,j,i);
+        ez(k,j,i) += Jperp(KDIR,k,j,i);
       }
     }
   );
