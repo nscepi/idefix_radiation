@@ -71,13 +71,14 @@ void Fluid<Phys>::AddNonIdealMHDFlux(const real t) {
         IDEFIX_ERROR("No user-defined Ohmic diffusivity function has been enrolled");
     }
 
-    if(ambipolar == UserDefFunction && dir == IDIR) {
+// This is now called in the current computation
+/*    if(ambipolar == UserDefFunction && dir == IDIR) {
       if(ambipolarDiffusivityFunc)
         ambipolarDiffusivityFunc(*data, t, xAmbiArr);
       else
         IDEFIX_ERROR("No user-defined ambipolar diffusivity function has been enrolled");
     }
-
+*/
     // Note the flux follows the same sign convention as the hyperbolic flux
     // HEnce signs are reversed compared to the parabolic fluxes found in Pluto 4.3
     idefix_for("CalcParabolicFlux",
@@ -164,10 +165,10 @@ void Fluid<Phys>::AddNonIdealMHDFlux(const real t) {
               Flux(BX3,k,j,i) += Fx3;
             #endif
 
+            real Feng = 0.25*(    (Vs(BX2s,k,j,i) + Vs(BX2s,k,j,i-1)) * Jperp(KDIR, k,j,i) + (Vs(BX2s,k,j+1,i) + Vs(BX2s,k,j+1,i-1)) * Jperp(KDIR, k,j+1,i)
+				- (Vs(BX3s,k,j,i) + Vs(BX3s,k,j,i-1)) * Jperp(JDIR, k,j,i) - (Vs(BX3s,k+1,j,i) + Vs(BX3s,k+1,j,i-1)) * Jperp(JDIR, k+1,j,i)  );
             #if HAVE_ENERGY
-              Flux(ENG,k,j,i) += EXPAND( ZERO_F      ,
-                                        + Bx2 * Fx2  ,
-                                        + Bx3 * Fx3  );
+              Flux(ENG,k,j,i) += - Feng;
             #endif
 
             locdmax += xA*BdotB;
@@ -228,10 +229,10 @@ void Fluid<Phys>::AddNonIdealMHDFlux(const real t) {
               Flux(BX3,k,j,i) += Fx3;
             #endif
 
+	    real Feng = 0.25*(    (Vs(BX3s,k,j,i) + Vs(BX3s,k,j-1,i)) * Jperp(IDIR, k,j,i) + (Vs(BX3s,k+1,j,i) + Vs(BX3s,k+1,j-1,i)) * Jperp(IDIR, k+1,j,i)
+                                - (Vs(BX1s,k,j,i) + Vs(BX1s,k,j-1,i)) * Jperp(KDIR, k,j,i) - (Vs(BX1s,k,j,i+1) + Vs(BX1s,k,j-1,i+1)) * Jperp(KDIR, k,j,i+1)  );
             #if HAVE_ENERGY
-              Flux(ENG,k,j,i) += EXPAND( + Bx1 * Fx1  ,
-                                        + ZERO_F     ,
-                                        + Bx3 * Fx3  );
+              Flux(ENG,k,j,i) += - Feng;
             #endif
 
             locdmax += xA*BdotB;
@@ -256,6 +257,7 @@ void Fluid<Phys>::AddNonIdealMHDFlux(const real t) {
             //Flux(BX1,k,j,i) += -eta * Jx2;
             //Flux(BX2,k,j,i) += eta * Jx1;
 
+
             #if HAVE_ENERGY
               Flux(ENG,k,j,i) += - Bx1 * eta * Jx2 + Bx2 * eta * Jx1;
             #endif
@@ -278,8 +280,11 @@ void Fluid<Phys>::AddNonIdealMHDFlux(const real t) {
             //Flux(BX1,k,j,i) += Fx1;
             //Flux(BX2,k,j,i) += Fx2;
 
+
+	    real Feng = 0.25*(    (Vs(BX1s,k,j,i) + Vs(BX1s,k-1,j,i)) * Jperp(JDIR, k,j,i) + (Vs(BX1s,k,j,i+1) + Vs(BX1s,k-1,j,i+1)) * Jperp(JDIR, k,j,i+1)
+                                - (Vs(BX2s,k,j,i) + Vs(BX2s,k-1,j,i)) * Jperp(IDIR, k,j,i) - (Vs(BX2s,k,j+1,i) + Vs(BX2s,k-1,j+1,i)) * Jperp(IDIR, k,j+1,i)  );
             #if HAVE_ENERGY
-              Flux(ENG,k,j,i) += Bx1 * Fx1  + Bx2 * Fx2;
+              Flux(ENG,k,j,i) += - Feng;
             #endif
 
             locdmax += xA*BdotB;

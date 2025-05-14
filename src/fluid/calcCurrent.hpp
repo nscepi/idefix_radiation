@@ -208,12 +208,11 @@ void Fluid<Phys>::CalcPerpCurrent() {
 
   if(ambipolar == UserDefFunction) {
       if(ambipolarDiffusivityFunc)
-        ambipolarDiffusivityFunc(*data, t, xAmbiArr);
+        ambipolarDiffusivityFunc(*data, data->t, xAmbiArr);
       else
         IDEFIX_ERROR("No user-defined ambipolar diffusivity function has been enrolled");
-    }
   }
-
+  
   idefix_for("CalcCurrent",
     data->beg[KDIR],data->end[KDIR]+KOFFSET,
     data->beg[JDIR],data->end[JDIR]+JOFFSET,
