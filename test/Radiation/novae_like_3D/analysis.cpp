@@ -218,7 +218,7 @@ void Analysis::ResetAnalysis() {
     #ifdef EVOLVE_VECTOR_POTENTIAL
     file << "\t A_mid \t A_top \t A_bot";
     #endif
-    file << "\t Ex3Id_mid \t Ex3Id_top \t Ex3Id_bot \t Ex3Ni_mid \t Ex3Ni_top \t Ex3Ni_bot";
+    file << "\t Ex3Id_mid \t Ex3Id_top \t Ex3Id_bot";
     file << std::endl;
     file.precision(10);
     // Put a 0 in time column

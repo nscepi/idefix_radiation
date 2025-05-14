@@ -66,16 +66,24 @@ class RadSource {
     real mu = eos.GetMu(VcGas(PRS,k,j,i),VcGas(RHO,k,j,i));
     
     if (kappa_type == Type_opac::constant) {
-      kappa = this->kappa_0;
+      kappa = this->kappar_0;
     } else if (kappa_type == Type_opac::kramers) {
       real T = VcGas(PRS,k,j,i)/(VcGas(RHO,k,j,i))*this->unit_Kelvin*mu;
-      kappa = this->kappa_0*VcGas(RHO,k,j,i)*this->unit_density/this->rho_0*std::pow(T/this->T_0,-3.5);
+      kappa = this->kappar_0*VcGas(RHO,k,j,i)*this->unit_density/this->rho_0*std::pow(T/this->T_0,-3.5);
     } else if (kappa_type == Type_opac::usertable) {
       real T = VcGas(PRS,k,j,i)/(VcGas(RHO,k,j,i))*this->unit_Kelvin*mu;
       real logT = std::log10(T);
-      kappa = this->kappa_planck_1D.Get(&logT);
+      real logrho = std::log10(VcGas(RHO,k,j,i)*this->unit_density);
+      if (this->kappa_ndim == 1) {
+        kappa = this->kappa_ross_1D.Get(&logT);
+      } else if (this->kappa_ndim == 2) {
+        real x[2];
+        x[1] = FMIN(FMAX(logT,2.5),5.98);
+        x[0] = FMIN(-4.05,FMAX(-14.,logrho));
+        kappa = std::pow(10.,this->kappa_ross_2D.Get(x));
+      }
     } else if (kappa_type == Type_opac::userfunc) {
-      kappa = this->kappapArr(k,j,i);
+      kappa = this->kapparArr(k,j,i);
     }
 
     if (xi_type == Type_opac::constant) {
@@ -83,7 +91,15 @@ class RadSource {
     } else if (xi_type == Type_opac::usertable) {
       real T = VcGas(PRS,k,j,i)/(VcGas(RHO,k,j,i))*this->unit_Kelvin*mu;
       real logT = std::log10(T);
-      xi = this->xi_1D.Get(&logT);
+      real logrho = std::log10(VcGas(RHO,k,j,i)*this->unit_density);
+      if (this->xi_ndim == 1) {
+        xi = this->xi_1D.Get(&logT);
+      } else if (this->xi_ndim == 2) {
+        real x[2];
+        x[1] = logT;
+        x[0] = logrho;
+        xi = std::pow(10.,this->xi_2D.Get(x));
+      }
     } else if (xi_type == Type_opac::userfunc) {
       xi = this->xiArr(k,j,i);
     }
@@ -98,7 +114,8 @@ class RadSource {
 
  private:
   DataBlock* data;
-  real kappa_0;
+  real kappap_0;
+  real kappar_0;
   real xi_0;
   real kappa_irr;
   real rho_0;
@@ -121,9 +138,15 @@ class RadSource {
   LookupTable<1> kappa_planck_1D;
   LookupTable<1> kappa_ross_1D;
   LookupTable<1> xi_1D;
+  LookupTable<2> kappa_planck_2D;
+  LookupTable<2> kappa_ross_2D;
+  LookupTable<2> xi_2D;
 
   // Have irradiation or not
   bool haveIrradiation{false};
+
+  // Have relativist correction or not
+  bool haveRelativistCorrection{false};
 
   // Dimension of irradiation flux table 
   int irr_ndim;
@@ -189,11 +212,13 @@ RadSource::RadSource(Input &input, Fluid<Phys> *hydroin):
       this->xi_type = Type_opac::usertable;
       this->xi_ndim = input.Get<int>(BlockName,"xi",n+1);
       std::string xi_file = input.Get<std::string>(BlockName,"xi",n+2);
-      if (input.Get<int>(BlockName,"xi",n+1) == 1){
+      if (this->xi_ndim == 1){
         this->xi_1D = LookupTable<1>(xi_file,',');
+      } else if (this->xi_ndim == 2) {
+        this->xi_2D = LookupTable<2>(xi_file,',');
       } else {
         std::stringstream msg;
-        msg << "Only 1 dimension for scattering opacity tables are currently accepted." << std::endl;
+        msg << "Only 1 or 2 dimension for scattering opacity tables are currently accepted." << std::endl;
         IDEFIX_ERROR(msg);
       }
     } else if (xiType.compare("userfunc") == 0) {
@@ -219,23 +244,28 @@ RadSource::RadSource(Input &input, Fluid<Phys> *hydroin):
     std::string kappaType = input.Get<std::string>(BlockName,"kappa",0);
     if(kappaType.compare("constant") == 0) {
       this->kappa_type = Type_opac::constant;
-      this->kappa_0 = input.Get<real>(BlockName,"kappa",n+1);
+      this->kappap_0 = input.Get<real>(BlockName,"kappa",n+1);
+      this->kappar_0 = input.Get<real>(BlockName,"kappa",n+2);
     } else if(kappaType.compare("kramers") == 0) {
-      this->kappa_0 = input.Get<real>(BlockName,"kappa",n+1);
+      this->kappap_0 = input.Get<real>(BlockName,"kappa",n+1);
+      this->kappar_0 = input.Get<real>(BlockName,"kappa",n+2);
       this->kappa_type = Type_opac::kramers;
-      this->rho_0 = input.Get<real>(BlockName,"kappa",n+2);
-      this->T_0 = input.Get<real>(BlockName,"kappa",n+3);
+      this->rho_0 = input.Get<real>(BlockName,"kappa",n+3);
+      this->T_0 = input.Get<real>(BlockName,"kappa",n+4);
     } else if(kappaType.compare("usertable") == 0) {
       this->kappa_type = Type_opac::usertable;
       this->kappa_ndim = input.Get<int>(BlockName,"kappa",n+1);
       std::string kappap_file = input.Get<std::string>(BlockName,"kappa",n+2);
       std::string kappar_file = input.Get<std::string>(BlockName,"kappa",n+3);
-      if (input.Get<int>(BlockName,"kappa",n+1) == 1){
+      if (this->kappa_ndim == 1){
         this->kappa_planck_1D = LookupTable<1>(kappap_file,',');
         this->kappa_ross_1D = LookupTable<1>(kappar_file,',');
+      } else if (this->kappa_ndim == 2){
+        this->kappa_planck_2D = LookupTable<2>(kappap_file,',');
+        this->kappa_ross_2D = LookupTable<2>(kappar_file,',');
       } else {
         std::stringstream msg;
-        msg << "Only 1 dimension for absorption opacity tables are currently accepted." << std::endl;
+        msg << "Only 1 or 2 dimensions for absorption opacity tables are currently accepted." << std::endl;
         IDEFIX_ERROR(msg);
       }
     } else if (kappaType.compare("userfunc") == 0) {
@@ -278,6 +308,9 @@ RadSource::RadSource(Input &input, Fluid<Phys> *hydroin):
   } else {
     IDEFIX_ERROR("A *source* line in your [Rad] block is required in your input file to define the solver for the radiation source terms.");
   }
+ 
+  // Information on relativist correction
+  haveRelativistCorrection = input.GetOrSet<bool>(BlockName,"relativist_correction",0,false);
 
   // Information on irradiation source term
   if(input.CheckEntry(BlockName,"irr")>=0) {

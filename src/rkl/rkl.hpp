@@ -30,7 +30,7 @@ class RKLegendre {
   RKLegendre(Input &, Fluid<Phys>*);
   void Cycle();
   void ResetStage();
-  void ResetFlux();
+  void ResetFlux(int dir);
   void EvolveStage(real);
   template <int> void CalcParabolicRHS(real);
   void ComputeDt();
@@ -555,9 +555,9 @@ void RKLegendre<Phys>::Cycle() {
 
 
 template<typename Phys>
-void RKLegendre<Phys>::ResetFlux() {
+void RKLegendre<Phys>::ResetFlux(int dir) {
   idfx::pushRegion("RKLegendre::ResetFlux");
-  IdefixArray4D<real> Flux = hydro->FluxRiemann;
+  IdefixArray4D<real> Flux = hydro->FluxRiemann[dir];
   IdefixArray1D<int> vars = this->varList;
   idefix_for("RKL_ResetFlux",
              0,nvarRKL,
@@ -576,7 +576,6 @@ template<typename Phys>
 struct RKLegendre_ResetStageFunctor {
   explicit RKLegendre_ResetStageFunctor(RKLegendre<Phys> *rkl) {
     dU = rkl->dU;
-    Flux = rkl->hydro->FluxRiemann;
     vars = rkl->varList;
     stage = rkl->stage;
     nvar = rkl->nvarRKL;
@@ -596,7 +595,6 @@ struct RKLegendre_ResetStageFunctor {
   }
 
   IdefixArray4D<real> dU;
-  IdefixArray4D<real> Flux;
   IdefixArray1D<int> vars;
   IdefixArray4D<real> dA, dB;
   IdefixArray3D<real> ex,ey,ez;
@@ -680,7 +678,7 @@ void RKLegendre<Phys>::ComputeDt() {
 template<typename Phys>
 template<int dir>
 void RKLegendre<Phys>::LoopDir(real t) {
-    ResetFlux();
+    ResetFlux(dir);
 
     // CalcParabolicFlux
     hydro->template CalcParabolicFlux<dir>(t);
@@ -725,7 +723,7 @@ template <int dir>
 void RKLegendre<Phys>::CalcParabolicRHS(real t) {
   idfx::pushRegion("RKLegendre::CalcParabolicRHS");
 
-  IdefixArray4D<real> Flux = hydro->FluxRiemann;
+  IdefixArray4D<real> Flux = hydro->FluxRiemann[dir];
   IdefixArray3D<real> A    = data->A[dir];
   IdefixArray3D<real> dV   = data->dV;
   IdefixArray1D<real> x1m  = data->xl[IDIR];
@@ -763,32 +761,42 @@ void RKLegendre<Phys>::CalcParabolicRHS(real t) {
              data->beg[IDIR],data->end[IDIR]+ioffset,
     KOKKOS_LAMBDA (int n, int k, int j, int i) {
       real Ax = A(k,j,i);
-
-#if GEOMETRY != CARTESIAN
-      if(Ax<SMALL_NUMBER)
-        Ax=SMALL_NUMBER;    // Essentially to avoid singularity around poles
-#endif
-
       const int nv = varList(n);
 
-      Flux(nv,k,j,i) = Flux(nv,k,j,i) * Ax;
-
       // Curvature terms
-#if    (GEOMETRY == POLAR       && COMPONENTS >= 2) \
-    || (GEOMETRY == CYLINDRICAL && COMPONENTS == 3)
-      if(dir==IDIR && nv==iMPHI) {
-        // Conserve angular momentum, hence flux is R*Vphi
-        Flux(iMPHI,k,j,i) = Flux(iMPHI,k,j,i) * FABS(x1m(i));
-      }
-#endif // GEOMETRY==POLAR OR CYLINDRICAL
+      #if    (GEOMETRY == POLAR       && COMPONENTS >= 2) \
+      || (GEOMETRY == CYLINDRICAL && COMPONENTS == 3)
+        if(dir==IDIR) {
+          if(nv==iMPHI) {
+            Ax *= FABS(x1m(i));
+          }
+          if constexpr(Phys::mhd) {
+            if(nv==iBPHI) {
+              // No area for this one
+              Ax = 1;
+            }
+          }
+        }
+      #endif // GEOMETRY==POLAR OR CYLINDRICAL
 
-#if GEOMETRY == SPHERICAL && COMPONENTS == 3
-      if(dir==IDIR && nv==iMPHI) {
-        Flux(iMPHI,k,j,i) = Flux(iMPHI,k,j,i) * FABS(x1m(i));
-      } else if(dir==JDIR && nv==iMPHI) {
-        Flux(iMPHI,k,j,i) = Flux(iMPHI,k,j,i) * FABS(sm(j));
-      }
-#endif // GEOMETRY == SPHERICAL && COMPONENTS == 3
+      #if GEOMETRY == SPHERICAL
+        if(dir==IDIR && nv==VX3) {
+          Ax *= FABS(x1m(i));
+        } else if(dir==JDIR && nv==VX3) {
+          Ax *= FABS(sm(j));
+        }
+
+        if constexpr(Phys::mhd) {
+          if(dir == IDIR  && (nv==BX3 || nv == BX2)) {
+            Ax = x1m(i);
+          }
+          if(dir==JDIR && nv==BX3) {
+            Ax = 1.0;
+          }
+        }
+      #endif // GEOMETRY == SPHERICAL
+
+      Flux(nv,k,j,i) = Flux(nv,k,j,i) * Ax;
     }
   );
 
@@ -819,17 +827,42 @@ void RKLegendre<Phys>::CalcParabolicRHS(real t) {
       }
 
 #if GEOMETRY != CARTESIAN
-  #ifdef iMPHI
-      if((dir==IDIR) && (nv == iMPHI)) {
+  if(dir==IDIR) {
+    #ifdef iMPHI
+      if((nv == iMPHI)) {
         rhs /= x1(i);
       }
+    #endif // iMPHI
+    real dx_ = dx(i);
+    real x1_ = x1(i);
+
+    if constexpr(Phys::mhd) {
+      #if (GEOMETRY == POLAR || GEOMETRY == CYLINDRICAL) &&  (defined iBPHI)
+        if(nv==iBPHI) rhs = - 1 / dx_ * (Flux(iBPHI, k, j, i+1) - Flux(iBPHI, k, j, i) );
+
+      #elif (GEOMETRY == SPHERICAL)
+        real q = 1 / (x1_*dx_);
+        if(nv == BX2 || nv == BX3) {
+          rhs = -q * ((Flux(nv, k, j, i+1)  - Flux(nv, k, j, i) ));
+        }
+      #endif // GEOMETRY
+    } // MHD
+  } // dir==IDIR
+  if(dir==JDIR) {
     #if (GEOMETRY == SPHERICAL) && (COMPONENTS == 3)
-      if((dir==JDIR) && (nv == iMPHI)) {
+      if(nv == iMPHI) {
         rhs /= FABS(s(j));
       }
+      real dx_ = dx(j);
+      real rt_ = rt(i);
+      if constexpr(Phys::mhd) {
+        if(nv == iBPHI) {
+          rhs = - 1 / (rt_*dx_) * (Flux(nv, k, j+1, i) - Flux(nv, k, j, i));
+        }
+      }
     #endif // GEOMETRY
-      // Nothing for KDIR
-  #endif  // iMPHI
+  } // dir==JDIR
+  // Nothing for KDIR
 #endif // GEOMETRY != CARTESIAN
 
       // store the field components

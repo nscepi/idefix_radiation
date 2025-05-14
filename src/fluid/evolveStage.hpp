@@ -14,20 +14,20 @@ template<typename Phys>
 template<int dir>
 void Fluid<Phys>::LoopDir(const real t, const real dt) {
     // Step 2: compute the intercell flux with our Riemann solver, store the resulting InvDt
-    this->rSolver->template CalcFlux<dir>(this->FluxRiemann);
+    this->rSolver->template CalcFlux<dir>(this->FluxRiemann[dir]);
 
     // Step 2.5: compute intercell parabolic flux when needed
     if(haveExplicitParabolicTerms) CalcParabolicFlux<dir>(t);
 
     // If we have tracers, compute the tracer intercell flux
     if(haveTracer) {
-      this->tracer->template CalcFlux<dir, Phys>(this->FluxRiemann);
+      this->tracer->template CalcFlux<dir, Phys>(this->FluxRiemann[dir]);
     }
 
     // Step 3: compute the resulting evolution of the conserved variables, stored in Uc
     CalcRightHandSide<dir>(t,dt);
     if(haveTracer) {
-      this->tracer->template CalcRightHandSide<dir, Phys>(this->FluxRiemann,t ,dt);
+      this->tracer->template CalcRightHandSide<dir, Phys>(this->FluxRiemann[dir],t ,dt);
     }
 
     // Recursive: do next dimension
@@ -72,11 +72,14 @@ void Fluid<Phys>::EvolveStage(const real t, const real dt) {
   if(haveSourceTerms) AddSourceTerms(t, dt);
 
   // Step 5: add drag when needed
-  if(haveDrag) drag->AddDragForce(dt);
+  if(haveDrag) {
+    if(!drag->IsImplicit()) {
+      drag->AddDragForce(dt);
+    }
+  }
 
   // Step 6: add radiation source terms
   if constexpr(Phys::radiation) {
-    radsource->RelativistCorrection(dt);
     radsource->AddRadSource(dt);
   }
 
