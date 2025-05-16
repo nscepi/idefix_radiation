@@ -22,6 +22,16 @@ real GGlob;
 real MGlob;
 real R0Glob;
 real rho0Glob;
+real TsubGlob;
+real rhosGlob;
+real rhosindexGlob;
+real TwidthGlob;
+real f0Glob;
+real kappastarGlob;
+real kappagasGlob;
+real rsGlob;
+real TsGlob;
+real ToutGlob;
 
 Column *columnrGlob;
 Column *columnthupGlob;
@@ -64,6 +74,51 @@ KOKKOS_INLINE_FUNCTION real computeDensityFloor(real R, real z, real d_floor_0, 
   return D_return;
 }
 
+void MyKappa(DataBlock &data, IdefixArray3D<real> &kappap, IdefixArray3D<real> &kappar) {
+  IdefixArray4D<real> Vc=data.hydro->Vc;
+  auto units = idfx::units;
+  
+  IdefixArray3D<real> tau;
+  IdefixArray3D<real> kappa=(&data)->radiation[0]->radsource->kappapArr;
+  IdefixArray3D<real> kapparho("rho",data.np_tot[KDIR],data.np_tot[JDIR],data.np_tot[IDIR]);
+  idefix_for("init rho",0,data.np_tot[KDIR],0,data.np_tot[JDIR],0,data.np_tot[IDIR],
+    KOKKOS_LAMBDA(int k, int j, int i) {
+      kapparho(k,j,i) = Vc(RHO,k,j,i)*kappa(k,j,i)*units.GetDensity()*units.GetLength();
+    });
+
+  columnrGlob->ComputeColumn(kapparho);
+  tau = columnrGlob->GetColumn();
+  
+  IdefixArray1D<real> dr = data.dx[IDIR];
+
+  real Tsub = TsubGlob;
+  real rhos = rhosGlob;
+  real rhos_index = rhosindexGlob;
+  real Twidth = TwidthGlob;
+  real f0 = f0Glob;
+  real kappa_star = kappastarGlob;
+  real kappa_gas = kappagasGlob;
+  real mu = muGlob;
+
+  idefix_for("MyKappa",0,data.np_tot[KDIR],0,data.np_tot[JDIR],0,data.np_tot[IDIR],
+              KOKKOS_LAMBDA (int k, int j, int i) {
+
+                real Tsublim = Tsub*std::pow(Vc(RHO,k,j,i)*units.GetDensity()/rhos,rhos_index);
+                real T = Vc(PRS,k,j,i)/Vc(RHO,k,j,i)*units.GetKelvin()*mu;
+                real f_delta = 0.2/(Vc(RHO,k,j,i)*units.GetDensity()*kappa_star*dr(i)*units.GetLength())-kappa_gas/kappa_star;
+                real f_gtod;
+                //if ((T < Tsublim) || (tau(k,j,i) > 3.)){
+                //  f_gtod = f0;
+                //} else {
+                //  f_gtod = f_delta*0.25*(1.-std::tanh(std::pow((T-Tsublim)/Twidth,3.)));
+                //}
+                //f_gtod *= 1.-std::tanh(2./3.-tau(k,j,i));
+                f_gtod = 1.e-3;
+                kappap(k,j,i) = kappa_star*f_gtod+kappa_gas;
+                //kappar(k,j,i) = kappa_star*f_gtod+kappa_gas;
+                kappar(k,j,i) = 0.;
+              });
+}
 
 void Ambipolar(DataBlock& data, real t, IdefixArray3D<real> &xAin) {
   IdefixArray3D<real> xA = xAin;
@@ -232,124 +287,6 @@ void Resistivity(DataBlock& data, real t, IdefixArray3D<real> &etain) {
 }
 
 
-void MySourceTerm(Fluid<DefaultPhysics> *hydro, const real t, const real dtin) {
-  IdefixArray4D<real> Vc = hydro->Vc;
-  IdefixArray4D<real> Uc = hydro->Uc;
-  auto data = hydro->data;
-  auto x1 = data->x[IDIR];
-  auto x2 = data->x[JDIR];
-  IdefixArray2D<real> rhoEq = *rhoInit;
-
-  real R0=R0Glob;
-  real trSmoothing = trSmoothingGlob;
-  real alpha=alphaGlob;
-  real GM = GGlob*MGlob;
-  real Omegain = std::sqrt(GM/(R0*R0*R0));
-  real epsilonTop = epsilonTopGlob;
-  real epsilon = epsilonGlob;
-  real tauGlob=1.0/std::sqrt(GM);
-  real tauWind=1e-2/std::sqrt(GM);
-  real tauInner=0.1/std::sqrt(GM);
-  real gamma_m1=gammaGlob-1.0;
-  real dt=dtin;
-  real Hideal=HidealGlob;
-  //real tauVel=0.5;
-  
-
-  idefix_for("MySourceTerm",0,data->np_tot[KDIR],0,data->np_tot[JDIR],0,data->np_tot[IDIR],
-              KOKKOS_LAMBDA (int k, int j, int i) {
-                real r=x1(i);
-                real th=x2(j);
-                real z=r*cos(th);
-                real R=r*sin(th);
-                real Ri = FMAX(R0,R);
-                real Vk=std::sqrt(GM/R0);
-
-                real Zh = FABS(z/R)/epsilon;
-                real Tdisk = std::pow(epsilon,2.)*GM/Ri;  // Factor of GM to take into account vk not 1 at R=1
-                real Tcorona = std::pow(epsilonTop,2.)*GM/Ri;
-                //if(x1(i) < 1.5) cscorona = csdisk;
-                real f = tanh((Zh-Hideal)/trSmoothing);
-                real Teff=0.5*(Tdisk+Tcorona)+0.5*(Tcorona-Tdisk)*f;
-
-                real tau= 0.5*(tauGlob+tauWind)+0.5*(tauWind-tauGlob)*f;
-                tau *= pow(Ri,1.5);
-                // Cooling /heatig function
-                real Ptarget = Teff*Vc(RHO,k,j,i);
-
-                Uc(ENG,k,j,i) += -dt*(Vc(PRS,k,j,i)-Ptarget)/(tau*gamma_m1);
-
-                // Spatial Damping function
-                real lambda = 1/tauInner * (FMAX((1.2*R0-r)/(0.2*R0),0.0));
-                real rhoTarget = rhoEq(j,i);
-
-                real vx3Target = std::sqrt(GM)*sqrt((1-(alpha+1)*Teff)/Ri);
-
-                // Enforce solid body rotation above the "seed"
-                if(R<R0) vx3Target = std::sqrt(GM)*sqrt((1-(alpha+1)*Teff))*R/R0;
-
-                // With fargo, there is no mean vx3!
-                //vx3Target = 0.0;
-
-                // relaxation on all components
-                real rho = Uc(RHO,k,j,i);
-                real vx1 = Uc(MX1,k,j,i)/rho;
-                real vx2 = Uc(MX2,k,j,i)/rho;
-                real vx3 = Uc(MX3,k,j,i)/rho;
-                real bx1 = Uc(BX1,k,j,i);
-                real bx2 = Uc(BX2,k,j,i);
-                real bx3 = Uc(BX3,k,j,i);
-
-                real ek = 0.5*rho*(vx1*vx1+vx2*vx2+vx3*vx3);
-                real em = 0.5*(bx1*bx1+bx2*bx2+bx3*bx3);
-
-                real prs = gamma_m1*(Uc(ENG,k,j,i) - ek - em);
-                real T = prs/rho;
-
-
-                rho -= lambda*(Vc(RHO,k,j,i)-rhoTarget)*dt;
-                vx1 -= lambda*Vc(VX1,k,j,i)*dt;
-                vx2 -= lambda*Vc(VX2,k,j,i)*dt;
-                vx3 -= lambda*(Vc(VX3,k,j,i)-vx3Target)*dt;
-
-                prs = T*rho;
-                ek = 0.5*rho*(vx1*vx1+vx2*vx2+vx3*vx3);
-
-                Uc(RHO,k,j,i) = rho;
-                Uc(MX1,k,j,i) = rho*vx1;
-                Uc(MX2,k,j,i) = rho*vx2;
-                Uc(MX3,k,j,i) = rho*vx3;
-                Uc(ENG,k,j,i) = ek+em+prs/gamma_m1;
-
-                // inner shell relaxation
-                /*
-                if(R<Rin) {
-                  real rhoTarget = 1.0/(R0*sqrt(R0))  * exp(1.0/ Tdisk * (1.0/sqrt(R0*R0+z*z)-1.0/R0));
-                  real densityFloor = computeDensityFloor(R,z,densityFloor0,Rin,epsilon);
-                  if(rhoTarget < densityFloor) rhoTarget = densityFloor;
-
-                  real vx3Target = 1.0/sqrt(R0) * sqrt( FMAX(R0 / sqrt(R0*R0 + z*z) -2.5*Tdisk,0.0) );
-
-                  real drho = (Vc(RHO,k,j,i)-rhoTarget) / tauVel;
-                  real dmx1 = Vc(RHO,k,j,i)*Vc(VX1,k,j,i) / tauVel + Vc(VX1,k,j,i) * drho;
-                  real dmx2 = Vc(RHO,k,j,i)*Vc(VX2,k,j,i) / tauVel + Vc(VX2,k,j,i) * drho;
-                  real dmx3 = Vc(RHO,k,j,i)*(Vc(VX3,k,j,i)-vx3Target) / tauVel + Vc(VX3,k,j,i) * drho;
-                  real deng = Vc(VX1,k,j,i)*dmx1 + Vc(VX2,k,j,i)*dmx2 + Vc(VX3,k,j,i)*dmx3;
-
-                  Uc(RHO,k,j,i) += -drho*dt;
-                  Uc(MX1,k,j,i) += -dmx1*dt;
-                  Uc(MX2,k,j,i) += -dmx2*dt;
-                  Uc(MX3,k,j,i) += -dmx3*dt;
-                  Uc(ENG,k,j,i) += -deng*dt;
-                }*/
-
-});
-
-
-}
-
-
-
 
 void InternalBoundary(DataBlock& data, const real t) {
   IdefixArray4D<real> Vc = data.hydro->Vc;
@@ -411,15 +348,16 @@ void InternalBoundary(DataBlock& data, const real t) {
 
 }
 // User-defined boundaries
-void UserdefBoundary(DataBlock& data, int dir, BoundarySide side, real t) {
+void UserdefBoundary(Fluid<DefaultPhysics> *hydro, int dir, BoundarySide side, real t) {
 
     if( (dir==IDIR) && (side == left)) {
-        IdefixArray4D<real> Vc = data.hydro->Vc;
-        IdefixArray4D<real> Vs = data.hydro->Vs;
-        IdefixArray1D<real> x1 = data.x[IDIR];
-        IdefixArray1D<real> x2 = data.x[JDIR];
+        IdefixArray4D<real> Vc = hydro->Vc;
+        IdefixArray4D<real> Vs = hydro->Vs;
+        auto *data = hydro->data;
+        IdefixArray1D<real> x1 = data->x[IDIR];
+        IdefixArray1D<real> x2 = data->x[JDIR];
 
-        int ighost = data.nghost[IDIR];
+        int ighost = data->nghost[IDIR];
         real Rin = R0Glob;
         real Omega = std::sqrt(GGlob*MGlob)*std::pow(Rin,-1.5);
         real csdisk = std::sqrt(GGlob*MGlob)*epsilonGlob/sqrt(Rin);
@@ -427,17 +365,10 @@ void UserdefBoundary(DataBlock& data, int dir, BoundarySide side, real t) {
         real densityFloor0 = densityFloorGlob;
         real epsilon=epsilonGlob;
 
-        data.hydro->boundary->BoundaryFor("UserDefX1",dir,side,
+        hydro->boundary->BoundaryFor("UserDefX1",dir,side,
             KOKKOS_LAMBDA (int k, int j, int i) {
                 real R=x1(i)*sin(x2(j));
                 real z=x1(i)*cos(x2(j));
-                /*
-                Vc(RHO,k,j,i) = Vc(RHO,k,j,ighost);
-                Vc(PRS,k,j,i) = Vc(PRS,k,j,ighost);*/
-
-                //Vc(RHO,k,j,i) = 1.0/(Rin*sqrt(Rin))  * exp(1.0/ (csdisk*csdisk) * (1.0/sqrt(Rin*Rin+z*z)-1.0/Rin));
-                //real densityFloor = computeDensityFloor(R,z,densityFloor0,Rin,epsilon);
-                //if(Vc(RHO,k,j,i) < densityFloor) Vc(RHO,k,j,i) = densityFloor;
 
                 Vc(RHO,k,j,i) = Vc(RHO,k,j,ighost);
 
@@ -446,22 +377,19 @@ void UserdefBoundary(DataBlock& data, int dir, BoundarySide side, real t) {
                 if(Vc(VX1,k,j,ighost)>=ZERO_F) Vc(VX1,k,j,i) = -Vc(VX1,k,j,2*ighost-i-1);
                        else Vc(VX1,k,j,i) = Vc(VX1,k,j,ighost);
                 Vc(VX2,k,j,i) = Vc(VX2,k,j,ighost);
-                //real Rmin = FMAX(0.3,R);
 
-                //Vc(VX3,k,j,i) = 1.0/sqrt(Rmin) * sqrt( Rmin / sqrt(Rmin*Rmin + z*z));
                 Vc(VX3,k,j,i) = Omega*R;
                 #if DIMENSIONS < 3
                 Vc(BX3,k,j,i) = - Vc(BX3,k,j,2*ighost-i-1);
                 #endif
-                //Vc(BX3,k,j,i) = Vc(BX3,k,j,ighost);
 
             });
-      data.hydro->boundary->BoundaryForX2s("UserDefX2s",dir,side,
+      hydro->boundary->BoundaryForX2s("UserDefX2s",dir,side,
         KOKKOS_LAMBDA (int k, int j, int i) {
             Vs(BX2s,k,j,i) = Vs(BX2s,k,j,ighost);
           });
       #if DIMENSIONS == 3
-      data.hydro->boundary->BoundaryForX3s("UserDefX3s",dir,side,
+      hydro->boundary->BoundaryForX3s("UserDefX3s",dir,side,
         KOKKOS_LAMBDA (int k, int j, int i) {
             Vs(BX3s,k,j,i) = -Vs(BX3s,k,j,2*ighost-i-1);
           });
@@ -469,18 +397,19 @@ void UserdefBoundary(DataBlock& data, int dir, BoundarySide side, real t) {
     }
 
     if( (dir==IDIR) && (side == right)) {
-        IdefixArray4D<real> Vc = data.hydro->Vc;
-        IdefixArray4D<real> Vs = data.hydro->Vs;
-        IdefixArray1D<real> x1 = data.x[IDIR];
-        IdefixArray1D<real> x2 = data.x[JDIR];
+        IdefixArray4D<real> Vc = hydro->Vc;
+        IdefixArray4D<real> Vs = hydro->Vs;
+        auto *data = hydro->data;
+        IdefixArray1D<real> x1 = data->x[IDIR];
+        IdefixArray1D<real> x2 = data->x[JDIR];
 
-        int ighost = data.end[IDIR]-1;
+        int ighost = data->end[IDIR]-1;
         real Rin = R0Glob;
         real Omega = std::sqrt(GGlob*MGlob)*std::pow(Rin,-1.5);
         real csdisk = std::sqrt(GGlob*MGlob)*epsilonGlob/sqrt(Rin);
         real cscorona = std::sqrt(GGlob*MGlob)*epsilonTopGlob/sqrt(Rin);
 
-        data.hydro->boundary->BoundaryFor("UserDefX1",dir,side,
+        hydro->boundary->BoundaryFor("UserDefX1",dir,side,
             KOKKOS_LAMBDA (int k, int j, int i) {
                 real R=x1(i)*sin(x2(j));
                 real z=x1(i)*cos(x2(j));
@@ -501,20 +430,70 @@ void UserdefBoundary(DataBlock& data, int dir, BoundarySide side, real t) {
                 //Vc(BX3,k,j,i) = Vc(BX3,k,j,ighost);
 
             });
-      data.hydro->boundary->BoundaryForX2s("UserDefX2s",dir,side,
+      hydro->boundary->BoundaryForX2s("UserDefX2s",dir,side,
         KOKKOS_LAMBDA (int k, int j, int i) {
             Vs(BX2s,k,j,i) = Vs(BX2s,k,j,ighost);
           });
       #if DIMENSIONS == 3
-      data.hydro->boundary->BoundaryForX3s("UserDefX3s",dir,side,
+      hydro->boundary->BoundaryForX3s("UserDefX3s",dir,side,
         KOKKOS_LAMBDA (int k, int j, int i) {
             Vs(BX3s,k,j,i) = 0.0;
           });
       #endif
 
     }
+}
 
+void UserdefBoundaryRad(Fluid<RadiationPhysics> *radiation, int dir, BoundarySide side, real t) {
+  IdefixArray4D<real> Vc = radiation->Vc;
+  auto *data = radiation->data;
+  auto units=idfx::units;
 
+  real Tout = ToutGlob;
+
+  IdefixArray1D<real> x1 = data->x[IDIR];
+  IdefixArray1D<real> x2 = data->x[JDIR];
+  if(dir==IDIR) {
+    int ighost,nxi,iend,ibeg;
+    if(side == left) {
+      ighost = data->nghost[IDIR];
+      ibeg = 0;
+      iend = data->beg[IDIR];
+      idefix_for("UserDefBoundaryRad",
+        0, data->np_tot[KDIR],
+        0, data->np_tot[JDIR],
+        ibeg, iend,
+        KOKKOS_LAMBDA (int k, int j, int i) {
+          Vc(ER,k,j,i) = units.ar*std::pow(Tout,4.)/units.GetEnergy();    
+          if (Vc(FR1,k,j,ighost) >=ZERO_F){
+            Vc(FR1,k,j,i) = ZERO_F;
+          } else {
+            Vc(FR1,k,j,i) = Vc(FR1,k,j,ighost);
+          }
+          Vc(FR2,k,j,i) = Vc(FR2,k,j,ighost);
+          Vc(FR3,k,j,i) = Vc(FR3,k,j,ighost);
+        });
+    } else if (side==right){
+      ighost = data->nghost[IDIR];
+      nxi = data->np_int[IDIR];
+      ibeg = data->end[IDIR];
+      iend =data->np_tot[IDIR];
+      idefix_for("UserDefBoundaryRad",
+        0, data->np_tot[KDIR],
+        0, data->np_tot[JDIR],
+        ibeg, iend,
+        KOKKOS_LAMBDA (int k, int j, int i) {
+          Vc(ER,k,j,i) = units.ar*std::pow(Tout,4.)/units.GetEnergy();
+          if (Vc(FR1,k,j,ighost+nxi-1) <=ZERO_F){
+            Vc(FR1,k,j,i) = ZERO_F;
+          } else {
+            Vc(FR1,k,j,i) = Vc(FR1,k,j,ighost+nxi-1);
+          }
+          Vc(FR2,k,j,i) = Vc(FR2,k,j,ighost+nxi-1);
+          Vc(FR3,k,j,i) = Vc(FR3,k,j,ighost+nxi-1);
+        });
+    }
+  }
 }
 
 void EmfBoundary(DataBlock& data, const real t) {
@@ -537,7 +516,7 @@ void EmfBoundary(DataBlock& data, const real t) {
 }
 
 void FluxBoundary(DataBlock & data, int dir, BoundarySide side, const real t) {
-    IdefixArray4D<real> Flux = data.hydro->FluxRiemann;
+    IdefixArray4D<real> Flux = data.hydro->FluxRiemann[dir];
     if( dir==IDIR && side == left) {
         int iref = data.beg[IDIR];
 
@@ -591,108 +570,17 @@ void ComputeUserVars(DataBlock & data, UserDefVariablesContainer &variables) {
   Kokkos::deep_copy(xA,scrh);
   Kokkos::deep_copy(etaO,scrh2);
 
-  //IdefixHostArray3D<real> VdX1  = variables["VdX1"];
-  //IdefixHostArray3D<real> VdX2  = variables["VdX2"];
-  //IdefixHostArray3D<real> VdX3  = variables["VdX3"];
-  IdefixHostArray3D<real> InvDt  = variables["InvDt"];
-
   IdefixHostArray1D<real> x1=d.x[IDIR];
   IdefixHostArray1D<real> x2=d.x[JDIR];
   IdefixHostArray4D<real> Vc=d.Vc;
-  //IdefixHostArray4D<real> J=d.J;
-  IdefixArray3D<real>::HostMirror scrhHost = Kokkos::create_mirror_view(scrh);
-  Kokkos::deep_copy(scrhHost,scrh);
-  IdefixArray3D<real>::HostMirror xHHost;
 
   for(int k = d.beg[KDIR]; k < d.end[KDIR] ; k++) {
     for(int j = d.beg[JDIR]; j < d.end[JDIR] ; j++) {
       for(int i = d.beg[IDIR]; i < d.end[IDIR] ; i++) {
-        //real z=x1(i)*cos(x2(j));
-        //real R=FMAX(FABS(x1(i)*sin(x2(j))),ONE_F);
-        //real H=R*epsilonGlob;
-        //real Omega=pow(R,-1.5);
-        //Am(k,j,i) = 1.0/(Omega*scrhHost(k,j,i)*Vc(RHO,k,j,i));
-        InvDt(k,j,i) = d.InvDt(k,j,i);
-
-        // Compute ion drift speed JxB
-        // Compute J at cell center
-        /*
-        #if DIMENSIONS < 3
-        real Jx1 = AVERAGE_4D_Y(J,IDIR,k,j+1,i);
-        real Jx2 = AVERAGE_4D_X(J,JDIR,k,j,i+1);
-        real Jx3 = AVERAGE_4D_XY(J,KDIR,k,j+1,i+1);
-        #else
-        real Jx1 = AVERAGE_4D_YZ(J,IDIR,k+1,j+1,i);
-        real Jx2 = AVERAGE_4D_XZ(J,JDIR,k+1,j,i+1);
-        real Jx3 = AVERAGE_4D_XY(J,KDIR,k,j+1,i+1);
-        #endif
-        real Bx1 = Vc(BX1,k,j,i);
-        real Bx2 = Vc(BX2,k,j,i);
-        real Bx3 = Vc(BX3,k,j,i);
-
-        VdX1(k,j,i) = scrhHost(k,j,i) * (Jx2 * Bx3 - Jx3 * Bx2);
-        VdX2(k,j,i) = scrhHost(k,j,i) * (Jx3 * Bx1 - Jx1 * Bx3);
-        VdX3(k,j,i) = scrhHost(k,j,i) * (Jx1 * Bx2 - Jx2 * Bx1);
-*/
+        variables["InvDt"](k,j,i) = d.InvDt(k,j,i);
       }
     }
   }
-
-  #ifdef EVOLVE_VECTOR_POTENTIAL
-  IdefixHostArray3D<real> psi;
-  try {
-    // Try to get the array
-    psi  = variables.at("psi");
-  } catch(std::exception &e) {
-    // Array is not defined
-    return;
-  }
-  for(int k = d.beg[KDIR]; k < d.end[KDIR] ; k++) {
-    for(int j = d.beg[JDIR]; j < d.end[JDIR] ; j++) {
-      for(int i = d.beg[IDIR]; i < d.end[IDIR] ; i++) {
-        psi(k,j,i) = 0.25*(
-              d.Ve(AX3e,k,j,i)*d.xl[IDIR](i)*sin(d.xl[JDIR](j)) +
-              d.Ve(AX3e,k,j,i+1)*d.xl[IDIR](i+1)*sin(d.xl[JDIR](j)) +
-              d.Ve(AX3e,k,j+1,i)*d.xl[IDIR](i)*sin(d.xl[JDIR](j+1)) +
-              d.Ve(AX3e,k,j+1,i+1)*d.xl[IDIR](i+1)*sin(d.xl[JDIR](j+1))
-            );
-  }}}
-
-  IdefixHostArray3D<real> EphiIdeal, EphiNonIdeal;
-  try {
-    // Try to get the array
-    EphiIdeal  = variables.at("EphiIdeal");
-    EphiNonIdeal  = variables.at("EphiNonIdeal");
-  } catch(std::exception &e) {
-    // Array is not defined
-    return;
-  }
-  // Talk to the emf object to recompute required EMFs
-  IdefixArray3D<real> ex1,ex2,ex3;
-
-  ex1 = emf->ex;
-  ex2 = emf->ey;
-  ex3 = emf->ez;
-
-  // Compute Ideal EMF
-  data.SetBoundaries();
-  emf->CalcCornerEMF(data.t);
-  Kokkos::deep_copy(EphiIdeal,ex3);
-
-  idefix_for("resetEMF", 0, data.np_tot[KDIR], 0, data.np_tot[JDIR], 0, data.np_tot[IDIR],
-      KOKKOS_LAMBDA(int k, int j,int i) {
-        #if DIMENSIONS == 3
-        ex1(k,j,i) = 0.0;
-        ex2(k,j,i) = 0.0;
-        #endif
-        ex3(k,j,i) = 0.0;
-      });
-  // Compute Non-ideal EMF
-  emf->CalcNonidealEMF(data.t);
-  Kokkos::deep_copy(EphiNonIdeal,ex3);
-
-  // Done
-  #endif
 }
 
 void analysisFunction(DataBlock& data) {
@@ -788,7 +676,6 @@ Setup::Setup(Input &input, Grid &grid, DataBlock &data, Output &output) {
   if(data.hydro->resistivityStatus.status != HydroModuleStatus::Disabled) {
     data.hydro->EnrollOhmicDiffusivity(&Resistivity);
   }
-  data.hydro->EnrollUserSourceTerm(&MySourceTerm);
   data.hydro->EnrollInternalBoundary(&InternalBoundary);
   //data.hydro->EnrollEmfBoundary(&EmfBoundary);
   //data.hydro->EnrollFluxBoundary(&FluxBoundary);
@@ -822,6 +709,19 @@ Setup::Setup(Input &input, Grid &grid, DataBlock &data, Output &output) {
   analysis = new Analysis(grid, data,std::string("profile.dat"), HidealGlob*epsilonGlob);
   output.EnrollAnalysis(&analysisFunction);
 
+  rsGlob=input.Get<real>("Rad","irr",1);
+  TsGlob=input.Get<real>("Rad","irr",2);
+  TsubGlob = input.Get<real>("Setup","Tsub",0);
+  rhosGlob = input.Get<real>("Setup","rhos",0);
+  rhosindexGlob = input.Get<real>("Setup","rhos_index",0);
+  TwidthGlob = input.Get<real>("Setup","Twidth",0);
+  f0Glob = input.Get<real>("Setup","f0",0);
+  kappastarGlob = input.Get<real>("Setup","kappa_star",0);
+  kappagasGlob = input.Get<real>("Setup","kappa_gas",0);
+
+  densityFloorGlob = input.Get<real>("Setup","density_floor",0);
+  data.radiation[0]->EnrollKappa(&MyKappa); 
+  data.radiation[0]->EnrollUserDefBoundary(&UserdefBoundaryRad);
 
   ComputeRho(data);
 
@@ -889,16 +789,6 @@ void Setup::InitFlow(DataBlock &data) {
 
                 d.Vc(VX1,k,j,i) = d.Vc(VX3,k,j,i)*1e-1*(0.5-randm());
                 d.Vc(VX2,k,j,i) = ZERO_F;
-
-                if(data.haveDust) {
-                  for(int n = 0 ; n < nSpecies ; n++) {
-                    d.dustVc[n](RHO,k,j,i) = d.Vc(RHO,k,j,i) * 1e-2;
-                    d.dustVc[n](VX3,k,j,i) = d.Vc(VX3,k,j,i);
-                    d.dustVc[n](VX1,k,j,i) = 0;
-                    d.dustVc[n](VX2,k,j,i) = 0;
-                  }
-                }
-
 
                 // Vector potential on the corner
                 real s=sin(d.xl[JDIR](j));
