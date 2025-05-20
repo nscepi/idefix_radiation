@@ -41,6 +41,8 @@ DataBlock::DataBlock(Grid &grid, Input &input) {
     if (grid.xproc[dir]==0) {
       lbound[dir] = grid.lbound[dir];
       if(lbound[dir]==axis) this->haveAxis = true;
+      if(lbound[dir]==axis_rad) this->haveAxis = true;
+
     } else {
       lbound[dir] = internal;
     }
@@ -48,6 +50,8 @@ DataBlock::DataBlock(Grid &grid, Input &input) {
     if (grid.xproc[dir] == grid.nproc[dir]-1) {
       rbound[dir] = grid.rbound[dir];
       if(rbound[dir]==axis) this->haveAxis = true;
+      if(rbound[dir]==axis_rad) this->haveAxis = true;
+
     } else {
       rbound[dir] = internal;
     }
@@ -196,6 +200,7 @@ DataBlock::DataBlock(SubGrid *subgrid) {
     if (grid->xproc[dir]==0) {
       lbound[dir] = grid->lbound[dir];
       if(lbound[dir]==axis) this->haveAxis = true;
+      if(lbound[dir]==axis_rad) this->haveAxis = true;
     } else {
       lbound[dir] = internal;
     }
@@ -203,6 +208,7 @@ DataBlock::DataBlock(SubGrid *subgrid) {
     if (grid->xproc[dir] == grid->nproc[dir]-1) {
       rbound[dir] = grid->rbound[dir];
       if(rbound[dir]==axis) this->haveAxis = true;
+      if(rbound[dir]==axis_rad) this->haveAxis = true;
     } else {
       rbound[dir] = internal;
     }
