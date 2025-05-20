@@ -314,6 +314,13 @@ void Boundary<Phys>::EnforceBoundaryDir(real t, int dir) {
     case BoundaryType::axis:
       axis->EnforceAxisBoundary(left);
       break;
+    case BoundaryType::axis_rad:
+      if constexpr(Phys::radiation){
+        EnforceReflective(dir,left);
+      } else {
+        axis->EnforceAxisBoundary(left);
+      }
+      break;
     case BoundaryType::userdef:
       if(this->haveUserDefBoundary) {
         idfx::pushRegion("Boundary::UserDefBoundary");
@@ -362,6 +369,13 @@ void Boundary<Phys>::EnforceBoundaryDir(real t, int dir) {
       break;
     case BoundaryType::axis:
       axis->EnforceAxisBoundary(right);
+      break;
+    case BoundaryType::axis_rad:
+      if constexpr(Phys::radiation){
+        EnforceReflective(dir,right);
+      } else {
+        axis->EnforceAxisBoundary(right);
+      }
       break;
     case BoundaryType::userdef:
       if(this->haveUserDefBoundary) {
