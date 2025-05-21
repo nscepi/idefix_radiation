@@ -270,8 +270,6 @@ void Axis::EnforceAxisBoundary(int side) {
   idfx::pushRegion("Axis::EnforceAxisBoundary");
   IdefixArray4D<real> Vc = this->Vc;
 
-  std::printf("HELLO!!!!\n");
-
   IdefixArray1D<int> sVc = this->symmetryVc;
 
   
