@@ -74,12 +74,7 @@ KOKKOS_INLINE_FUNCTION real computeDensityFloor(real R, real z, real d_floor_0, 
 void InternalBoundary(Fluid<DefaultPhysics> *hydro, const real t) {
   IdefixArray4D<real> Vc = hydro->Vc;
   IdefixArray4D<real> Uc = hydro->Uc;
-  IdefixArray4D<real> dustVc;
   auto *data = hydro->data;
-  bool haveDust = data->haveDust;
-  if(haveDust) {
-   dustVc= data->dust[0]->Vc;
-  }
   IdefixArray4D<real> Vs = data->hydro->Vs;
   IdefixArray1D<real> x1=data->x[IDIR];
   IdefixArray1D<real> x2=data->x[JDIR];
@@ -136,6 +131,8 @@ void InternalBoundary(Fluid<DefaultPhysics> *hydro, const real t) {
       }
 
     });
+
+
 
 }
 // User-defined boundaries
@@ -237,36 +234,28 @@ void EmfBoundary(Fluid<DefaultPhysics> *hydro, const real t) {
     IdefixArray3D<real> Ex3 = hydro->emf->ez;
     auto *data = hydro->data;
 
-    if(data->lbound[IDIR] == userdef) {
-
-        int ighost = data->nghost[IDIR];
-
-        // Do not permit poloidal field to enter the seed
-        idefix_for("EMFBoundary",0,data->np_tot[KDIR],0,data->np_tot[JDIR],0,ighost+1,
-                    KOKKOS_LAMBDA (int k, int j, int i) {
+    idefix_for("EMFBoundary",0,data->np_tot[KDIR],0,data->np_tot[JDIR],0,data->np_tot[IDIR],
+        KOKKOS_LAMBDA (int k, int j, int i) {
+            Ex1(k,j,i) = ZERO_F;
+            Ex2(k,j,i) = ZERO_F;
             Ex3(k,j,i) = ZERO_F;
-            #if DIMENSIONS == 3
-              Ex2(k,j,i) = ZERO_F;
-            #endif
         });
-    }
 }
 
 void FluxBoundary(DataBlock & data, int dir, BoundarySide side, const real t) {
     IdefixArray4D<real> Flux = data.hydro->FluxRiemann[dir];
-    if( dir==IDIR && side == left) {
-        int iref = data.beg[IDIR];
-
-        idefix_for("FluxBoundLeft",
-                    data.beg[KDIR], data.end[KDIR],
-                    data.beg[JDIR], data.end[JDIR],
-          KOKKOS_LAMBDA (int k, int j) {
-            if(Flux(RHO, k, j, iref) > 0.0) {
-              Flux(RHO, k, j, iref) = 0.0; // Cancel incoming mass flux.
-            }
-          });
-    }
-
+ 
+    idefix_for("FluxInternal",
+                0, data.np_tot[KDIR],
+                0, data.np_tot[JDIR],
+                0, data.np_tot[IDIR],
+       KOKKOS_LAMBDA (int k, int j, int i) {
+         Flux(RHO, k, j, i) = 0.0; 
+         Flux(MX1, k, j, i) = 0.0; 
+         Flux(MX2, k, j, i) = 0.0; 
+         Flux(MX3, k, j, i) = 0.0; 
+         Flux(ENG, k, j, i) = 0.0; 
+     });
 }
 
 void CoarsenFunction(DataBlock &data) {
@@ -467,6 +456,7 @@ void ComputeUserVars(DataBlock & data, UserDefVariablesContainer &variables) {
         variables["rhokapparFr"](k,j,i) = d.Vc(RHO,k,j,i)*units.GetDensity()*variables["kappar"](k,j,i)*d.RadVc[0](FR1,k,j,i)*units.GetEnergy();
         variables["rhokapparFt"](k,j,i) = d.Vc(RHO,k,j,i)*units.GetDensity()*variables["kappar"](k,j,i)*d.RadVc[0](FR2,k,j,i)*units.GetEnergy();
         variables["rhokappaparT4"](k,j,i) = d.Vc(RHO,k,j,i)*units.GetDensity()*variables["kappap"](k,j,i)*units.ar*std::pow(T,4.);
+        variables["T"](k,j,i) = T;
       }
     }
   }
@@ -497,6 +487,7 @@ Setup::Setup(Input &input, Grid &grid, DataBlock &data, Output &output) {
   if(data.haveRadiation) {
     int nFrequencies = data.radiation.size();
     data.radiation[0]->EnrollUserDefBoundary(&UserdefBoundaryRad);
+    data.radiation[0]->EnrollInternalBoundary(&InternalBoundaryRad);
   }
 
   gammaGlob=data.hydro->eos->GetGamma();
@@ -514,7 +505,7 @@ Setup::Setup(Input &input, Grid &grid, DataBlock &data, Output &output) {
   densityFloorGlob = input.Get<real>("Setup","densityFloor",0);
   trSmoothingGlob = input.Get<real>("Setup","transitionSmoothing",0);
 
-  output.EnrollUserDefVariables(&ComputeUserVars);
+  //output.EnrollUserDefVariables(&ComputeUserVars);
   // assume disc surface at 6.5 h
   analysis = new Analysis(grid, data,std::string("profile.dat"), HidealGlob*epsilonGlob);
   output.EnrollAnalysis(&analysisFunction);
