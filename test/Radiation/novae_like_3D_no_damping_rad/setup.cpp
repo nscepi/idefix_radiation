@@ -343,6 +343,49 @@ void UserdefBoundaryRad(Fluid<RadiationPhysics> *radiation, int dir, BoundarySid
         });
     }
   }
+
+  if(dir==JDIR) {
+    int jghost,nxj,jend,jbeg;
+    if(side == left) {
+      jghost = data->nghost[JDIR];
+      jbeg = 0;
+      jend = data->beg[JDIR];
+      idefix_for("UserDefBoundaryRad",
+        0, data->np_tot[KDIR],
+        jbeg, jend,
+        0, data->np_tot[IDIR],
+        KOKKOS_LAMBDA (int k, int j, int i) {
+          Vc(ER,k,j,i) = units.ar*std::pow(Tout,4.)/units.GetEnergy();    
+          if (Vc(FR2,k,jghost,i) >=ZERO_F){
+            Vc(FR2,k,j,i) = ZERO_F;
+          } else {
+            Vc(FR2,k,j,i) = Vc(FR2,k,jghost,i);
+          }
+          Vc(FR1,k,j,i) = Vc(FR1,k,jghost,i);
+          Vc(FR3,k,j,i) = Vc(FR3,k,jghost,i);
+        });
+    } else if (side==right){
+      jghost = data->nghost[JDIR];
+      nxj = data->np_int[JDIR];
+      jbeg = data->end[JDIR];
+      jend =data->np_tot[JDIR];
+      idefix_for("UserDefBoundaryRad",
+        0, data->np_tot[KDIR],
+        jbeg, jend,
+        0, data->np_tot[IDIR],
+        KOKKOS_LAMBDA (int k, int j, int i) {
+          Vc(ER,k,j,i) = units.ar*std::pow(Tout,4.)/units.GetEnergy();
+          if (Vc(FR2,k,jghost+nxj-1,i) <=ZERO_F){
+            Vc(FR2,k,j,i) = ZERO_F;
+          } else {
+            Vc(FR2,k,j,i) = Vc(FR2,k,jghost+nxj-1,i);
+          }
+          Vc(FR1,k,j,i) = Vc(FR1,k,jghost+nxj-1,i);
+          Vc(FR3,k,j,i) = Vc(FR3,k,jghost+nxj-1,i);
+        });
+    }
+  }
+
 }
 
 void ComputeUserVars(DataBlock & data, UserDefVariablesContainer &variables) {
