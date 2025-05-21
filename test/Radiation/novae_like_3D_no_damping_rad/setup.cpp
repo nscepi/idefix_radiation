@@ -297,6 +297,7 @@ void UserdefBoundaryRad(Fluid<RadiationPhysics> *radiation, int dir, BoundarySid
   IdefixArray4D<real> Vc = radiation->Vc;
   auto *data = radiation->data;
   auto units=idfx::units;
+  IdefixArray4D<real> FluxRad = radiation->FluxRiemann[dir];
 
   real Tout = ToutGlob;
 
@@ -358,6 +359,7 @@ void UserdefBoundaryRad(Fluid<RadiationPhysics> *radiation, int dir, BoundarySid
           Vc(ER,k,j,i) = units.ar*std::pow(Tout,4.)/units.GetEnergy();    
           if (Vc(FR2,k,jghost,i) >=ZERO_F){
             Vc(FR2,k,j,i) = ZERO_F;
+            FluxRad(ER,k,j,i) = ZERO_F;
           } else {
             Vc(FR2,k,j,i) = Vc(FR2,k,jghost,i);
           }
@@ -377,6 +379,7 @@ void UserdefBoundaryRad(Fluid<RadiationPhysics> *radiation, int dir, BoundarySid
           Vc(ER,k,j,i) = units.ar*std::pow(Tout,4.)/units.GetEnergy();
           if (Vc(FR2,k,jghost+nxj-1,i) <=ZERO_F){
             Vc(FR2,k,j,i) = ZERO_F;
+            FluxRad(ER,k,j,i) = ZERO_F;
           } else {
             Vc(FR2,k,j,i) = Vc(FR2,k,jghost+nxj-1,i);
           }
@@ -548,7 +551,7 @@ Setup::Setup(Input &input, Grid &grid, DataBlock &data, Output &output) {
   densityFloorGlob = input.Get<real>("Setup","densityFloor",0);
   trSmoothingGlob = input.Get<real>("Setup","transitionSmoothing",0);
 
-  //output.EnrollUserDefVariables(&ComputeUserVars);
+  output.EnrollUserDefVariables(&ComputeUserVars);
   // assume disc surface at 6.5 h
   analysis = new Analysis(grid, data,std::string("profile.dat"), HidealGlob*epsilonGlob);
   output.EnrollAnalysis(&analysisFunction);
