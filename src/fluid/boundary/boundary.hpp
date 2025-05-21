@@ -316,7 +316,21 @@ void Boundary<Phys>::EnforceBoundaryDir(real t, int dir) {
       break;
     case BoundaryType::axis_rad:
       if constexpr(Phys::radiation){
-        EnforceReflective(dir,left);
+        if(this->haveUserDefBoundary) {
+        idfx::pushRegion("Boundary::UserDefBoundary");
+        if(this->userDefBoundaryFunc != NULL) {
+          this->userDefBoundaryFunc(fluid, dir, left, t);
+        } else {
+          // Revert to deprecated Boundary condition
+          this->userDefBoundaryFuncOld(*data, dir, left, t);
+        }
+        idfx::popRegion();
+        } else {
+          std::stringstream msg;
+          msg << "No function has been enrolled to define your own boundary conditions" << std::endl
+              << "for the fluid " << fluid->prefix << "." << std::endl;
+          IDEFIX_ERROR(msg);
+        }
       } else {
         axis->EnforceAxisBoundary(left);
       }
@@ -372,7 +386,21 @@ void Boundary<Phys>::EnforceBoundaryDir(real t, int dir) {
       break;
     case BoundaryType::axis_rad:
       if constexpr(Phys::radiation){
-        EnforceReflective(dir,right);
+        if(this->haveUserDefBoundary) {
+          idfx::pushRegion("Boundary::UserDefBoundary");
+          if(this->userDefBoundaryFunc != NULL) {
+            this->userDefBoundaryFunc(fluid, dir, right, t);
+          } else {
+            // Revert to deprecated Boundary condition
+            this->userDefBoundaryFuncOld(*data, dir, right, t);
+          }
+          idfx::popRegion();
+        } else {
+          std::stringstream msg;
+          msg << "No function has been enrolled to define your own boundary conditions" << std::endl
+              << "for the fluid " << fluid->prefix << "." << std::endl;
+          IDEFIX_ERROR(msg);
+        }   
       } else {
         axis->EnforceAxisBoundary(right);
       }
