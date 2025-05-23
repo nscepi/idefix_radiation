@@ -245,6 +245,7 @@ void EmfBoundary(Fluid<DefaultPhysics> *hydro, const real t) {
 void FluxBoundary(DataBlock & data, int dir, BoundarySide side, const real t) {
     IdefixArray4D<real> Flux = data.hydro->FluxRiemann[dir];
  
+ 
     idefix_for("FluxInternal",
                 0, data.np_tot[KDIR],
                 0, data.np_tot[JDIR],
@@ -256,6 +257,74 @@ void FluxBoundary(DataBlock & data, int dir, BoundarySide side, const real t) {
          Flux(MX3, k, j, i) = 0.0; 
          Flux(ENG, k, j, i) = 0.0; 
      });
+}
+
+void FluxBoundaryRad(DataBlock & data, int dir, BoundarySide side, const real t) {
+   IdefixArray4D<real> Flux = data.radiation[0]->FluxRiemann[dir];
+ 
+  if(dir==IDIR) {
+    int ighost,nxi,iend,ibeg;
+    if(side == left) {
+      ighost = data.nghost[IDIR];
+      ibeg = 0;
+      iend = data.beg[IDIR];
+      idefix_for("UserDefBoundaryRad",
+        0, data.np_tot[KDIR],
+        0, data.np_tot[JDIR],
+        ibeg, iend,
+        KOKKOS_LAMBDA (int k, int j, int i) {
+          if (Flux(ER,k,j,i) >= ZERO_F) Flux(ER,k,j,i) = ZERO_F;
+          if (Flux(FR1,k,j,i) >= ZERO_F) Flux(FR1,k,j,i) = ZERO_F;
+          if (Flux(FR2,k,j,i) >= ZERO_F) Flux(FR2,k,j,i) = ZERO_F;
+        });
+    } else if (side==right){
+      ighost = data.nghost[IDIR];
+      nxi = data.np_int[IDIR];
+      ibeg = data.end[IDIR];
+      iend =data.np_tot[IDIR];
+      idefix_for("UserDefBoundaryRad",
+        0, data.np_tot[KDIR],
+        0, data.np_tot[JDIR],
+        ibeg, iend,
+        KOKKOS_LAMBDA (int k, int j, int i) {
+          if (Flux(ER,k,j,i) <= ZERO_F) Flux(ER,k,j,i) = ZERO_F;
+          if (Flux(FR1,k,j,i) <= ZERO_F) Flux(FR1,k,j,i) = ZERO_F;
+          if (Flux(FR2,k,j,i) <= ZERO_F) Flux(FR2,k,j,i) = ZERO_F;
+        });
+    }
+   } 
+
+   if(dir==JDIR) {
+    int jghost,nxj,jend,jbeg;
+    if(side == left) {
+      jghost = data.nghost[JDIR];
+      jbeg = 0;
+      jend = data.beg[JDIR];
+      idefix_for("UserDefBoundaryRad",
+        0, data.np_tot[KDIR],
+        jbeg, jend,
+        0, data.np_tot[IDIR],
+        KOKKOS_LAMBDA (int k, int j, int i) {
+          if (Flux(ER,k,j,i) >= ZERO_F) Flux(ER,k,j,i) = ZERO_F;
+          if (Flux(FR1,k,j,i) >= ZERO_F) Flux(FR1,k,j,i) = ZERO_F;
+          if (Flux(FR2,k,j,i) >= ZERO_F) Flux(FR2,k,j,i) = ZERO_F;
+        });
+    } else if (side==right){
+      jghost = data.nghost[JDIR];
+      nxj = data.np_int[JDIR];
+      jbeg = data.end[JDIR];
+      jend =data.np_tot[JDIR];
+      idefix_for("UserDefBoundaryRad",
+        0, data.np_tot[KDIR],
+        jbeg, jend,
+        0, data.np_tot[IDIR],
+        KOKKOS_LAMBDA (int k, int j, int i) {
+          if (Flux(ER,k,j,i) <= ZERO_F) Flux(ER,k,j,i) = ZERO_F;
+          if (Flux(FR1,k,j,i) <= ZERO_F) Flux(FR1,k,j,i) = ZERO_F;
+          if (Flux(FR2,k,j,i) <= ZERO_F) Flux(FR2,k,j,i) = ZERO_F;
+        });
+    }
+   } 
 }
 
 void CoarsenFunction(DataBlock &data) {
@@ -545,6 +614,7 @@ Setup::Setup(Input &input, Grid &grid, DataBlock &data, Output &output) {
     int nFrequencies = data.radiation.size();
     data.radiation[0]->EnrollUserDefBoundary(&UserdefBoundaryRad);
     data.radiation[0]->EnrollInternalBoundary(&InternalBoundaryRad);
+    data.radiation[0]->EnrollFluxBoundary(&FluxBoundaryRad);
   }
 
   gammaGlob=data.hydro->eos->GetGamma();
