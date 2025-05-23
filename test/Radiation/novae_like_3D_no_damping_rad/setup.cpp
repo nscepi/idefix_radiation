@@ -320,6 +320,9 @@ void UserdefBoundaryRad(Fluid<RadiationPhysics> *radiation, int dir, BoundarySid
           } else {
             Vc(FR1,k,j,i) = Vc(FR1,k,j,ighost);
           }
+          if (FluxRad(ER,k,j,i) >= ZERO_F) FluxRad(ER,k,j,i) = ZERO_F;
+          if (FluxRad(FR1,k,j,i) >= ZERO_F) FluxRad(FR1,k,j,i) = ZERO_F;
+          if (FluxRad(FR2,k,j,i) >= ZERO_F) FluxRad(FR2,k,j,i) = ZERO_F;
           Vc(FR2,k,j,i) = Vc(FR2,k,j,ighost);
           Vc(FR3,k,j,i) = Vc(FR3,k,j,ighost);
         });
@@ -339,6 +342,9 @@ void UserdefBoundaryRad(Fluid<RadiationPhysics> *radiation, int dir, BoundarySid
           } else {
             Vc(FR1,k,j,i) = Vc(FR1,k,j,ighost+nxi-1);
           }
+          if (FluxRad(ER,k,j,i) <= ZERO_F) FluxRad(ER,k,j,i) = ZERO_F;
+          if (FluxRad(FR1,k,j,i) <= ZERO_F) FluxRad(FR1,k,j,i) = ZERO_F;
+          if (FluxRad(FR2,k,j,i) <= ZERO_F) FluxRad(FR2,k,j,i) = ZERO_F;
           Vc(FR2,k,j,i) = Vc(FR2,k,j,ighost+nxi-1);
           Vc(FR3,k,j,i) = Vc(FR3,k,j,ighost+nxi-1);
         });
@@ -359,10 +365,12 @@ void UserdefBoundaryRad(Fluid<RadiationPhysics> *radiation, int dir, BoundarySid
           Vc(ER,k,j,i) = units.ar*std::pow(Tout,4.)/units.GetEnergy();    
           if (Vc(FR2,k,jghost,i) >=ZERO_F){
             Vc(FR2,k,j,i) = ZERO_F;
-            FluxRad(ER,k,j,i) = ZERO_F;
           } else {
             Vc(FR2,k,j,i) = Vc(FR2,k,jghost,i);
           }
+          if (FluxRad(ER,k,j,i) >= ZERO_F) FluxRad(ER,k,j,i) = ZERO_F;
+          if (FluxRad(FR1,k,j,i) >= ZERO_F) FluxRad(FR1,k,j,i) = ZERO_F;
+          if (FluxRad(FR2,k,j,i) >= ZERO_F) FluxRad(FR2,k,j,i) = ZERO_F;
           Vc(FR1,k,j,i) = Vc(FR1,k,jghost,i);
           Vc(FR3,k,j,i) = Vc(FR3,k,jghost,i);
         });
@@ -383,6 +391,9 @@ void UserdefBoundaryRad(Fluid<RadiationPhysics> *radiation, int dir, BoundarySid
           } else {
             Vc(FR2,k,j,i) = Vc(FR2,k,jghost+nxj-1,i);
           }
+          if (FluxRad(ER,k,j,i) <= ZERO_F) FluxRad(ER,k,j,i) = ZERO_F;
+          if (FluxRad(FR1,k,j,i) <= ZERO_F) FluxRad(FR1,k,j,i) = ZERO_F;
+          if (FluxRad(FR2,k,j,i) <= ZERO_F) FluxRad(FR2,k,j,i) = ZERO_F;
           Vc(FR1,k,j,i) = Vc(FR1,k,jghost+nxj-1,i);
           Vc(FR3,k,j,i) = Vc(FR3,k,jghost+nxj-1,i);
         });
