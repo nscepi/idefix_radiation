@@ -102,71 +102,6 @@ void MySourceTerm(Fluid<DefaultPhysics> *hydro, const real t, const real dtin) {
                 real Ptarget = Teff*Vc(RHO,k,j,i);
 
                 Uc(ENG,k,j,i) += -dt*(Vc(PRS,k,j,i)-Ptarget)/(tau*gamma_m1);
-
-                // Spatial Damping function
-                //real lambda = 1/tauInner * (FMAX((1.2*R0-r)/0.2,0.0));
-                //real rhoTarget = rhoEq(j,i);
-
-                //real vx3Target = sqrt((1-(alpha+1)*Teff)/Ri);
-
-                // Enforce solid body rotation above the "seed"
-                //if(R<R0) vx3Target = sqrt((1-(alpha+1)*Teff))*R/R0;
-
-                // With fargo, there is no mean vx3!
-                //vx3Target = 0.0;
-
-                // relaxation on all components
-                //real rho = Uc(RHO,k,j,i);
-                //real vx1 = Uc(MX1,k,j,i)/rho;
-                //real vx2 = Uc(MX2,k,j,i)/rho;
-                //real vx3 = Uc(MX3,k,j,i)/rho;
-                //real bx1 = Uc(BX1,k,j,i);
-                //real bx2 = Uc(BX2,k,j,i);
-                //real bx3 = Uc(BX3,k,j,i);
-
-                //real ek = 0.5*rho*(vx1*vx1+vx2*vx2+vx3*vx3);
-                //real em = 0.5*(bx1*bx1+bx2*bx2+bx3*bx3);
-
-                //real prs = gamma_m1*(Uc(ENG,k,j,i) - ek - em);
-                //real T = prs/rho;
-
-
-                //rho -= lambda*(Vc(RHO,k,j,i)-rhoTarget)*dt;
-                //vx1 -= lambda*Vc(VX1,k,j,i)*dt;
-                //vx2 -= lambda*Vc(VX2,k,j,i)*dt;
-                //vx3 -= lambda*(Vc(VX3,k,j,i)-vx3Target)*dt;
-
-                //prs = T*rho;
-                //ek = 0.5*rho*(vx1*vx1+vx2*vx2+vx3*vx3);
-
-                //Uc(RHO,k,j,i) = rho;
-                //Uc(MX1,k,j,i) = rho*vx1;
-                //Uc(MX2,k,j,i) = rho*vx2;
-                //Uc(MX3,k,j,i) = rho*vx3;
-                //Uc(ENG,k,j,i) = ek+em+prs/gamma_m1;
-
-                // inner shell relaxation
-                /*
-                if(R<Rin) {
-                  real rhoTarget = 1.0/(R0*sqrt(R0))  * exp(1.0/ Tdisk * (1.0/sqrt(R0*R0+z*z)-1.0/R0));
-                  real densityFloor = computeDensityFloor(R,z,densityFloor0,Rin,epsilon);
-                  if(rhoTarget < densityFloor) rhoTarget = densityFloor;
-
-                  real vx3Target = 1.0/sqrt(R0) * sqrt( FMAX(R0 / sqrt(R0*R0 + z*z) -2.5*Tdisk,0.0) );
-
-                  real drho = (Vc(RHO,k,j,i)-rhoTarget) / tauVel;
-                  real dmx1 = Vc(RHO,k,j,i)*Vc(VX1,k,j,i) / tauVel + Vc(VX1,k,j,i) * drho;
-                  real dmx2 = Vc(RHO,k,j,i)*Vc(VX2,k,j,i) / tauVel + Vc(VX2,k,j,i) * drho;
-                  real dmx3 = Vc(RHO,k,j,i)*(Vc(VX3,k,j,i)-vx3Target) / tauVel + Vc(VX3,k,j,i) * drho;
-                  real deng = Vc(VX1,k,j,i)*dmx1 + Vc(VX2,k,j,i)*dmx2 + Vc(VX3,k,j,i)*dmx3;
-
-                  Uc(RHO,k,j,i) += -drho*dt;
-                  Uc(MX1,k,j,i) += -dmx1*dt;
-                  Uc(MX2,k,j,i) += -dmx2*dt;
-                  Uc(MX3,k,j,i) += -dmx3*dt;
-                  Uc(ENG,k,j,i) += -deng*dt;
-                }*/
-
 });
 
 
@@ -394,7 +329,38 @@ void CoarsenFunction(DataBlock &data) {
 void ComputeUserVars(DataBlock & data, UserDefVariablesContainer &variables) {
 
   // custom scratch array
-  IdefixArray3D<real> scrh("Scratch", data.np_tot[KDIR], data.np_tot[JDIR], data.np_tot[IDIR]);
+  IdefixArray3D<real> scrh1("Scratch1", data.np_tot[KDIR], data.np_tot[JDIR], data.np_tot[IDIR]);
+  IdefixArray3D<real> scrh2("Scratch2", data.np_tot[KDIR], data.np_tot[JDIR], data.np_tot[IDIR]);
+  IdefixArray3D<real> scrh3("Scratch3", data.np_tot[KDIR], data.np_tot[JDIR], data.np_tot[IDIR]);
+  IdefixArray3D<real> scrh4("Scratch4", data.np_tot[KDIR], data.np_tot[JDIR], data.np_tot[IDIR]);
+  IdefixArray3D<real> scrh5("Scratch5", data.np_tot[KDIR], data.np_tot[JDIR], data.np_tot[IDIR]);
+
+  IdefixArray4D<real> FluxRiemannIDIR = data.hydro->FluxRiemann[IDIR];
+  IdefixArray4D<real> FluxRiemannJDIR = data.hydro->FluxRiemann[JDIR];
+  
+  idefix_for("UserVar",0,data.np_tot[KDIR],0,data.np_tot[JDIR],0,data.np_tot[IDIR],
+   KOKKOS_LAMBDA (int k, int j, int i) {
+      scrh1(k,j,i) = FluxRiemannIDIR(RHO,k,j,i);
+      scrh2(k,j,i) = FluxRiemannJDIR(RHO,k,j,i);
+      scrh3(k,j,i) = FluxRiemannIDIR(VX1,k,j,i);
+      scrh4(k,j,i) = FluxRiemannJDIR(VX1,k,j,i);
+      scrh5(k,j,i) = FluxRiemannIDIR(VX2,k,j,i);
+   });
+  Kokkos::deep_copy(variables["Fluxrhor"], scrh1);
+  Kokkos::deep_copy(variables["Fluxrhot"], scrh2);
+  Kokkos::deep_copy(variables["Fluxmrr"], scrh3);
+  Kokkos::deep_copy(variables["Fluxmrt"], scrh4);
+  Kokkos::deep_copy(variables["Fluxmtr"], scrh5);
+
+  idefix_for("UserVar",0,data.np_tot[KDIR],0,data.np_tot[JDIR],0,data.np_tot[IDIR],
+   KOKKOS_LAMBDA (int k, int j, int i) {
+     scrh1(k,j,i) = FluxRiemannJDIR(VX2,k,j,i);
+     scrh2(k,j,i) = FluxRiemannIDIR(ENG,k,j,i);
+     scrh3(k,j,i) = FluxRiemannJDIR(ENG,k,j,i);
+   });
+  Kokkos::deep_copy(variables["Fluxmtt"], scrh1);
+  Kokkos::deep_copy(variables["FluxEngr"], scrh2);
+  Kokkos::deep_copy(variables["FluxEngt"], scrh3);
 
   // Mirror data on Host
   DataBlockHost d(data);
@@ -402,106 +368,41 @@ void ComputeUserVars(DataBlock & data, UserDefVariablesContainer &variables) {
   // Sync it
   d.SyncFromDevice();
 
+  auto units = idfx::units;
+
   // Make references to the user-defined arrays (variables is a container of IdefixHostArray3D)
   // Note that the labels should match the variable names in the input file
-  //IdefixHostArray3D<real> VdX1  = variables["VdX1"];
-  //IdefixHostArray3D<real> VdX2  = variables["VdX2"];
-  //IdefixHostArray3D<real> VdX3  = variables["VdX3"];
-  IdefixHostArray3D<real> InvDt  = variables["InvDt"];
-
-  IdefixHostArray1D<real> x1=d.x[IDIR];
-  IdefixHostArray1D<real> x2=d.x[JDIR];
-  IdefixHostArray4D<real> Vc=d.Vc;
-  IdefixHostArray4D<real> J=d.J;
-  IdefixArray3D<real>::HostMirror scrhHost = Kokkos::create_mirror_view(scrh);
-  Kokkos::deep_copy(scrhHost,scrh);
-  IdefixArray3D<real>::HostMirror xHHost;
-
+  
   for(int k = d.beg[KDIR]; k < d.end[KDIR] ; k++) {
     for(int j = d.beg[JDIR]; j < d.end[JDIR] ; j++) {
       for(int i = d.beg[IDIR]; i < d.end[IDIR] ; i++) {
-        real z=x1(i)*cos(x2(j));
-        real R=FMAX(FABS(x1(i)*sin(x2(j))),ONE_F);
-        real H=R*epsilonGlob;
-        real Omega=pow(R,-1.5);
-        InvDt(k,j,i) = d.InvDt(k,j,i);
-
-        // Compute ion drift speed JxB
-        // Compute J at cell center
-        /*
-        #if DIMENSIONS < 3
-        real Jx1 = AVERAGE_4D_Y(J,IDIR,k,j+1,i);
-        real Jx2 = AVERAGE_4D_X(J,JDIR,k,j,i+1);
-        real Jx3 = AVERAGE_4D_XY(J,KDIR,k,j+1,i+1);
-        #else
-        real Jx1 = AVERAGE_4D_YZ(J,IDIR,k+1,j+1,i);
-        real Jx2 = AVERAGE_4D_XZ(J,JDIR,k+1,j,i+1);
-        real Jx3 = AVERAGE_4D_XY(J,KDIR,k,j+1,i+1);
-        #endif
-        real Bx1 = Vc(BX1,k,j,i);
-        real Bx2 = Vc(BX2,k,j,i);
-        real Bx3 = Vc(BX3,k,j,i);
-
-        VdX1(k,j,i) = scrhHost(k,j,i) * (Jx2 * Bx3 - Jx3 * Bx2);
-        VdX2(k,j,i) = scrhHost(k,j,i) * (Jx3 * Bx1 - Jx1 * Bx3);
-        VdX3(k,j,i) = scrhHost(k,j,i) * (Jx1 * Bx2 - Jx2 * Bx1);
-*/
+        variables["rhovrvr"](k,j,i) = d.Vc(RHO,k,j,i)*d.Vc(VX1,k,j,i)*d.Vc(VX1,k,j,i);
+        variables["rhovrvt"](k,j,i) = d.Vc(RHO,k,j,i)*d.Vc(VX1,k,j,i)*d.Vc(VX2,k,j,i);
+        variables["rhovrvp"](k,j,i) = d.Vc(RHO,k,j,i)*d.Vc(VX1,k,j,i)*d.Vc(VX3,k,j,i);
+        variables["rhovtvt"](k,j,i) = d.Vc(RHO,k,j,i)*d.Vc(VX2,k,j,i)*d.Vc(VX2,k,j,i);
+        variables["rhovtvp"](k,j,i) = d.Vc(RHO,k,j,i)*d.Vc(VX2,k,j,i)*d.Vc(VX3,k,j,i);
+        variables["rhovpvp"](k,j,i) = d.Vc(RHO,k,j,i)*d.Vc(VX3,k,j,i)*d.Vc(VX3,k,j,i);
+        variables["BrBr"](k,j,i) = d.Vc(BX1,k,j,i)*d.Vc(BX1,k,j,i);
+        variables["BrBt"](k,j,i) = d.Vc(BX1,k,j,i)*d.Vc(BX2,k,j,i);
+        variables["BrBp"](k,j,i) = d.Vc(BX1,k,j,i)*d.Vc(BX3,k,j,i);
+        variables["BtBt"](k,j,i) = d.Vc(BX2,k,j,i)*d.Vc(BX2,k,j,i);
+        variables["BtBp"](k,j,i) = d.Vc(BX2,k,j,i)*d.Vc(BX3,k,j,i);
+        variables["BpBp"](k,j,i) = d.Vc(BX3,k,j,i)*d.Vc(BX3,k,j,i);
+        real rhov2 = d.Vc(RHO,k,j,i)*(d.Vc(VX1,k,j,i)*d.Vc(VX1,k,j,i)+d.Vc(VX2,k,j,i)*d.Vc(VX2,k,j,i)+d.Vc(VX3,k,j,i)*d.Vc(VX3,k,j,i));
+        variables["rhov2vr"](k,j,i) = rhov2*d.Vc(VX1,k,j,i);
+        variables["rhov2vt"](k,j,i) = rhov2*d.Vc(VX2,k,j,i);
+        real B2 = d.Vc(BX1,k,j,i)*d.Vc(BX1,k,j,i)+d.Vc(BX2,k,j,i)*d.Vc(BX2,k,j,i)+d.Vc(BX3,k,j,i)*d.Vc(BX3,k,j,i);
+        variables["B2vr"](k,j,i) = B2*d.Vc(VX1,k,j,i);
+        variables["B2vt"](k,j,i) = B2*d.Vc(VX2,k,j,i);
+        real BV = d.Vc(BX1,k,j,i)*d.Vc(VX1,k,j,i)+d.Vc(BX2,k,j,i)*d.Vc(VX2,k,j,i)+d.Vc(BX3,k,j,i)*d.Vc(VX3,k,j,i);
+        variables["BVBr"](k,j,i) = BV*d.Vc(BX1,k,j,i);
+        variables["BVBt"](k,j,i) = BV*d.Vc(BX2,k,j,i);
+        variables["Emfr"](k,j,i) = d.Ex1(k,j,i);
+        variables["Emft"](k,j,i) = d.Ex2(k,j,i);
+        variables["Emfp"](k,j,i) = d.Ex3(k,j,i);
       }
     }
   }
-
-  #ifdef EVOLVE_VECTOR_POTENTIAL
-  IdefixHostArray3D<real> psi;
-  try {
-    // Try to get the array
-    psi  = variables.at("psi");
-  } catch(std::exception &e) {
-    // Array is not defined
-    return;
-  }
-  for(int k = d.beg[KDIR]; k < d.end[KDIR] ; k++) {
-    for(int j = d.beg[JDIR]; j < d.end[JDIR] ; j++) {
-      for(int i = d.beg[IDIR]; i < d.end[IDIR] ; i++) {
-        psi(k,j,i) = 0.25*(
-              d.Ve(AX3e,k,j,i)*d.xl[IDIR](i)*sin(d.xl[JDIR](j)) +
-              d.Ve(AX3e,k,j,i+1)*d.xl[IDIR](i+1)*sin(d.xl[JDIR](j)) +
-              d.Ve(AX3e,k,j+1,i)*d.xl[IDIR](i)*sin(d.xl[JDIR](j+1)) +
-              d.Ve(AX3e,k,j+1,i+1)*d.xl[IDIR](i+1)*sin(d.xl[JDIR](j+1))
-            );
-  }}}
-
-  IdefixHostArray3D<real> EphiIdeal;
-  try {
-    // Try to get the array
-    EphiIdeal  = variables.at("EphiIdeal");
-  } catch(std::exception &e) {
-    // Array is not defined
-    return;
-  }
-  // Talk to the emf object to recompute required EMFs
-  IdefixArray3D<real> ex1,ex2,ex3;
-
-  ex1 = emf->ex;
-  ex2 = emf->ey;
-  ex3 = emf->ez;
-
-  // Compute Ideal EMF
-  data.SetBoundaries();
-  emf->CalcCornerEMF(data.t);
-  Kokkos::deep_copy(EphiIdeal,ex3);
-
-  idefix_for("resetEMF", 0, data.np_tot[KDIR], 0, data.np_tot[JDIR], 0, data.np_tot[IDIR],
-      KOKKOS_LAMBDA(int k, int j,int i) {
-        #if DIMENSIONS == 3
-        ex1(k,j,i) = 0.0;
-        ex2(k,j,i) = 0.0;
-        #endif
-        ex3(k,j,i) = 0.0;
-      });
-
-
-  // Done
-  #endif
 }
 
 void analysisFunction(DataBlock& data) {
