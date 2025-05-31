@@ -318,7 +318,7 @@ void CoarsenFunction(DataBlock &data) {
   IdefixArray1D<real> th = data.x[JDIR];
   idefix_for("set_coarsening", 0, data.np_tot[JDIR], 0, data.np_tot[IDIR],
       KOKKOS_LAMBDA(int j,int i) {
-        int c = 1.0/sin(th(j));
+        int c = 1.0/fabs(sin(th(j)));
         if(c>5) c = 5;
         coarseningLevel(j,i) = c;
 
