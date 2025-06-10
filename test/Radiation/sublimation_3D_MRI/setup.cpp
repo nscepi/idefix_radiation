@@ -107,14 +107,14 @@ void MyKappa(DataBlock &data, IdefixArray3D<real> &kappap, IdefixArray3D<real> &
                 real T = Vc(PRS,k,j,i)/Vc(RHO,k,j,i)*units.GetKelvin()*mu;
                 real f_delta = 0.2/(Vc(RHO,k,j,i)*units.GetDensity()*kappa_star*dr(i)*units.GetLength())-kappa_gas/kappa_star;
                 real f_gtod;
-                //if ((T < Tsublim) || (tau(k,j,i) > 3.)){
-                //  f_gtod = f0;
-                //} else {
-                //  f_gtod = f_delta*0.25*(1.-std::tanh(std::pow((T-Tsublim)/Twidth,3.)));
-                //}
-                //f_gtod *= 1.-std::tanh(2./3.-tau(k,j,i));
-                f_gtod = 1.e-3;
-                kappap(k,j,i) = kappa_star*f_gtod+kappa_gas;
+                if ((T < Tsublim) || (tau(k,j,i) > 3.)){
+                  f_gtod = f0;
+                } else {
+                  f_gtod = f_delta*0.25*(1.-std::tanh(std::pow((T-Tsublim)/Twidth,3.)));
+                }
+                f_gtod *= 1.-std::tanh(2./3.-tau(k,j,i));
+                //f_gtod = 1.e-3;
+                kappap(k,j,i) = kappa_star*FMAX(1.e-10,f_gtod)+kappa_gas;
                 //kappar(k,j,i) = kappa_star*f_gtod+kappa_gas;
                 kappar(k,j,i) = 0.;
               });
@@ -129,17 +129,12 @@ void Ambipolar(DataBlock& data, real t, IdefixArray3D<real> &xAin) {
   real R0 = R0Glob;
   real epsilon = epsilonGlob;
   real etamax = diffCap*epsilon*epsilon*std::sqrt(GM/(R0*R0*R0)); // Corresponds to Rm=0.1
-  real waveKillWidth = 0.1;
 
   auto units = idfx::units;
   real mu = muGlob;
 
   real xi_rad = 1.e-19; // Radioactive decay
   real K_a = 1.e-7;
-
-  real AmMid = 1.;
-  real Hideal = HidealGlob;
-  real trSmoothing = trSmoothingGlob;
 
   columnrGlob->ComputeColumn(data.hydro->Vc,RHO);
   columnthupGlob->ComputeColumn(data.hydro->Vc,RHO);
@@ -151,7 +146,7 @@ void Ambipolar(DataBlock& data, real t, IdefixArray3D<real> &xAin) {
   Sigmathdown = columnthdownGlob->GetColumn();
 
 
-  idefix_for("Ambipolar",data.beg[KDIR],data.end[KDIR],data.beg[JDIR],data.end[JDIR],data.beg[IDIR],data.end[IDIR],
+  idefix_for("Ambipolar",0,data.np_tot[KDIR],0,data.np_tot[JDIR],0,data.np_tot[IDIR],
               KOKKOS_LAMBDA (int k, int j, int i) {
                     real r=x1(i);
                     real th=x2(j);
@@ -228,7 +223,7 @@ void Resistivity(DataBlock& data, real t, IdefixArray3D<real> &etain) {
   Sigmathup = columnthupGlob->GetColumn();
   Sigmathdown = columnthdownGlob->GetColumn();
 
-  idefix_for("Resistivity",data.beg[KDIR],data.end[KDIR],data.beg[JDIR],data.end[JDIR],data.beg[IDIR],data.end[IDIR],
+  idefix_for("Resistivity",0,data.np_tot[KDIR],0,data.np_tot[JDIR],0,data.np_tot[IDIR],
               KOKKOS_LAMBDA (int k, int j, int i) {
                     real r=x1(i);
                     real th=x2(j);
@@ -250,7 +245,6 @@ void Resistivity(DataBlock& data, real t, IdefixArray3D<real> &etain) {
 
                     // Thermal ionisation (eq. 1 of Fromang, Terquem & Blabus 2002) ###
                     real xe_th = FMIN(1.,6.47e-13*std::sqrt(K_a/1.e-7)*std::pow((T/1.e3),0.75)*std::sqrt(2.4e15/n_n)*std::exp(-25188./T)/1.15e-11);
-                    real h = epsilon*R;
                     //real xe_th = FMIN(1.e-3,6.47e-13*std::sqrt(K_a/1.e-7)*std::pow((T/1.e3),0.75)*std::sqrt(2.4e15/n_n)*std::exp(-25188./T)/1.15e-11*std::exp(-z*z/(2.*h*h)));
                     //real xe_th = 1.e-5;
 
@@ -362,8 +356,6 @@ void UserdefBoundary(Fluid<DefaultPhysics> *hydro, int dir, BoundarySide side, r
         real Omega = std::sqrt(GGlob*MGlob)*std::pow(Rin,-1.5);
         real csdisk = std::sqrt(GGlob*MGlob)*epsilonGlob/sqrt(Rin);
         real cscorona = std::sqrt(GGlob*MGlob)*epsilonTopGlob/sqrt(Rin);
-        real densityFloor0 = densityFloorGlob;
-        real epsilon=epsilonGlob;
 
         hydro->boundary->BoundaryFor("UserDefX1",dir,side,
             KOKKOS_LAMBDA (int k, int j, int i) {
@@ -537,7 +529,7 @@ void CoarsenFunction(DataBlock &data) {
   IdefixArray1D<real> th = data.x[JDIR];
   idefix_for("set_coarsening", 0, data.np_tot[JDIR], 0, data.np_tot[IDIR],
       KOKKOS_LAMBDA(int j,int i) {
-        int c = 1.0/sin(th(j));
+        int c = 1.0/fabs(sin(th(j)));
         if(c>5) c = 5;
         coarseningLevel(j,i) = c;
 
@@ -551,6 +543,18 @@ void ComputeUserVars(DataBlock & data, UserDefVariablesContainer &variables) {
   IdefixArray3D<real> scrh("Scratch", data.np_tot[KDIR], data.np_tot[JDIR], data.np_tot[IDIR]);
   IdefixArray3D<real> scrh2("Scratch", data.np_tot[KDIR], data.np_tot[JDIR], data.np_tot[IDIR]);
   IdefixArray3D<real> xH;
+  IdefixArray3D<real> Sigmar,Sigmathup,Sigmathdown;
+  IdefixArray3D<real> kappap, kappar;
+
+  Sigmar = columnrGlob->GetColumn();
+  Sigmathup = columnthupGlob->GetColumn();
+  Sigmathdown = columnthdownGlob->GetColumn();
+
+  Kokkos::deep_copy(variables["columnr"],Sigmar);
+  Kokkos::deep_copy(variables["columnthup"],Sigmathup);
+  Kokkos::deep_copy(variables["columnthdown"],Sigmathdown);
+  Kokkos::deep_copy(variables["kappap"],data.radiation[0]->radsource->kappapArr);
+  Kokkos::deep_copy(variables["kappar"],data.radiation[0]->radsource->kapparArr);
 
   // Ask for a computation of xA ambipolar in this scratch array
   Ambipolar(data, data.t, scrh);
