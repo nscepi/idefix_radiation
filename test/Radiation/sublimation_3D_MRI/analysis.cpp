@@ -13,6 +13,8 @@ Analysis::Analysis(Grid &grid, DataBlock &data, std::string filename, real epsil
   // This hack ensures that d.Vc is an array distinct from data.hydro->Vc, even on CPUs
   this->d.Vc = Kokkos::create_mirror(data.hydro->Vc);
   this->Ex3Ideal = IdefixHostArray3D<real>("Ex3Ideal", data.np_tot[KDIR],data.np_tot[JDIR],data.np_tot[IDIR]);
+  this->Ex3Nonideal = IdefixHostArray3D<real>("Ex3Nonideal", data.np_tot[KDIR],data.np_tot[JDIR],data.np_tot[IDIR]);
+
 }
 
 std::vector<real> Analysis::MakeDiskMask(real epsilon) {
@@ -187,6 +189,9 @@ void Analysis::ComputeEMF(DataBlock &data) {
       KOKKOS_LAMBDA(int k, int j,int i) {
         ex3(k,j,i) = 0.0;
       });
+  // Compute Non-ideal EMF
+  emf->CalcNonidealEMF(data.t);
+  Kokkos::deep_copy(this->Ex3Nonideal,ex3);
 
   // We're done with the EMFs
 }
@@ -315,10 +320,15 @@ void Analysis::PerformAnalysis(DataBlock &data) {
   WriteProfile(data.t, prof, file);
   Average(this->Ex3Ideal, maskBottom, prof);
   WriteProfile(data.t, prof, file);
+  Average(this->Ex3Nonideal, maskMid, prof);
+  WriteProfile(data.t, prof, file);
+  Average(this->Ex3Nonideal, maskTop, prof);
+  WriteProfile(data.t, prof, file);
+  Average(this->Ex3Nonideal, maskBottom, prof);
+  WriteProfile(data.t, prof, file);
 
   if(idfx::prank==0) {
     file.close();
   }
   idfx::popRegion();
 }
-

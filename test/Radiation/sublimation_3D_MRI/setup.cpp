@@ -112,9 +112,9 @@ void MyKappa(DataBlock &data, IdefixArray3D<real> &kappap, IdefixArray3D<real> &
                 } else {
                   f_gtod = f_delta*0.25*(1.-std::tanh(std::pow((T-Tsublim)/Twidth,3.)));
                 }
-                //f_gtod *= 1.-std::tanh(2./3.-tau(k,j,i));
-                f_gtod = 1.e-3;
-                kappap(k,j,i) = kappa_star*f_gtod+kappa_gas;
+                f_gtod *= 1.-std::tanh(2./3.-tau(k,j,i));
+                //f_gtod = 1.e-3;
+                kappap(k,j,i) = kappa_star*FMAX(1.e-10,f_gtod)+kappa_gas;
                 //kappar(k,j,i) = kappa_star*f_gtod+kappa_gas;
                 kappar(k,j,i) = 0.;
               });
@@ -280,6 +280,58 @@ void Resistivity(DataBlock& data, real t, IdefixArray3D<real> &etain) {
 
 }
 
+void MySourceTerm(Fluid<DefaultPhysics> *hydro, const real t, const real dtin) {
+  IdefixArray4D<real> Vc = hydro->Vc;
+  IdefixArray4D<real> Uc = hydro->Uc;
+  auto data = hydro->data;
+  auto x1 = data->x[IDIR];
+  auto x2 = data->x[JDIR];
+  IdefixArray2D<real> rhoEq = *rhoInit;
+
+  real epsilonTop = epsilonTopGlob;
+  real epsilon = epsilonGlob;
+  
+  real Omega = std::sqrt(GGlob*MGlob)*std::pow(R0Glob,-1.5);
+
+  real tauGlob=1.0/Omega;
+  real tauWind=1e-2/Omega;
+  real tauInner=0.1/Omega;
+  real gamma_m1=gammaGlob-1.0;
+  real dt=dtin;
+  real Hideal=HidealGlob;
+  real R0=R0Glob;
+  real trSmoothing = trSmoothingGlob;
+  real alpha=alphaGlob;
+  real GM = GGlob*MGlob;
+
+  idefix_for("MySourceTerm",0,data->np_tot[KDIR],0,data->np_tot[JDIR],0,data->np_tot[IDIR],
+              KOKKOS_LAMBDA (int k, int j, int i) {
+                real r=x1(i);
+                real th=x2(j);
+                real z=r*cos(th);
+                real R=r*sin(th);
+                real Ri = FMAX(R0,R);
+                real Vk=std::sqrt(GM/Ri);
+
+                real Zh = FABS(z/R)/epsilon;
+                real Tdisk = std::pow(epsilon*Vk,2.);  // Factor of GM to take into account vk not 1 at R=1
+                real Tcorona = std::pow(epsilonTop*Vk,2.);  // Factor of GM to take into account vk not 1 at R=1
+                //if(x1(i) < 1.5) cscorona = csdisk;
+                real f = tanh((Zh-Hideal)/trSmoothing);
+                real Teff=0.5*(Tdisk+Tcorona)+0.5*(Tcorona-Tdisk)*f;
+
+                real tau= 0.5*(tauGlob+tauWind)+0.5*(tauWind-tauGlob)*f;
+                tau *= pow(Ri/R0,1.5);
+                // Cooling /heatig function
+                real Ptarget = Teff*Vc(RHO,k,j,i);
+
+                Uc(ENG,k,j,i) += -dt*(Vc(PRS,k,j,i)-Ptarget)/(tau*gamma_m1);
+
+});
+
+
+}
+
 
 
 void InternalBoundary(DataBlock& data, const real t) {
@@ -364,7 +416,8 @@ void UserdefBoundary(Fluid<DefaultPhysics> *hydro, int dir, BoundarySide side, r
 
                 Vc(RHO,k,j,i) = Vc(RHO,k,j,ighost);
 
-                Vc(PRS,k,j,i) = Vc(RHO,k,j,i)*csdisk*csdisk;
+                //Vc(PRS,k,j,i) = Vc(RHO,k,j,i)*csdisk*csdisk;
+                Vc(PRS,k,j,i) = Vc(PRS,k,j,ighost);
 
                 if(Vc(VX1,k,j,ighost)>=ZERO_F) Vc(VX1,k,j,i) = -Vc(VX1,k,j,2*ighost-i-1);
                        else Vc(VX1,k,j,i) = Vc(VX1,k,j,ighost);
@@ -683,6 +736,7 @@ Setup::Setup(Input &input, Grid &grid, DataBlock &data, Output &output) {
   data.hydro->EnrollInternalBoundary(&InternalBoundary);
   //data.hydro->EnrollEmfBoundary(&EmfBoundary);
   //data.hydro->EnrollFluxBoundary(&FluxBoundary);
+  //data.hydro->EnrollUserSourceTerm(&MySourceTerm);
 
   gammaGlob=data.hydro->eos->GetGamma();
   alphaGlob = input.GetOrSet<real>("Setup","alpha",0,1.5);  // density power law
@@ -712,7 +766,7 @@ Setup::Setup(Input &input, Grid &grid, DataBlock &data, Output &output) {
   // assume disc surface at 6.5 h
   analysis = new Analysis(grid, data,std::string("profile.dat"), HidealGlob*epsilonGlob);
   output.EnrollAnalysis(&analysisFunction);
-
+   
   rsGlob=input.Get<real>("Rad","irr",1);
   TsGlob=input.Get<real>("Rad","irr",2);
   TsubGlob = input.Get<real>("Setup","Tsub",0);

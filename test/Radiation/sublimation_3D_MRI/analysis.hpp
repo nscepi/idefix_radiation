@@ -41,4 +41,3 @@ class Analysis {
 };
 
 #endif // ANALYSIS_HPP__
-
