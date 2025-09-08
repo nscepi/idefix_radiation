@@ -338,29 +338,29 @@ void ComputeUserVars(DataBlock & data, UserDefVariablesContainer &variables) {
   IdefixArray4D<real> FluxRiemannIDIR = data.hydro->FluxRiemann[IDIR];
   IdefixArray4D<real> FluxRiemannJDIR = data.hydro->FluxRiemann[JDIR];
   
-  idefix_for("UserVar",0,data.np_tot[KDIR],0,data.np_tot[JDIR],0,data.np_tot[IDIR],
-   KOKKOS_LAMBDA (int k, int j, int i) {
-      scrh1(k,j,i) = FluxRiemannIDIR(RHO,k,j,i);
-      scrh2(k,j,i) = FluxRiemannJDIR(RHO,k,j,i);
-      scrh3(k,j,i) = FluxRiemannIDIR(VX1,k,j,i);
-      scrh4(k,j,i) = FluxRiemannJDIR(VX1,k,j,i);
-      scrh5(k,j,i) = FluxRiemannIDIR(VX2,k,j,i);
-   });
-  Kokkos::deep_copy(variables["Fluxrhor"], scrh1);
-  Kokkos::deep_copy(variables["Fluxrhot"], scrh2);
-  Kokkos::deep_copy(variables["Fluxmrr"], scrh3);
-  Kokkos::deep_copy(variables["Fluxmrt"], scrh4);
-  Kokkos::deep_copy(variables["Fluxmtr"], scrh5);
-
-  idefix_for("UserVar",0,data.np_tot[KDIR],0,data.np_tot[JDIR],0,data.np_tot[IDIR],
-   KOKKOS_LAMBDA (int k, int j, int i) {
-     scrh1(k,j,i) = FluxRiemannJDIR(VX2,k,j,i);
-     scrh2(k,j,i) = FluxRiemannIDIR(ENG,k,j,i);
-     scrh3(k,j,i) = FluxRiemannJDIR(ENG,k,j,i);
-   });
-  Kokkos::deep_copy(variables["Fluxmtt"], scrh1);
-  Kokkos::deep_copy(variables["FluxEngr"], scrh2);
-  Kokkos::deep_copy(variables["FluxEngt"], scrh3);
+//  idefix_for("UserVar",0,data.np_tot[KDIR],0,data.np_tot[JDIR],0,data.np_tot[IDIR],
+//   KOKKOS_LAMBDA (int k, int j, int i) {
+//      scrh1(k,j,i) = FluxRiemannIDIR(RHO,k,j,i);
+//      scrh2(k,j,i) = FluxRiemannJDIR(RHO,k,j,i);
+//      scrh3(k,j,i) = FluxRiemannIDIR(VX1,k,j,i);
+//      scrh4(k,j,i) = FluxRiemannJDIR(VX1,k,j,i);
+//      scrh5(k,j,i) = FluxRiemannIDIR(VX2,k,j,i);
+//   });
+//  Kokkos::deep_copy(variables["Fluxrhor"], scrh1);
+//  Kokkos::deep_copy(variables["Fluxrhot"], scrh2);
+//  Kokkos::deep_copy(variables["Fluxmrr"], scrh3);
+//  Kokkos::deep_copy(variables["Fluxmrt"], scrh4);
+//  Kokkos::deep_copy(variables["Fluxmtr"], scrh5);
+//
+//  idefix_for("UserVar",0,data.np_tot[KDIR],0,data.np_tot[JDIR],0,data.np_tot[IDIR],
+//   KOKKOS_LAMBDA (int k, int j, int i) {
+//     scrh1(k,j,i) = FluxRiemannJDIR(VX2,k,j,i);
+//     scrh2(k,j,i) = FluxRiemannIDIR(ENG,k,j,i);
+//     scrh3(k,j,i) = FluxRiemannJDIR(ENG,k,j,i);
+//   });
+//  Kokkos::deep_copy(variables["Fluxmtt"], scrh1);
+//  Kokkos::deep_copy(variables["FluxEngr"], scrh2);
+//  Kokkos::deep_copy(variables["FluxEngt"], scrh3);
 
   // Mirror data on Host
   DataBlockHost d(data);
@@ -370,36 +370,49 @@ void ComputeUserVars(DataBlock & data, UserDefVariablesContainer &variables) {
 
   auto units = idfx::units;
 
+  IdefixHostArray3D<real> divB  = variables["divB"];
+  IdefixHostArray4D<real> Vs = d.Vs;
+  IdefixHostArray3D<real> Ax1 = d.A[IDIR];
+  IdefixHostArray3D<real> Ax2 = d.A[JDIR];
+  IdefixHostArray3D<real> Ax3 = d.A[KDIR];
+  IdefixHostArray3D<real> dV = d.dV;
+
   // Make references to the user-defined arrays (variables is a container of IdefixHostArray3D)
   // Note that the labels should match the variable names in the input file
   
   for(int k = d.beg[KDIR]; k < d.end[KDIR] ; k++) {
     for(int j = d.beg[JDIR]; j < d.end[JDIR] ; j++) {
       for(int i = d.beg[IDIR]; i < d.end[IDIR] ; i++) {
-        variables["rhovrvr"](k,j,i) = d.Vc(RHO,k,j,i)*d.Vc(VX1,k,j,i)*d.Vc(VX1,k,j,i);
-        variables["rhovrvt"](k,j,i) = d.Vc(RHO,k,j,i)*d.Vc(VX1,k,j,i)*d.Vc(VX2,k,j,i);
-        variables["rhovrvp"](k,j,i) = d.Vc(RHO,k,j,i)*d.Vc(VX1,k,j,i)*d.Vc(VX3,k,j,i);
-        variables["rhovtvt"](k,j,i) = d.Vc(RHO,k,j,i)*d.Vc(VX2,k,j,i)*d.Vc(VX2,k,j,i);
-        variables["rhovtvp"](k,j,i) = d.Vc(RHO,k,j,i)*d.Vc(VX2,k,j,i)*d.Vc(VX3,k,j,i);
-        variables["rhovpvp"](k,j,i) = d.Vc(RHO,k,j,i)*d.Vc(VX3,k,j,i)*d.Vc(VX3,k,j,i);
-        variables["BrBr"](k,j,i) = d.Vc(BX1,k,j,i)*d.Vc(BX1,k,j,i);
-        variables["BrBt"](k,j,i) = d.Vc(BX1,k,j,i)*d.Vc(BX2,k,j,i);
-        variables["BrBp"](k,j,i) = d.Vc(BX1,k,j,i)*d.Vc(BX3,k,j,i);
-        variables["BtBt"](k,j,i) = d.Vc(BX2,k,j,i)*d.Vc(BX2,k,j,i);
-        variables["BtBp"](k,j,i) = d.Vc(BX2,k,j,i)*d.Vc(BX3,k,j,i);
-        variables["BpBp"](k,j,i) = d.Vc(BX3,k,j,i)*d.Vc(BX3,k,j,i);
-        real rhov2 = d.Vc(RHO,k,j,i)*(d.Vc(VX1,k,j,i)*d.Vc(VX1,k,j,i)+d.Vc(VX2,k,j,i)*d.Vc(VX2,k,j,i)+d.Vc(VX3,k,j,i)*d.Vc(VX3,k,j,i));
-        variables["rhov2vr"](k,j,i) = rhov2*d.Vc(VX1,k,j,i);
-        variables["rhov2vt"](k,j,i) = rhov2*d.Vc(VX2,k,j,i);
-        real B2 = d.Vc(BX1,k,j,i)*d.Vc(BX1,k,j,i)+d.Vc(BX2,k,j,i)*d.Vc(BX2,k,j,i)+d.Vc(BX3,k,j,i)*d.Vc(BX3,k,j,i);
-        variables["B2vr"](k,j,i) = B2*d.Vc(VX1,k,j,i);
-        variables["B2vt"](k,j,i) = B2*d.Vc(VX2,k,j,i);
-        real BV = d.Vc(BX1,k,j,i)*d.Vc(VX1,k,j,i)+d.Vc(BX2,k,j,i)*d.Vc(VX2,k,j,i)+d.Vc(BX3,k,j,i)*d.Vc(VX3,k,j,i);
-        variables["BVBr"](k,j,i) = BV*d.Vc(BX1,k,j,i);
-        variables["BVBt"](k,j,i) = BV*d.Vc(BX2,k,j,i);
-        variables["Emfr"](k,j,i) = d.Ex1(k,j,i);
-        variables["Emft"](k,j,i) = d.Ex2(k,j,i);
-        variables["Emfp"](k,j,i) = d.Ex3(k,j,i);
+//        variables["rhovrvr"](k,j,i) = d.Vc(RHO,k,j,i)*d.Vc(VX1,k,j,i)*d.Vc(VX1,k,j,i);
+//        variables["rhovrvt"](k,j,i) = d.Vc(RHO,k,j,i)*d.Vc(VX1,k,j,i)*d.Vc(VX2,k,j,i);
+//        variables["rhovrvp"](k,j,i) = d.Vc(RHO,k,j,i)*d.Vc(VX1,k,j,i)*d.Vc(VX3,k,j,i);
+//        variables["rhovtvt"](k,j,i) = d.Vc(RHO,k,j,i)*d.Vc(VX2,k,j,i)*d.Vc(VX2,k,j,i);
+//        variables["rhovtvp"](k,j,i) = d.Vc(RHO,k,j,i)*d.Vc(VX2,k,j,i)*d.Vc(VX3,k,j,i);
+//        variables["rhovpvp"](k,j,i) = d.Vc(RHO,k,j,i)*d.Vc(VX3,k,j,i)*d.Vc(VX3,k,j,i);
+//        variables["BrBr"](k,j,i) = d.Vc(BX1,k,j,i)*d.Vc(BX1,k,j,i);
+//        variables["BrBt"](k,j,i) = d.Vc(BX1,k,j,i)*d.Vc(BX2,k,j,i);
+//        variables["BrBp"](k,j,i) = d.Vc(BX1,k,j,i)*d.Vc(BX3,k,j,i);
+//        variables["BtBt"](k,j,i) = d.Vc(BX2,k,j,i)*d.Vc(BX2,k,j,i);
+//        variables["BtBp"](k,j,i) = d.Vc(BX2,k,j,i)*d.Vc(BX3,k,j,i);
+//        variables["BpBp"](k,j,i) = d.Vc(BX3,k,j,i)*d.Vc(BX3,k,j,i);
+//        real rhov2 = d.Vc(RHO,k,j,i)*(d.Vc(VX1,k,j,i)*d.Vc(VX1,k,j,i)+d.Vc(VX2,k,j,i)*d.Vc(VX2,k,j,i)+d.Vc(VX3,k,j,i)*d.Vc(VX3,k,j,i));
+//        variables["rhov2vr"](k,j,i) = rhov2*d.Vc(VX1,k,j,i);
+//        variables["rhov2vt"](k,j,i) = rhov2*d.Vc(VX2,k,j,i);
+//        real B2 = d.Vc(BX1,k,j,i)*d.Vc(BX1,k,j,i)+d.Vc(BX2,k,j,i)*d.Vc(BX2,k,j,i)+d.Vc(BX3,k,j,i)*d.Vc(BX3,k,j,i);
+//        variables["B2vr"](k,j,i) = B2*d.Vc(VX1,k,j,i);
+//        variables["B2vt"](k,j,i) = B2*d.Vc(VX2,k,j,i);
+//        real BV = d.Vc(BX1,k,j,i)*d.Vc(VX1,k,j,i)+d.Vc(BX2,k,j,i)*d.Vc(VX2,k,j,i)+d.Vc(BX3,k,j,i)*d.Vc(VX3,k,j,i);
+//        variables["BVBr"](k,j,i) = BV*d.Vc(BX1,k,j,i);
+//        variables["BVBt"](k,j,i) = BV*d.Vc(BX2,k,j,i);
+//        variables["Emfr"](k,j,i) = d.Ex1(k,j,i);
+//        variables["Emft"](k,j,i) = d.Ex2(k,j,i);
+//  	variables["Emfp"](k,j,i) = d.Ex3(k,j,i);
+
+        divB(k,j,i) = ((Ax1(k,j,i+1)*Vs(BX1s,k,j,i+1)-Ax1(k,j,i)*Vs(BX1s,k,j,i)) +
+                      (Ax2(k,j+1,i)*Vs(BX2s,k,j+1,i)-Ax2(k,j,i)*Vs(BX2s,k,j,i)) +
+                      (Ax3(k+1,j,i)*Vs(BX3s,k+1,j,i)-Ax3(k,j,i)*Vs(BX3s,k,j,i)))
+                      / dV(k,j,i);
+
       }
     }
   }
