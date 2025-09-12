@@ -423,7 +423,7 @@ void Setup::InitFlow(DataBlock &data) {
               real cs = H*Omega;
 
               d.Vc(RHO,k,j,i) = (rho0*std::pow(R0/R,rhoindex)*std::exp(-0.25*M_PI*z2/(H*H))+rhomin)/idfx::units.GetDensity();
-              d.Vc(PRS,k,j,i) = d.Vc(RHO,k,j,i)*T0/units.GetKelvin()/mu;
+              d.Vc(PRS,k,j,i) = d.Vc(RHO,k,j,i)*cs*cs;
               d.Vc(VX1,k,j,i) = 0.;
               d.Vc(VX2,k,j,i) = 0.;
               d.Vc(VX3,k,j,i) =  Omega*R;
