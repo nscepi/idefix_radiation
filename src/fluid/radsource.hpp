@@ -47,6 +47,7 @@ class RadSource {
   IdefixArray3D<real> xiArr;
   IdefixArray3D<real> kappapArr;
   IdefixArray3D<real> kapparArr;
+  IdefixArray3D<real> kappairrArr;
 
   // Array containing kappa*rho for userfunc irradiation flux
   IdefixArray3D<real> kapparhoArr;
@@ -354,6 +355,7 @@ RadSource::RadSource(Input &input, Fluid<Phys> *hydroin):
       this->kapparhoArr = IdefixArray3D<real>("kapparrhoArray",data->np_tot[KDIR],
                                                  data->np_tot[JDIR],
                                                  data->np_tot[IDIR]);
+      this->kappairrArr = hydroin->kappairrArr;
     } else {
       std::stringstream msg;
       msg << "Unknown irr type \"" <<  irrType

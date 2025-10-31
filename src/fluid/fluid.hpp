@@ -126,6 +126,7 @@ class Fluid {
   // RadSource object
   std::unique_ptr<RadSource> radsource;
   bool haveUserfuncKappa{false};
+  bool haveUserfuncKappairr{false};
   bool haveUserfuncXi{false};
 
   // Whether or not we have to treat the axis
@@ -169,6 +170,7 @@ class Fluid {
   void EnrollIsoSoundSpeed(IsoSoundSpeedFunc);
 
   // Enroll user-defined functions for opacities
+  void EnrollKappairr(KappairrFunc);
   void EnrollKappa(KappaFunc);
   void EnrollXi(XiFunc);
 
@@ -254,6 +256,7 @@ class Fluid {
   // Enroll user-defined opacity function
   XiFunc xiFunc;
   KappaFunc kappaFunc;
+  KappairrFunc kappairrFunc;
 
   // Radiation reduced speed of light
   real reduced_c;
@@ -262,6 +265,7 @@ class Fluid {
   IdefixArray3D<real> xiArr;
   IdefixArray3D<real> kappapArr;
   IdefixArray3D<real> kapparArr;
+  IdefixArray3D<real> kappairrArr;
 
   // Loop on dimensions
   template <int dir>
@@ -309,6 +313,12 @@ Fluid<Phys>::Fluid(Grid &grid, Input &input, DataBlock *datain, int n) {
                                           data->np_tot[JDIR],
                                           data->np_tot[IDIR]);  
       
+    }
+    if(input.Get<std::string>(std::string(Phys::prefix),"irr",0).compare("userfunc") == 0) {
+      this->haveUserfuncKappairr = true;
+      this->kappairrArr = IdefixArray3D<real>("kappairrArray",data->np_tot[KDIR],
+                                          data->np_tot[JDIR],
+                                          data->np_tot[IDIR]);
     }
     if(input.Get<std::string>(std::string(Phys::prefix),"xi",0).compare("userfunc") == 0) {
       this->haveUserfuncXi = true;

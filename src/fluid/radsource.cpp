@@ -974,7 +974,7 @@ void RadSource::IrrFlux(IdefixArray3D<real> divFin) {
   auto irr1D = this->irr_1D;
   IdefixArray3D<real> divFlux = divFin;
   IdefixArray3D<real> kapparho = this->kapparhoArr;
-  IdefixArray3D<real> kappapArr = this->kappapArr;
+  IdefixArray3D<real> kappairrArr = this->kappairrArr;
   IdefixArray3D<real> tau("tau",this->data->np_tot[KDIR],this->data->np_tot[JDIR],this->data->np_tot[IDIR]);
   real kappa_irr = this->kappa_irr;
 
@@ -992,7 +992,7 @@ void RadSource::IrrFlux(IdefixArray3D<real> divFin) {
     data->beg[JDIR], data->end[JDIR],
     data->beg[IDIR], data->end[IDIR],
     KOKKOS_LAMBDA (int k, int j, int i) {
-                kapparho(k,j,i) = kappapArr(k,j,i)*units.GetDensity()*units.GetLength()*VcGas(RHO,k,j,i);
+                kapparho(k,j,i) = kappairrArr(k,j,i)*units.GetDensity()*units.GetLength()*VcGas(RHO,k,j,i);
     });
     column_rho->ComputeColumn(kapparho);
     tau = column_rho->GetColumn();
