@@ -39,6 +39,9 @@ class RadSource {
 
   // Compute divergence of external irradiation flux
   void IrrFlux(IdefixArray3D<real>);
+
+  // Compute viscous heating
+  void Qviscous(IdefixArray3D<real>);
   
   // Arrays containing the userfunc opacities (copied from Fluid class)
   IdefixArray3D<real> xiArr;
@@ -156,6 +159,7 @@ class RadSource {
 
   Column *column_rho;        // Column density
   IdefixArray3D<real> divF;  // Divergence of irradiation flux
+  IdefixArray3D<real> Qvisc;  // Viscous heating
 
   Type_isolver source_solver;    // Type of implicit solver for radiation source terms
   Type_opac kappa_type;          // Type of absorption opacity definition
@@ -320,6 +324,7 @@ RadSource::RadSource(Input &input, Fluid<Phys> *hydroin):
     
     this->column_rho = new Column(IDIR,1,data);
     this->divF = IdefixArray3D<real>(prefix+"_divF",data->np_tot[KDIR], data->np_tot[JDIR], data->np_tot[IDIR]);
+    this->Qvisc = IdefixArray3D<real>(prefix+"_Qvisc",data->np_tot[KDIR], data->np_tot[JDIR], data->np_tot[IDIR]);
 
                                     
     std::string irrType = input.Get<std::string>(BlockName,"irr",0);
