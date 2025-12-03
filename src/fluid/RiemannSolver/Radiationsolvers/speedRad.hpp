@@ -11,7 +11,7 @@ KOKKOS_INLINE_FUNCTION void K_SpeedsRad(real lambda[], const real *KOKKOS_RESTRI
     
     real Fnorm = std::sqrt(EXPAND(V[FR1]*V[FR1] , + V[FR2]*V[FR2], + V[FR3]*V[FR3]));
 
-    real f_param = (Fnorm > V[ER] ? 1. : Fnorm/V[ER]);
+    real f_param = Fnorm/V[ER];
 
     if (f_param < 1.e-50) {
         lambda[1] = ONE_F/std::sqrt(3.);

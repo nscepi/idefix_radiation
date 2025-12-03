@@ -26,8 +26,8 @@ KOKKOS_INLINE_FUNCTION void K_ConsToPrim(real Vc[], real Uc[], const EquationOfS
       }
       #endif
 
-      K_LimitRadFlux(Uc);
-
+      //K_LimitRadFlux(Uc);
+ 
       EXPAND( Vc[FR1] = Uc[FR1];  ,
               Vc[FR2] = Uc[FR2];  ,
               Vc[FR3] = Uc[FR3];  )
@@ -93,6 +93,8 @@ KOKKOS_INLINE_FUNCTION void K_PrimToCons(real Uc[], real Vc[], const EquationOfS
   Uc[RHO] = Vc[RHO];
 
   if constexpr(Phys::radiation) {
+      //K_LimitRadFlux(Vc);
+
       EXPAND( Uc[MX1] = Vc[VX1];  ,
               Uc[MX2] = Vc[VX2];  ,
               Uc[MX3] = Vc[VX3];  )
