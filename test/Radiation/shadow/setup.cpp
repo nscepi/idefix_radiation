@@ -13,8 +13,8 @@ real y02Glob;
 void UserdefBoundaryRad(Fluid<RadiationPhysics> *radiation, int dir, BoundarySide side, real t) {
   IdefixArray4D<real> Vc = radiation->Vc;
   auto *data = radiation->data;
+  auto units=idfx::units;
 
-  real C_ar = idfx::units.ar;
   real Tinj = TinjGlob;
 
   IdefixArray1D<real> x1 = data->x[IDIR];
@@ -29,7 +29,7 @@ void UserdefBoundaryRad(Fluid<RadiationPhysics> *radiation, int dir, BoundarySid
         0, data->np_tot[JDIR],
         ibeg, iend,
         KOKKOS_LAMBDA (int k, int j, int i) {
-          Vc(ER,k,j,i) = C_ar*std::pow(Tinj,4)/idfx::units.GetEnergy();
+          Vc(ER,k,j,i) = units.ar*std::pow(Tinj,4)/units.GetEnergy();
           Vc(FR1,k,j,i) = Vc(ER,k,j,i);
           Vc(FR2,k,j,i) = ZERO_F;
         });
@@ -125,13 +125,12 @@ void ComputeUserVars(DataBlock & data, UserDefVariablesContainer &variables) {
 Setup::Setup(Input &input, Grid &grid, DataBlock &data, Output &output)
 {
   muGlob = input.Get<real>("Hydro","mu",0);
-  rho0Glob = input.Get<real>("Rad","kappa",2);
-  T0Glob = input.Get<real>("Rad","kappa",3);
+  rho0Glob = input.Get<real>("Rad","kappa",3);
+  T0Glob = input.Get<real>("Rad","kappa",4);
   rho1Glob = input.Get<real>("Setup","rho1",0);
   TinjGlob = input.Get<real>("Setup","Tinj",0);
   x02Glob = input.Get<real>("Setup","x02",0);
   y02Glob = input.Get<real>("Setup","y02",0);
-
   //output.EnrollUserDefVariables(&ComputeUserVars);
   // Set the function for userdefboundary
   if(data.haveRadiation) {
