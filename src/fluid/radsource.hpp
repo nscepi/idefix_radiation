@@ -47,7 +47,7 @@ class RadSource {
   IdefixArray3D<real> xiArr;
   IdefixArray3D<real> kappapArr;
   IdefixArray3D<real> kapparArr;
-  IdefixArray3D<real> kappairrArr
+  IdefixArray3D<real> kappairrArr;
 
   // Array containing kappa*rho for userfunc irradiation flux
   IdefixArray3D<real> kapparhoArr;
