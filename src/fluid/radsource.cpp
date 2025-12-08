@@ -258,6 +258,10 @@ void RadSource::SourceFullImplicit(const real dt) {
     irr_flag=true;
   }
 
+  IdefixArray3D<real> Qvisc = this->Qvisc;
+  Qviscous(Qvisc);
+
+
   // Local copy of opacity parameters
   const Type_opac kappa_type = this->kappa_type;
   const int kappa_ndim = this->kappa_ndim;
@@ -312,6 +316,9 @@ void RadSource::SourceFullImplicit(const real dt) {
       if (irr_flag){  
         Etot -= divF(k,j,i)*dt*units.GetTime()/units.GetEnergy();
       }
+
+      // Add viscous energy
+      Etot += Qvisc(k,j,i)*dt;
       
       // Compute total modified momentum
       EXPAND(real m1tot = UGas[MX1]+URad[FR1]/reduced_c;,
@@ -396,6 +403,9 @@ void RadSource::SourceFullImplicit(const real dt) {
         S1 -= divF(k,j,i)*dt*units.GetTime();
       }
  
+      // Add viscous heating to RHS
+      S1 += Qvisc(k,j,i)*dt*units.GetEnergy();
+
       // Invert system
       real det = M00*M11 - M01*M10;
 
@@ -1030,5 +1040,44 @@ void RadSource::IrrFlux(IdefixArray3D<real> divFin) {
 
 
   idfx::popRegion();
+
+}
+
+
+  void RadSource::Qviscous(IdefixArray3D<real> Qviscin) {
+  idfx::pushRegion("RadSource::Qvisc");
+  
+  auto VcGas = this->VcGas;
+  IdefixArray3D<real>  dV = this->data->dV;
+  IdefixArray3D<real>  A1 = this->data->A[IDIR];
+  IdefixArray1D<real>  x1l = this->data->xl[IDIR];
+  IdefixArray1D<real>  x1 = this->data->x[IDIR];
+  auto units=idfx::units;
+
+  IdefixArray3D<real> eta1 = this->data->hydro->viscosity->eta1Arr;
+  IdefixArray3D<real> eta2 = this->data->hydro->viscosity->eta2Arr;
+  this->data->hydro->viscosity->viscousDiffusivityFunc(*(this->data), this->data->t, eta1, eta2);
+
+  idefix_for("RadSourceQvisc",
+  data->beg[KDIR], data->end[KDIR],
+  data->beg[JDIR], data->end[JDIR],
+  data->beg[IDIR], data->end[IDIR],
+  KOKKOS_LAMBDA (int k, int j, int i) {
+
+              real Omegam,Omegap,rdOmegadr,mu;
+
+              Omegam = VcGas(VX3,k,j,i)/x1(i);
+              Omegap = VcGas(VX3,k,j,i+1)/x1(i+1);
+              rdOmegadr = x1(i)*(Omegap-Omegam)/(x1(i+1)-x1(i));
+              mu = eta1(k,j,i);
+
+              Qvisc(k,j,i) = mu*rdOmegadr*rdOmegadr;
+              //std::printf("Qvisc=%e\n",Qvisc(k,j,i));
+
+    });
+
+
+  idfx::popRegion();
+
 
 } 
