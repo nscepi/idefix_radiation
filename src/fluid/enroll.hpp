@@ -131,6 +131,15 @@ void Fluid<Phys>::EnrollXi(XiFunc myFunc) {
 }
 
 template<typename Phys>
+void Fluid<Phys>::EnrollKappairr(KappairrFunc myFunc) {
+  if(!haveUserfuncKappairr) {
+    IDEFIX_WARNING("Absorption opacities for irradiation function enrollment requires irr"
+                 "to be set to userfunc in .ini file");
+  }
+  this->kappairrFunc = myFunc;
+}
+
+template<typename Phys>
 void Fluid<Phys>::ResetStage() {
   // Reset variables required at the beginning of each stage
   // (essentially linked to timestep evaluation)
