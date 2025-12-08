@@ -312,13 +312,17 @@ Fluid<Phys>::Fluid(Grid &grid, Input &input, DataBlock *datain, int n) {
       this->kapparArr = IdefixArray3D<real>("kapparArray",data->np_tot[KDIR],
                                           data->np_tot[JDIR],
                                           data->np_tot[IDIR]);   
+    }      
+
+    if (input.CheckEntry("Rad", "irr")>=0) {
+      if(input.Get<std::string>(std::string(Phys::prefix),"irr",0).compare("userfunc") == 0 ) {
+        this->haveUserfuncKappairr = true;
+        this->kappairrArr = IdefixArray3D<real>("kappairrArray",data->np_tot[KDIR],
+                                            data->np_tot[JDIR],
+                                            data->np_tot[IDIR]);
+      }
     }
-    if(input.Get<std::string>(std::string(Phys::prefix),"irr",0).compare("userfunc") == 0) {
-      this->haveUserfuncKappairr = true;
-      this->kappairrArr = IdefixArray3D<real>("kappairrArray",data->np_tot[KDIR],
-                                          data->np_tot[JDIR],
-                                          data->np_tot[IDIR]);
-    }
+
     if(input.Get<std::string>(std::string(Phys::prefix),"xi",0).compare("userfunc") == 0) {
       this->haveUserfuncXi = true;
       this->xiArr = IdefixArray3D<real>("xiArray",data->np_tot[KDIR],
