@@ -139,7 +139,6 @@ void Fluid<Phys>::EnrollKappairr(KappairrFunc myFunc) {
   this->kappairrFunc = myFunc;
 }
 
-
 template<typename Phys>
 void Fluid<Phys>::ResetStage() {
   // Reset variables required at the beginning of each stage

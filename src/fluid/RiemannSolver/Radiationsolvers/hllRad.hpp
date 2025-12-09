@@ -54,7 +54,14 @@ void RiemannSolver<Phys>::HllRad(IdefixArray4D<real> &Flux) {
       // Primitive variables
       real vL[Phys::nvar];
       real vR[Phys::nvar];
+      real v[Phys::nvar];
+      real voffset[Phys::nvar];
 
+      for(int nv = 0 ; nv < Phys::nvar; nv++) {
+        v[nv] = Vc(nv,k,j,i);
+        voffset[nv] = Vc(nv,k-koffset,j-joffset,i-ioffset);
+      }
+            
       // Conservative variables
       real uL[Phys::nvar];
       real uR[Phys::nvar];
@@ -71,8 +78,9 @@ void RiemannSolver<Phys>::HllRad(IdefixArray4D<real> &Flux) {
       extrapol.ExtrapolatePrimVar(i, j, k, vL, vR);
       
       // Limit the fluxes after extrapolation to satisfy Fr<=Er
-      K_LimitRadFlux(vL);
-      K_LimitRadFlux(vR);
+      K_LimitRadFluxReconstruct(vL,vR,v,voffset);
+      //K_LimitRadFlux(vL);
+      //K_LimitRadFlux(vR);
 
       // 2-- Get the wave speed
       K_SpeedsRad(lambdaL,vL,Xn,reduced_c);
