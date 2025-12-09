@@ -317,6 +317,9 @@ RadSource::RadSource(Input &input, Fluid<Phys> *hydroin):
   // Information on relativist correction
   haveRelativistCorrection = input.GetOrSet<bool>(BlockName,"relativist_correction",0,false);
 
+  // Add array containing viscous heating in viscous_rad branch
+  this->Qvisc = IdefixArray3D<real>(prefix+"_Qvisc",data->np_tot[KDIR], data->np_tot[JDIR], data->np_tot[IDIR]);
+
   // Information on irradiation source term
   if(input.CheckEntry(BlockName,"irr")>=0) {
     haveIrradiation = true;
@@ -325,7 +328,6 @@ RadSource::RadSource(Input &input, Fluid<Phys> *hydroin):
     
     this->column_rho = new Column(IDIR,1,data);
     this->divF = IdefixArray3D<real>(prefix+"_divF",data->np_tot[KDIR], data->np_tot[JDIR], data->np_tot[IDIR]);
-    this->Qvisc = IdefixArray3D<real>(prefix+"_Qvisc",data->np_tot[KDIR], data->np_tot[JDIR], data->np_tot[IDIR]);
 
                                     
     std::string irrType = input.Get<std::string>(BlockName,"irr",0);
