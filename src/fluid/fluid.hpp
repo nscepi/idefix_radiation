@@ -172,7 +172,6 @@ class Fluid {
   // Enroll user-defined functions for opacities
   void EnrollKappairr(KappairrFunc);
   void EnrollKappa(KappaFunc);
-  void EnrollKappairr(KappairrFunc);
   void EnrollXi(XiFunc);
 
   // Arrays required by the Hydro object
@@ -322,12 +321,6 @@ Fluid<Phys>::Fluid(Grid &grid, Input &input, DataBlock *datain, int n) {
                                             data->np_tot[JDIR],
                                             data->np_tot[IDIR]);
       }
-    }
-    if(input.Get<std::string>(std::string(Phys::prefix),"irr",0).compare("userfunc") == 0) {
-      this->haveUserfuncKappairr = true;
-      this->kappairrArr = IdefixArray3D<real>("kappairrArray",data->np_tot[KDIR],
-                                          data->np_tot[JDIR],
-                                          data->np_tot[IDIR]);
     }
     if(input.Get<std::string>(std::string(Phys::prefix),"xi",0).compare("userfunc") == 0) {
       this->haveUserfuncXi = true;
