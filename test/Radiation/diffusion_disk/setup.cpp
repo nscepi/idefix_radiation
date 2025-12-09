@@ -127,7 +127,7 @@ void FluxBoundary(Fluid<DefaultPhysics> *hydro, int dir, BoundarySide side, cons
 
     auto *data = hydro->data;
 
-    IdefixArray4D<real> Flux = data->hydro->FluxRiemann;
+    IdefixArray4D<real> FluxIDIR = data->hydro->FluxRiemann[IDIR];
     
     if( dir== IDIR ) {
       idefix_for("FluxInternal",
@@ -135,9 +135,9 @@ void FluxBoundary(Fluid<DefaultPhysics> *hydro, int dir, BoundarySide side, cons
                   0, data->np_tot[JDIR],
                   0, data->np_tot[IDIR],
          KOKKOS_LAMBDA (int k, int j, int i) {
-           Flux(RHO, k, j, i) = 0.0; 
-           Flux(MX1, k, j, i) = 0.0; 
-           Flux(ENG, k, j, i) = 0.0; 
+           FluxIDIR(RHO, k, j, i) = 0.0; 
+           FluxIDIR(MX1, k, j, i) = 0.0; 
+           FluxIDIR(ENG, k, j, i) = 0.0; 
       });
     }
     idfx::popRegion();
@@ -147,7 +147,7 @@ void FluxBoundary(Fluid<DefaultPhysics> *hydro, int dir, BoundarySide side, cons
 void FluxBoundaryOld(DataBlock & data, int dir, BoundarySide side, const real t) {
     idfx::pushRegion("FluxInternal");
 
-    IdefixArray4D<real> Flux = data.hydro->FluxRiemann;
+    IdefixArray4D<real> FluxIDIR = data.hydro->FluxRiemann[IDIR];
     
     if( dir== IDIR ) {
       idefix_for("FluxInternal",
@@ -155,9 +155,9 @@ void FluxBoundaryOld(DataBlock & data, int dir, BoundarySide side, const real t)
                   0, data.np_tot[JDIR],
                   0, data.np_tot[IDIR],
          KOKKOS_LAMBDA (int k, int j, int i) {
-           Flux(RHO, k, j, i) = 0.0; 
-           Flux(MX1, k, j, i) = 0.0; 
-           Flux(ENG, k, j, i) = 0.0; 
+           FluxIDIR(RHO, k, j, i) = 0.0; 
+           FluxIDIR(MX1, k, j, i) = 0.0; 
+           FluxIDIR(ENG, k, j, i) = 0.0; 
       });
     }
     idfx::popRegion();
