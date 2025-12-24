@@ -978,6 +978,7 @@ void RadSource::IrrFlux(IdefixArray3D<real> divFin) {
   IdefixArray3D<real> tau("tau",this->data->np_tot[KDIR],this->data->np_tot[JDIR],this->data->np_tot[IDIR]);
   real kappa_irr = this->kappa_irr;
   real kappa_star = this->kappa_star;
+  real rs = this->rs;
 
   real flux_pre = std::pow(rs/units.GetLength(),2.)*units.sigma_sb*std::pow(Ts,4.)/units.GetLength();
   
