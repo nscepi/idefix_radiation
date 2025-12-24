@@ -126,6 +126,7 @@ class RadSource {
   real T_0;
   real rs;
   real Ts;
+  real kappa_star;
   real reduced_c;
   real gamma;
   real mu;
@@ -352,6 +353,7 @@ RadSource::RadSource(Input &input, Fluid<Phys> *hydroin):
       this->irr_type = Type_irr::userfunc;
       this->rs = input.Get<real>(BlockName,"irr",n+1);
       this->Ts = input.Get<real>(BlockName,"irr",n+2);
+      this->kappa_star = input.Get<real>(BlockName,"irr",n+3);
       this->kapparhoArr = IdefixArray3D<real>("kapparrhoArray",data->np_tot[KDIR],
                                                  data->np_tot[JDIR],
                                                  data->np_tot[IDIR]);

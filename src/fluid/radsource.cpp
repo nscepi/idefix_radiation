@@ -977,6 +977,7 @@ void RadSource::IrrFlux(IdefixArray3D<real> divFin) {
   IdefixArray3D<real> kappairrArr = this->kappairrArr;
   IdefixArray3D<real> tau("tau",this->data->np_tot[KDIR],this->data->np_tot[JDIR],this->data->np_tot[IDIR]);
   real kappa_irr = this->kappa_irr;
+  real kappa_star = this->kappa_star;
 
   real flux_pre = std::pow(rs/units.GetLength(),2.)*units.sigma_sb*std::pow(Ts,4.)/units.GetLength();
   
@@ -1021,8 +1022,8 @@ void RadSource::IrrFlux(IdefixArray3D<real> divFin) {
               
               // Userfunc kappa
               } else if (irr_type==Type_irr::userfunc){
-                Fim = std::exp(-tau(k,j,i-1))*A1(k,j,i)/std::pow(x1l(i),2.);
-                Fip = std::exp(-tau(k,j,i))*A1(k,j,i+1)/std::pow(x1l(i+1),2.);
+                Fim = std::exp(-tau(k,j,i-1)-VcGas(RHO,k,j,0)*kappa_star*(x1l(0)*units.GetLength()-rs))*A1(k,j,i)/std::pow(x1l(i),2.);
+                Fip = std::exp(-tau(k,j,i)-VcGas(RHO,k,j,0)*kappa_star*(x1l(0)*units.GetLength()-rs))*A1(k,j,i+1)/std::pow(x1l(i+1),2.);
               }
 
               divFlux(k,j,i) = flux_pre*(Fip-Fim)/dV(k,j,i);
