@@ -62,6 +62,8 @@ void RiemannSolver<Phys>::LFRRad(IdefixArray4D<real> &Flux) {
       real lambdaL[2];
       real lambdaR[2];
 
+      // xi from closure
+      real xiL, xiR;
 
       // 1-- Store the primitive variables on the left, right, and averaged states
       extrapol.ExtrapolatePrimVar(i, j, k, vL, vR);
@@ -71,8 +73,8 @@ void RiemannSolver<Phys>::LFRRad(IdefixArray4D<real> &Flux) {
       K_LimitRadFlux(vR);
 
       // 2-- Get the wave speed
-      K_SpeedsRad(lambdaL,vL,Xn, reduced_c);
-      K_SpeedsRad(lambdaR,vR,Xn, reduced_c);
+      K_SpeedsRad(lambdaL,vL,Xn, reduced_c,&xiL);
+      K_SpeedsRad(lambdaR,vR,Xn, reduced_c,&xiR);
 
       real lambda_max_L = FMAX(lambdaL[0],lambdaL[1]);
       real lambda_max_R = FMAX(lambdaR[0],lambdaR[1]);
@@ -89,8 +91,8 @@ void RiemannSolver<Phys>::LFRRad(IdefixArray4D<real> &Flux) {
       K_PrimToCons<Phys>(uR, vR, NULL);
 
       // 4-- Compute the left and right fluxes (wave speed is null)
-      K_Flux<Phys,DIR>(fluxL, vL, uL, reduced_c);
-      K_Flux<Phys,DIR>(fluxR, vR, uR, reduced_c);
+      K_Flux<Phys,DIR>(fluxL, vL, uL, reduced_c,xiL);
+      K_Flux<Phys,DIR>(fluxR, vR, uR, reduced_c,xiR);
 
       // 5-- Compute the flux from the left and right states
 #pragma unroll

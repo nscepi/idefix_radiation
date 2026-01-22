@@ -75,6 +75,9 @@ void RiemannSolver<Phys>::HllcRad(IdefixArray4D<real> &Flux) {
       real lambdaL[2];
       real lambdaR[2];
       
+      // xi from closure
+      real xiL, xiR;
+
       // 1-- Store the primitive variables on the left, right, and averaged states
       extrapol.ExtrapolatePrimVar(i, j, k, vL, vR);
 
@@ -84,8 +87,8 @@ void RiemannSolver<Phys>::HllcRad(IdefixArray4D<real> &Flux) {
       //K_LimitRadFlux(vR);
 
       // 2-- Get the wave speed
-      K_SpeedsRad(lambdaL,vL,Xn, reduced_c);
-      K_SpeedsRad(lambdaR,vR,Xn, reduced_c);
+      K_SpeedsRad(lambdaL,vL,Xn, reduced_c,&xiL);
+      K_SpeedsRad(lambdaR,vR,Xn, reduced_c,&xiR);
 
       real speed_diff = rad_source.LimitSpeedsRad(i,j,k,dx[index]);
  
@@ -108,8 +111,8 @@ void RiemannSolver<Phys>::HllcRad(IdefixArray4D<real> &Flux) {
       K_PrimToCons<Phys>(uR, vR, NULL);
 
       // 4-- Compute the left and right fluxes (wave speed is null)
-      K_Flux<Phys,DIR>(fluxL, vL, uL, reduced_c);
-      K_Flux<Phys,DIR>(fluxR, vR, uR, reduced_c);
+      K_Flux<Phys,DIR>(fluxL, vL, uL, reduced_c,xiL);
+      K_Flux<Phys,DIR>(fluxR, vR, uR, reduced_c,xiR);
       
       //printf("vR[FR1]=%e, vL[FR1]=%e, SL=%e,SR=%e at i=%i, j=%i, k=%i and DIR=%i\n",vR[Xn],vL[Xn],SL,SR,i,j,k,DIR);
 
