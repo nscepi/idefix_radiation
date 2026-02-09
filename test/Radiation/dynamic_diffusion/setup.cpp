@@ -10,6 +10,20 @@ real wGlob;
 real E0Glob;
 real v0Glob;
 
+
+
+
+void MyIrradiation(DataBlock &data, IdefixArray3D<real> &irr) {
+  real T0 = T0Glob;
+  real E0 = idfx::units.ar*std::pow(T0,4);
+
+  idefix_for("MyIrradiation",0,data.np_tot[KDIR],0,data.np_tot[JDIR],0,data.np_tot[IDIR],
+              KOKKOS_LAMBDA (int k, int j, int i) {
+                irr(k,j,i) = -3.e5*E0;
+              });
+}
+
+
 // Default constructor
 // Initialisation routine. Can be used to allocate
 // Arrays or variables which are used later on
@@ -22,6 +36,8 @@ Setup::Setup(Input &input, Grid &grid, DataBlock &data, Output &output)
   E0Glob = input.Get<real>("Setup","E0",0);
   v0Glob = input.Get<real>("Setup","v0",0);
   muGlob = input.Get<real>("Hydro","mu",0);
+
+  data.radiation[0]->EnrollIrradiation(&MyIrradiation);
 }
 
 // This routine initialize the flow
