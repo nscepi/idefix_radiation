@@ -374,23 +374,31 @@ void RadSource::SourceFullImplicit(const real dt) {
         xi = xiArr(k,j,i);
       }
 
-
       real kk_red = reduced_c * units.GetVelocity() * dt * units.GetTime() * kappa_p * VGas[RHO]*units.GetDensity();
       real kk = units.c * dt * units.GetTime() * kappa_p * VGas[RHO]*units.GetDensity();
       real xx_red = reduced_c * units.GetVelocity() * dt * units.GetTime() * (xi + kappa_r) * VGas[RHO]*units.GetDensity();
 
       // Define matrix to invert
       real gamma = eos.GetGamma(VGas[PRS],VGas[RHO]);
+      
+      // Compute beta parameter vector
+      EXPAND(real beta1 = VGas[VX1]*units.GetVelocity()/units.c;,
+             real beta2 = VGas[VX2]*units.GetVelocity()/units.c;,
+             real beta3 = VGas[VX3]*units.GetVelocity()/units.c;)   
 
       real M00 = ONE_F + kk_red;
       real M11 = VGas[RHO]*units.GetDensity()*cv/(gamma-1.) + 4.*kk*units.ar*T3;
       real M01 = -4.*kk_red*units.ar*T3;
       real M10 = -kk;
+      real M22 = ONE_F + xx_red;
+      EXPAND ( real M20 = -1.3333333333333333*beta1*xx_red;, 
+               real M30 = -1.3333333333333333*beta2*xx_red;,
+               real M40 = -1.3333333333333333*beta3*xx_red; )
 
       // Define right-hand side of system
       real S0 = Er_hyp*units.GetEnergy() - 3.*kk_red*units.ar*T3*T;
       real S1 = VGas[RHO]*units.GetDensity()*cv*T/(gamma-1.) + 3.*kk*units.ar*T3*T;
-
+      
       // Add irradiation heating to RHS if needed
       if (irr_flag){
         S1 -= divF(k,j,i)*dt*units.GetTime();
@@ -403,15 +411,26 @@ void RadSource::SourceFullImplicit(const real dt) {
       //real Minv11 = M00/det;
       real Minv01 = -M01/det;
       //real Minv10 = -M10/det;
+      real Minv22 = 1./M22;
+      EXPAND ( real Minv20 = -M20*Minv22*Minv00;
+               real Minv21 = -M20*Minv22*Minv01;,
+               real Minv30 = -M30*Minv22*Minv00;
+               real Minv31 = -M30*Minv22*Minv01;,
+               real Minv40 = -M40*Minv22*Minv00;
+               real Minv41 = -M40*Minv22*Minv01;)
+
 
       real Er_new = Minv00*S0 + Minv01*S1;
       //real T_new = Minv10*S0 + Minv11*S1;
+      EXPAND( real Fr1_new = Minv20*S0 + Minv21*S1 + Minv22*Fr1_hyp*units.GetEnergy();,
+              real Fr2_new = Minv30*S0 + Minv31*S1 + Minv22*Fr2_hyp*units.GetEnergy();,
+              real Fr3_new = Minv40*S0 + Minv41*S1 + Minv22*Fr3_hyp*units.GetEnergy();)
 
       // Update conservative variables
       URad[ER] = Er_new/units.GetEnergy();
-      EXPAND( URad[FR1] = Fr1_hyp/(1.+xx_red);,
-              URad[FR2] = Fr2_hyp/(1.+xx_red);,
-              URad[FR3] = Fr3_hyp/(1.+xx_red);)
+      EXPAND( URad[FR1] = Fr1_new/units.GetEnergy();,
+              URad[FR2] = Fr2_new/units.GetEnergy();,
+              URad[FR3] = Fr3_new/units.GetEnergy();)
       //if (i==2 && j==495) std::printf("Etot -ERad*c/redc=%e URad[ER]=%e Er_hyp=%e UGas[ENG]=%e Etot=%e T=%e arT4=%e rho=%e kappap=%e kappar=%e at i=%i j=%i and k=%i\n",(Etot - URad[ER]*units.c/(reduced_c*units.GetVelocity())),URad[ER],Er_hyp,UGas[ENG],Etot,T,units.ar*T3*T/units.GetEnergy(),VGas[RHO]*units.GetDensity(),kappa_p,kappa_r,i,j,k);
 
       if ((Etot - URad[ER]*units.c/(reduced_c*units.GetVelocity()))<=ZERO_F) {
