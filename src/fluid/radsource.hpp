@@ -19,7 +19,7 @@
 class RadSource {
  public:
   enum class Type_opac{constant,kramers,usertable,userfunc};                 // Type of opacity definition
-  enum class Type_irr{constant,usertable,userfunc};                                   // Type of irradiation flux definition
+  enum class Type_irr{constant,usertable,userfunc,usergeometry};                                   // Type of irradiation flux definition
   enum class Type_isolver{full_implicit,fixed_point_rad,fixed_point_gas};    // Type of implicit solver for radiation source terms
 
   // RadSource constructor
@@ -48,6 +48,9 @@ class RadSource {
   IdefixArray3D<real> kappapArr;
   IdefixArray3D<real> kapparArr;
   IdefixArray3D<real> kappairrArr;
+
+  // Arrays containing the irradiation field (copied from Fluid class)
+  IdefixArray3D<real> irrArr;
 
   // Array containing kappa*rho for userfunc irradiation flux
   IdefixArray3D<real> kapparhoArr;
@@ -358,11 +361,14 @@ RadSource::RadSource(Input &input, Fluid<Phys> *hydroin):
                                                  data->np_tot[JDIR],
                                                  data->np_tot[IDIR]);
       this->kappairrArr = hydroin->kappairrArr;
+    } else if(irrType.compare("usergeometry") == 0) {
+      this->irr_type = Type_irr::usergeometry;
+      this->irrArr = hydroin->irrArr;
     } else {
       std::stringstream msg;
       msg << "Unknown irr type \"" <<  irrType
           << "\" in your input file." << std::endl
-          << "Allowed values are: constant, usertable, userfunc." << std::endl;
+          << "Allowed values are: constant, usertable, userfunc, usergeometry." << std::endl;
 
       IDEFIX_ERROR(msg);
     }

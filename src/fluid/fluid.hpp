@@ -128,7 +128,8 @@ class Fluid {
   bool haveUserfuncKappa{false};
   bool haveUserfuncKappairr{false};
   bool haveUserfuncXi{false};
-
+  bool haveUserfuncIrrGeometry{false};
+  
   // Whether or not we have to treat the axis
   bool haveAxis{false};
 
@@ -173,6 +174,9 @@ class Fluid {
   void EnrollKappa(KappaFunc);
   void EnrollKappairr(KappairrFunc);
   void EnrollXi(XiFunc);
+
+  //Enroll user-defined function for irradiation
+  void EnrollIrradiation(IrrFunc);
 
   // Arrays required by the Hydro object
   IdefixArray4D<real> Vc;      // Main cell-centered primitive variables index
@@ -257,6 +261,7 @@ class Fluid {
   XiFunc xiFunc;
   KappaFunc kappaFunc;
   KappairrFunc kappairrFunc;
+  IrrFunc irrFunc;
 
   // Radiation reduced speed of light
   real reduced_c;
@@ -266,6 +271,7 @@ class Fluid {
   IdefixArray3D<real> kappapArr;
   IdefixArray3D<real> kapparArr;
   IdefixArray3D<real> kappairrArr;
+  IdefixArray3D<real> irrArr;
 
   // Loop on dimensions
   template <int dir>
@@ -328,6 +334,15 @@ Fluid<Phys>::Fluid(Grid &grid, Input &input, DataBlock *datain, int n) {
       this->xiArr = IdefixArray3D<real>("xiArray",data->np_tot[KDIR],
                                           data->np_tot[JDIR],
                                           data->np_tot[IDIR]);  
+    }
+
+    if (input.CheckEntry("Rad", "irr")>=0) {
+      if(input.Get<std::string>(std::string(Phys::prefix),"irr",0).compare("usergeometry") == 0 ) {
+        this->haveUserfuncIrrGeometry = true;
+        this->irrArr = IdefixArray3D<real>("irrArray",data->np_tot[KDIR],
+                                            data->np_tot[JDIR],
+                                            data->np_tot[IDIR]);
+      }
     }
   }
 

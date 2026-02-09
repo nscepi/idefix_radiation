@@ -252,9 +252,15 @@ void RadSource::SourceFullImplicit(const real dt) {
 
   // Irradiation source
   bool irr_flag=false;
+  const Type_irr irr_type = this->irr_type;
+
   IdefixArray3D<real> divF = this->divF;
   if (haveIrradiation){
-    IrrFlux(divF);
+    if (irr_type==Type_irr::usergeometry){
+      divF = this->irrArr;
+    } else {
+      IrrFlux(divF);
+    }
     irr_flag=true;
   }
 
@@ -937,6 +943,28 @@ void RadSource::ShowConfig() {
                      << std::endl;
       if(!data->radiation[0]->xiFunc) {
         IDEFIX_ERROR("No opacity function has been enrolled for xi");
+      }
+      break;
+  }
+  idfx::cout << "RadSource: irr is ";
+  switch(irr_type) {
+    case Type_irr::constant:
+      idfx::cout << "constant." << std::endl;
+      break;
+    case Type_irr::usertable:
+      idfx::cout << "from a user-defined table" << std::endl;
+      break;
+    case Type_irr::userfunc:
+      idfx::cout << "from a user-defined function for the opacity." << std::endl;
+      if(!data->radiation[0]->kappairrFunc) {
+        IDEFIX_ERROR("No irradiation function has been enrolled for the irradiation opacity");
+      }
+      break;
+    case Type_irr::usergeometry:
+      idfx::cout << "from a user-defined geometry function."
+                     << std::endl;
+      if(!data->radiation[0]->irrFunc) {
+        IDEFIX_ERROR("No irradiation function has been enrolled for the irradiation function");
       }
       break;
   }

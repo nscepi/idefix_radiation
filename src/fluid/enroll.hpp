@@ -140,6 +140,15 @@ void Fluid<Phys>::EnrollKappairr(KappairrFunc myFunc) {
 }
 
 template<typename Phys>
+void Fluid<Phys>::EnrollIrradiation(IrrFunc myFunc) {
+  if(!haveUserfuncIrrGeometry) {
+    IDEFIX_WARNING("Irradiation function enrollment requires irr"
+                 "to be set to usergeometry in .ini file");
+  }
+  this->irrFunc = myFunc;
+}
+
+template<typename Phys>
 void Fluid<Phys>::ResetStage() {
   // Reset variables required at the beginning of each stage
   // (essentially linked to timestep evaluation)

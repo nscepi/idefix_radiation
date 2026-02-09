@@ -65,6 +65,9 @@ void Fluid<Phys>::EvolveStage(const real t, const real dt) {
     if (haveUserfuncKappairr){
       kappairrFunc(*data,kappairrArr);
     }
+    if (haveUserfuncIrrGeometry){
+      irrFunc(*data,irrArr);
+    }
   }
 
   // Loop on all of the directions
