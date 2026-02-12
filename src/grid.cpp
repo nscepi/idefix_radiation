@@ -87,8 +87,6 @@ Grid::Grid(Input &input) {
 
     if(boundary.compare("outflow") == 0) {
       lbound[dir] = outflow;
-    } else if(boundary.compare("outflow_pluto") == 0) {
-      lbound[dir] = outflow_pluto;
     } else if(boundary.compare("periodic") == 0) {
       lbound[dir] = periodic;
     } else if(boundary.compare("reflective") == 0) {
@@ -121,8 +119,6 @@ Grid::Grid(Input &input) {
     boundary = input.Get<std::string>("Boundary",label,0);
     if(boundary.compare("outflow") == 0) {
       rbound[dir] = outflow;
-    } else if (boundary.compare("outflow_pluto") == 0) {
-      rbound[dir] = outflow_pluto;
     } else if(boundary.compare("periodic") == 0) {
       rbound[dir] = periodic;
     } else if(boundary.compare("reflective") == 0) {
@@ -351,9 +347,6 @@ void Grid::ShowConfig() {
         case outflow:
           lboundString="outflow";
           break;
-        case outflow_pluto:
-          lboundString="outflow_pluto";
-          break;
         case reflective:
           lboundString="reflective";
           break;
@@ -384,9 +377,6 @@ void Grid::ShowConfig() {
       switch(rbound[dir]) {
         case outflow:
           rboundString="outflow";
-          break;
-        case outflow_pluto:
-          rboundString="outflow_pluto";
           break;
         case reflective:
           rboundString="reflective";

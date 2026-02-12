@@ -3,6 +3,53 @@
 
 real rho0Glob,vx1Glob,T0Glob,muGlob;
 
+void UserdefBoundary(Fluid<DefaultPhysics> *hydro, int dir, BoundarySide side, real t) {
+  IdefixArray4D<real> Vc = hydro->Vc;
+  auto *data = hydro->data;
+
+  if(dir==IDIR) {
+    int ighost,nxi,iend,ibeg;
+    if (side == right) {
+      ighost = data->nghost[IDIR];
+      nxi = data->np_int[IDIR];
+      ibeg = data->end[IDIR];
+      iend = data->np_tot[IDIR];
+      idefix_for("UserDefBoundary",
+        0, data->np_tot[KDIR],
+        0, data->np_tot[JDIR],
+        ibeg, iend,
+        KOKKOS_LAMBDA (int k, int j, int i) {
+          Vc(RHO,k,j,i) = Vc(RHO,k,j,ighost+nxi-1);
+          Vc(PRS,k,j,i) = Vc(PRS,k,j,ighost+nxi-1);
+          Vc(VX1,k,j,i) = Vc(VX1,k,j,ighost+nxi-1);
+        });
+    }
+  }
+}
+
+void UserdefBoundaryRad(Fluid<RadiationPhysics> *radiation, int dir, BoundarySide side, real t) {
+  IdefixArray4D<real> Vc = radiation->Vc;
+  auto *data = radiation->data;
+
+  if(dir==IDIR) {
+    int ighost,nxi,iend,ibeg;
+    if (side==right){
+      ighost = data->nghost[IDIR];
+      nxi = data->np_int[IDIR];
+      ibeg = data->end[IDIR];
+      iend =data->np_tot[IDIR];
+      idefix_for("UserDefBoundaryRad",
+        0, data->np_tot[KDIR],
+        0, data->np_tot[JDIR],
+        ibeg, iend,
+        KOKKOS_LAMBDA (int k, int j, int i) {
+          Vc(ER,k,j,i) = Vc(ER,k,j,ighost+nxi-1);
+          Vc(FR1,k,j,i) = Vc(FR1,k,j,ighost+nxi-1);
+        });
+    }
+  }
+}
+
 // Default constructor
 // Initialisation routine. Can be used to allocate
 // Arrays or variables which are used later on
@@ -13,7 +60,14 @@ Setup::Setup(Input &input, Grid &grid, DataBlock &data, Output &output)
   T0Glob = input.Get<real>("Setup","T0",0);
   muGlob = input.Get<real>("Hydro","mu",0);
 
-
+  // Set the function for userdefboundary
+  data.hydro->EnrollUserDefBoundary(&UserdefBoundary);
+  if(data.haveRadiation) {
+    int nFrequencies = data.radiation.size();
+    for(int n = 0 ; n < nFrequencies ; n++) {
+      data.radiation[n]->EnrollUserDefBoundary(&UserdefBoundaryRad);
+    }
+  }
 }
 
 // This routine initialize the flow
