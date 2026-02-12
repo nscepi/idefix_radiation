@@ -178,7 +178,7 @@ void RadSource::RelativistCorrection(const real dt) {
       G0 *= VGas[RHO]*units.GetDensity();
 
       // Add relativistic correction to flux source term
-      real corr_flux = (VRad[ER]-units.ar*std::pow(T,4)/units.GetEnergy()-2.*betaFr)
+      real corr_flux = (VRad[ER]-units.ar*std::pow(T,4)/units.GetEnergy()-2.*betaFr);
       EXPAND ( real G1 = kappa_p*beta1*corr_flux; ,
                real G2 = kappa_p*beta2*corr_flux; ,
                real G3 = kappa_p*beta3*corr_flux; )
@@ -1065,7 +1065,7 @@ void RadSource::IrrFlux(IdefixArray3D<real> divFin) {
     data->beg[JDIR], data->end[JDIR],
     data->beg[IDIR], data->end[IDIR],
     KOKKOS_LAMBDA (int k, int j, int i) {
-                kapparho(k,j,i) = kappairrArr(k,j,i))*VcGas(RHO,k,j,i);
+                kapparho(k,j,i) = kappairrArr(k,j,i)*VcGas(RHO,k,j,i);
                 kapparho(k,j,i) *= units.GetDensity()*units.GetLength();
     });
     column_rho->ComputeColumn(kapparho);
