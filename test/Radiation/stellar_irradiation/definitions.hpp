@@ -4,4 +4,4 @@
 #define     GEOMETRY        SPHERICAL
 
 #define     SMALL_ER         1.e-16
-#define	    SMALL_PRESSURE_TEMPERATURE    1.e-12
+#define     SMALL_PRESSURE_TEMPERATURE    1.e-12

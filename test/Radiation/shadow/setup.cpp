@@ -73,8 +73,8 @@ void Setup::InitFlow(DataBlock &data) {
 
     real C_ar = idfx::units.ar;
     real mu = muGlob;
-    real rho0 = rho0Glob; 
-    real rho1 = rho1Glob; 
+    real rho0 = rho0Glob;
+    real rho1 = rho1Glob;
     real T0 = T0Glob;
     real x02 = x02Glob/(idfx::units.GetLength()*idfx::units.GetLength());
     real y02 = y02Glob/(idfx::units.GetLength()*idfx::units.GetLength());
@@ -113,7 +113,7 @@ void ComputeUserVars(DataBlock & data, UserDefVariablesContainer &variables) {
   for(int k = 0; k < d.np_tot[KDIR] ; k++) {
     for(int j = 0; j < d.np_tot[JDIR] ; j++) {
       for(int i = 0; i < d.np_tot[IDIR] ; i++) {
-        
+
       }
     }
   }
@@ -143,7 +143,3 @@ Setup::Setup(Input &input, Grid &grid, DataBlock &data, Output &output)
 
   }
 }
-
-
-
-

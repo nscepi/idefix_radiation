@@ -33,7 +33,7 @@ void MySourceTerm(Hydro *hydro, const real t, const real dtin) {
     0, data->np_tot[JDIR],
     0, data->np_tot[IDIR],
               KOKKOS_LAMBDA (int k, int j, int i) {
-              
+
                 real SE = 2.25*alpha*Omega_K*csiso*csiso*Vc(RHO,k,j,i)*units.GetDensity()/(units.GetEnergy()/units.GetTime());
 
                 Uc(ENG,k,j,i) += dt*SE;
@@ -128,16 +128,16 @@ void FluxBoundary(Fluid<DefaultPhysics> *hydro, int dir, BoundarySide side, cons
     auto *data = hydro->data;
 
     IdefixArray4D<real> FluxIDIR = data->hydro->FluxRiemann[IDIR];
-    
+
     if( dir== IDIR ) {
       idefix_for("FluxInternal",
                   0, data->np_tot[KDIR],
                   0, data->np_tot[JDIR],
                   0, data->np_tot[IDIR],
          KOKKOS_LAMBDA (int k, int j, int i) {
-           FluxIDIR(RHO, k, j, i) = 0.0; 
-           FluxIDIR(MX1, k, j, i) = 0.0; 
-           FluxIDIR(ENG, k, j, i) = 0.0; 
+           FluxIDIR(RHO, k, j, i) = 0.0;
+           FluxIDIR(MX1, k, j, i) = 0.0;
+           FluxIDIR(ENG, k, j, i) = 0.0;
       });
     }
     idfx::popRegion();
@@ -148,16 +148,16 @@ void FluxBoundaryOld(DataBlock & data, int dir, BoundarySide side, const real t)
     idfx::pushRegion("FluxInternal");
 
     IdefixArray4D<real> FluxIDIR = data.hydro->FluxRiemann[IDIR];
-    
+
     if( dir== IDIR ) {
       idefix_for("FluxInternal",
                   0, data.np_tot[KDIR],
                   0, data.np_tot[JDIR],
                   0, data.np_tot[IDIR],
          KOKKOS_LAMBDA (int k, int j, int i) {
-           FluxIDIR(RHO, k, j, i) = 0.0; 
-           FluxIDIR(MX1, k, j, i) = 0.0; 
-           FluxIDIR(ENG, k, j, i) = 0.0; 
+           FluxIDIR(RHO, k, j, i) = 0.0;
+           FluxIDIR(MX1, k, j, i) = 0.0;
+           FluxIDIR(ENG, k, j, i) = 0.0;
       });
     }
     idfx::popRegion();
@@ -168,7 +168,7 @@ void FluxBoundaryOld(DataBlock & data, int dir, BoundarySide side, const real t)
 // Initialisation routine. Can be used to allocate
 // Arrays or variables which are used later on
 Setup::Setup(Input &input, Grid &grid, DataBlock &data, Output &output)
-{ 
+{
   alphaGlob = input.Get<real>("Setup","alpha",0);
   epsilonGlob = input.Get<real>("Setup","epsilon",0);
   RGlob = input.Get<real>("Setup","R",0);
@@ -243,14 +243,8 @@ void ComputeUserVars(DataBlock & data, UserDefVariablesContainer &variables) {
   for(int k = 0; k < d.np_tot[KDIR] ; k++) {
     for(int j = 0; j < d.np_tot[JDIR] ; j++) {
       for(int i = 0; i < d.np_tot[IDIR] ; i++) {
-        
+
       }
     }
   }
 }
-
-
-
-
-
-

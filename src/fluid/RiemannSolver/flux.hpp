@@ -33,7 +33,7 @@ KOKKOS_INLINE_FUNCTION void K_Flux(real *KOKKOS_RESTRICT F, const real *KOKKOS_R
 
   // Mass flux (common to all physics)
   F[RHO] = U[Xn];
-  
+
   // Momentum flux
   if constexpr(Phys::mhd) {
     EXPAND( F[MX1] = U[MX1]*V[Xn] - V[BXn]*V[BX1]; ,
@@ -101,7 +101,7 @@ KOKKOS_INLINE_FUNCTION void K_Flux(real *KOKKOS_RESTRICT F, const real *KOKKOS_R
  * @param F[]   Array of flux variables (output)
  * @param V[]   Array of primitive variabless (input)
  * @param U[]   Array of conservative variables (input)
- * @param reduced_c reduced speed of light for radiation 
+ * @param reduced_c reduced speed of light for radiation
  * @param xi    Closure parameter for radiation pressure
  * @param Xn    Index of the normal velocity component
  *
@@ -114,7 +114,7 @@ KOKKOS_INLINE_FUNCTION void K_Flux(real *KOKKOS_RESTRICT F, const real *KOKKOS_R
 
   // Radiation energy flux
   F[ER] = U[Xn]*reduced_c;
-  
+
   // Add momentum-like part of the radiation pressure tensor
   real Fnorm2 = EXPAND(V[FR1]*V[FR1] , + V[FR2]*V[FR2], + V[FR3]*V[FR3]);
   real inv_Fnorm2 = (Fnorm2 <= 1.e-100 ? 1.e-100 : ONE_F / Fnorm2);
@@ -124,12 +124,11 @@ KOKKOS_INLINE_FUNCTION void K_Flux(real *KOKKOS_RESTRICT F, const real *KOKKOS_R
            F[FR3] = HALF_F*(3.*xi-1.)*V[ER]*V[FR3]*V[Xn]*inv_Fnorm2;  )
 
   // Add pressure-like part of the radiation pressure tensor
-  F[Xn] += HALF_F*(1.-xi)*V[ER], 
+  F[Xn] += HALF_F*(1.-xi)*V[ER],
 
-  EXPAND ( F[FR1] *= reduced_c; , 
-           F[FR2] *= reduced_c; ,     
+  EXPAND ( F[FR1] *= reduced_c; ,
+           F[FR2] *= reduced_c; ,
            F[FR3] *= reduced_c; )
-
 }
 
 #endif //FLUID_RIEMANNSOLVER_FLUX_HPP_

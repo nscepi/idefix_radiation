@@ -76,7 +76,7 @@ void Setup::InitFlow(DataBlock &data) {
               d.RadVc[0](ER,k,j,i) = ER0Glob;
               d.RadVc[0](FR1,k,j,i) = ZERO_F;
               d.RadVc[0](FR2,k,j,i) = ZERO_F;
-              
+
             }
         }
     }
@@ -100,11 +100,9 @@ void ComputeUserVars(DataBlock & data, UserDefVariablesContainer &variables) {
   for(int k = 0; k < d.np_tot[KDIR] ; k++) {
     for(int j = 0; j < d.np_tot[JDIR] ; j++) {
       for(int i = 0; i < d.np_tot[IDIR] ; i++) {
-        
+
 
       }
     }
   }
 }
-
-

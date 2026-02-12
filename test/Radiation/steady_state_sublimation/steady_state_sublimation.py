@@ -1,12 +1,10 @@
 from pydefix import *
-import pydefix as pdfx
 import numpy as np
-import matplotlib.pyplot as plt
 import os
 from dump_io import readDump
 
 def solve_hydrostatic(dr,dtheta,r,theta,vphi,T,Mdot):
-  
+
   C_kb = 1.380649e-16
   c_mu = 1.6605390666e-24
   C_G = 6.674299999999999e-8
@@ -56,10 +54,6 @@ def solve_hydrostatic(dr,dtheta,r,theta,vphi,T,Mdot):
   return rho, P, vphi
 
 def init(data):
-  nx1 = len(data.x[IDIR])
-  nx2 = len(data.x[JDIR])
-  nx3 = len(data.x[KDIR])
-
   dir_path = os.path.dirname(os.path.realpath(__file__))
 
   dump = readDump(dir_path+'/dump.ini.dmp')
@@ -69,13 +63,11 @@ def init(data):
   dx2 = np.diff(dump.x2l,append=dump.x2r[-1])
   dr_grid, dtheta_grid = np.meshgrid(dx1,dx2,indexing='ij')
 
-  C_G = 6.674299999999999e-8
   Msol = 1.988409870698051e+33
 
   unit_velocity = 1.496e10
   unit_length = 1.496e13
   unit_density = 4.e-28
-  unit_time = unit_length/unit_velocity
   unit_energy = unit_density*unit_velocity**2
   KELVIN = 2.69164e+12
   Msolyr_to_cgs = Msol/(3600.*24.*365.)
@@ -84,7 +76,7 @@ def init(data):
   Mdot = 1.e-8*Msolyr_to_cgs  ### in g
 
   T = (dump.data['Vc-PRS']/dump.data['Vc-RHO'])*KELVIN*mu
-  
+
   vphi = dump.data['Vc-VX3']*unit_velocity
 
   rho, P, vphi = solve_hydrostatic(dr_grid*unit_length,dtheta_grid,r_grid*unit_length,theta_grid,vphi,T,Mdot)
@@ -101,5 +93,3 @@ def init(data):
   data.Vc[VX1,:,data.nghost[1]:-data.nghost[1],data.nghost[0]:-data.nghost[0]] = 0.
   data.Vc[VX2,:,data.nghost[1]:-data.nghost[1],data.nghost[0]:-data.nghost[0]] = 0.
   data.Vc[VX3,:,data.nghost[1]:-data.nghost[1],data.nghost[0]:-data.nghost[0]] = vphi.T[:,gbeg1:gend1,gbeg0:gend0]/unit_velocity
-
-

@@ -402,7 +402,7 @@ void Grid::ShowConfig() {
           break;
         case axis:
           rboundString="axis";
-          break;        
+          break;
         case axis_rad:
           rboundString="axis_rad";
           break;

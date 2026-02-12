@@ -125,8 +125,8 @@ enum class LoopPattern { SIMDFOR, RANGE, MDRANGE, TPX, TPTTRTVR, UNDEFINED };
   #endif
 #endif
 
-//Shortcuts for radiation field 
-#define ER 0 
+//Shortcuts for radiation field
+#define ER 0
 #define FR1 1
 #define FR2 (COMPONENTS >= 2 ? 2: 255)
 #define FR3 (COMPONENTS >= 3 ? 3: 254)
@@ -232,7 +232,8 @@ using IdfxFileHandler = FILE*;
 #endif
 
 // Types of boundary which can be treated
-enum BoundaryType { internal, periodic, reflective, outflow, outflow_pluto, shearingbox, axis, axis_rad, userdef, undefined};
+enum BoundaryType { internal, periodic, reflective, outflow, outflow_pluto,
+                    shearingbox, axis, axis_rad, userdef, undefined};
 enum BoundarySide { left, right};
 enum class SliceType {Cut, Average};
 

@@ -315,7 +315,7 @@ void Boundary<Phys>::EnforceBoundaryDir(real t, int dir) {
       axis->EnforceAxisBoundary(left);
       break;
     case BoundaryType::axis_rad:
-      if constexpr(Phys::radiation){
+      if constexpr(Phys::radiation) {
         if(this->haveUserDefBoundary) {
         idfx::pushRegion("Boundary::UserDefBoundary");
         if(this->userDefBoundaryFunc != NULL) {
@@ -385,7 +385,7 @@ void Boundary<Phys>::EnforceBoundaryDir(real t, int dir) {
       axis->EnforceAxisBoundary(right);
       break;
     case BoundaryType::axis_rad:
-      if constexpr(Phys::radiation){
+      if constexpr(Phys::radiation) {
         if(this->haveUserDefBoundary) {
           idfx::pushRegion("Boundary::UserDefBoundary");
           if(this->userDefBoundaryFunc != NULL) {
@@ -400,7 +400,7 @@ void Boundary<Phys>::EnforceBoundaryDir(real t, int dir) {
           msg << "No function has been enrolled to define your own boundary conditions" << std::endl
               << "for the fluid " << fluid->prefix << "." << std::endl;
           IDEFIX_ERROR(msg);
-        }   
+        }
       } else {
         axis->EnforceAxisBoundary(right);
       }
@@ -807,7 +807,6 @@ void Boundary<Phys>::EnforceOutflow(int dir, BoundarySide side ) {
           } else {
             Vc(n,k,j,i) = Vc(n,kref,jref,iref);
           }
-
         });
 
   if constexpr(Phys::mhd) {

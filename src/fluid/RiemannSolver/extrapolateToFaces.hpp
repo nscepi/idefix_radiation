@@ -117,7 +117,7 @@ class ExtrapolateToFaces {
               dv = SL::PLMLim(dvp,dvm);
             }
           } else { // No shock flattening
-            dv = SL::PLMLim(dvp,dvm);        
+            dv = SL::PLMLim(dvp,dvm);
           }
 
           vR[nv] = Vc(nv,k,j,i) - HALF_F*dv;

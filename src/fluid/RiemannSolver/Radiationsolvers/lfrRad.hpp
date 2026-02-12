@@ -5,8 +5,8 @@
 // Licensed under CeCILL 2.1 License, see COPYING for more information
 // ***********************************************************************************
 
-#ifndef FLUID_RIEMANNSOLVER_RADSOLVERS_LFRRAD_HPP_
-#define FLUID_RIEMANNSOLVER_RADSOLVERS_LFRRAD_HPP_
+#ifndef FLUID_RIEMANNSOLVER_RADIATIONSOLVERS_LFRRAD_HPP_
+#define FLUID_RIEMANNSOLVER_RADIATIONSOLVERS_LFRRAD_HPP_
 
 #include "../idefix.hpp"
 #include "fluid.hpp"
@@ -80,14 +80,14 @@ void RiemannSolver<Phys>::LFRRad(IdefixArray4D<real> &Flux) {
       real lambda_max_R = FMAX(lambdaR[0],lambdaR[1]);
       real lambda_min_L = FMIN(lambdaL[0],lambdaL[1]);
       real lambda_min_R = FMIN(lambdaR[0],lambdaR[1]);
-      
+
       real SR = FMAX(lambda_max_L,lambda_max_R);
       real SL = FMIN(lambda_min_L,lambda_min_R);
-      
+
       real cmax  = FABS(FMAX(SL, SR));
 
       // 3-- Compute the conservative variables: do this by extrapolation
-      K_PrimToCons<Phys>(uL, vL, NULL); 
+      K_PrimToCons<Phys>(uL, vL, NULL);
       K_PrimToCons<Phys>(uR, vR, NULL);
 
       // 4-- Compute the left and right fluxes (wave speed is null)
@@ -108,4 +108,4 @@ void RiemannSolver<Phys>::LFRRad(IdefixArray4D<real> &Flux) {
   idfx::popRegion();
 }
 
-#endif // FLUID_RIEMANNSOLVER_RADSOLVERS_LFRRAD_HPP_
+#endif // FLUID_RIEMANNSOLVER_RADIATIONSOLVERS_LFRRAD_HPP_

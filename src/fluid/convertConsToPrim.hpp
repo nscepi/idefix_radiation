@@ -18,8 +18,8 @@ KOKKOS_INLINE_FUNCTION void K_ConsToPrim(real Vc[], real Uc[], const EquationOfS
   Vc[RHO] = Uc[RHO];
 
   if constexpr(Phys::radiation) {
-      //Check radiation energy posivity  
-      #ifdef SMALL_ER 
+      //Check radiation energy posivity
+      #ifdef SMALL_ER
       if(Uc[ER]<= ZERO_F) {
         Uc[ER] = SMALL_ER;
         Vc[ER] = Uc[ER];
@@ -27,7 +27,7 @@ KOKKOS_INLINE_FUNCTION void K_ConsToPrim(real Vc[], real Uc[], const EquationOfS
       #endif
 
       //K_LimitRadFlux(Uc);
- 
+
       EXPAND( Vc[FR1] = Uc[FR1];  ,
               Vc[FR2] = Uc[FR2];  ,
               Vc[FR3] = Uc[FR3];  )
@@ -71,8 +71,9 @@ KOKKOS_INLINE_FUNCTION void K_ConsToPrim(real Vc[], real Uc[], const EquationOfS
       Vc[PRS] = eos->GetPressure(Uc[ENG] - kin, Uc[RHO]);
       // Check pressure positivity
       if(Vc[PRS]<= ZERO_F) {
-        if (Uc[ENG]<=0.){
-          //printf("Uc[ENG]=%e kin=%e VX1=%e VX2=%e VX3=%e RHO=%e PRS=%e\n",Uc[ENG],kin,Vc[VX1],Vc[VX2],Vc[VX3],Vc[RHO],Vc[PRS]);
+        if (Uc[ENG]<=0.) {
+          //std::printf("Uc[ENG]=%e kin=%e VX1=%e VX2=%e VX3=%e RHO=%e PRS=%e\n",
+          //            Uc[ENG],kin,Vc[VX1],Vc[VX2],Vc[VX3],Vc[RHO],Vc[PRS]);
           //throw std::runtime_error(std::string("ENG=0 in ConsToPrim"));
           Kokkos::abort("ENG=0 in ConsToPrim");
         }
@@ -101,7 +102,7 @@ KOKKOS_INLINE_FUNCTION void K_PrimToCons(real Uc[], real Vc[], const EquationOfS
   } else {
       EXPAND( Uc[MX1] = Vc[VX1]*Vc[RHO];  ,
               Uc[MX2] = Vc[VX2]*Vc[RHO];  ,
-              Uc[MX3] = Vc[VX3]*Vc[RHO];  )  
+              Uc[MX3] = Vc[VX3]*Vc[RHO];  )
   }
 
   if constexpr(Phys::mhd) {

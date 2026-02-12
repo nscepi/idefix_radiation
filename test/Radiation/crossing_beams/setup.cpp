@@ -24,7 +24,7 @@ void Setup::InitFlow(DataBlock &data) {
               d.RadVc[0](ER,k,j,i) = 1.e4;
               d.RadVc[0](FR1,k,j,i) = ZERO_F;
               d.RadVc[0](FR2,k,j,i) = ZERO_F;
-              
+
             }
         }
     }
@@ -48,7 +48,7 @@ void ComputeUserVars(DataBlock & data, UserDefVariablesContainer &variables) {
   for(int k = 0; k < d.np_tot[KDIR] ; k++) {
     for(int j = 0; j < d.np_tot[JDIR] ; j++) {
       for(int i = 0; i < d.np_tot[IDIR] ; i++) {
-        
+
 
       }
     }
@@ -72,7 +72,7 @@ void InternalBoundaryRad(Fluid<RadiationPhysics> *radiation, const real t) {
     iend, data->np_tot[IDIR],
     KOKKOS_LAMBDA (int k, int j, int i) {
       //if ((j > 12) && (j < 14) && (i > 0) && (i < 4)) {
-      
+
       if ((t < 100.) && (x2(j) > 0.3) && (x2(j) < 0.44) && (x1(i) > 0.5) && (x1(i) < 0.6)) {
             Vc(ER,k,j,i) = 1.e12;
             Vc(FR1,k,j,i) = 1.e12*std::cos(M_PI/4.);
@@ -85,7 +85,7 @@ void InternalBoundaryRad(Fluid<RadiationPhysics> *radiation, const real t) {
       }
 
     });
-  
+
 }
 
 
@@ -104,5 +104,3 @@ Setup::Setup(Input &input, Grid &grid, DataBlock &data, Output &output)
 
   }
 }
-
-

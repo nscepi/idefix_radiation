@@ -18,14 +18,17 @@
 
 class RadSource {
  public:
-  enum class Type_opac{constant,kramers,usertable,userfunc};                 // Type of opacity definition
-  enum class Type_irr{constant,usertable,userfunc,usergeometry};                                   // Type of irradiation flux definition
-  enum class Type_isolver{full_implicit,fixed_point_rad,fixed_point_gas};    // Type of implicit solver for radiation source terms
+  // Type of opacity
+  enum class Type_opac{constant,kramers,usertable,userfunc};
+  // Type of irradiation flux
+  enum class Type_irr{constant,usertable,userfunc,usergeometry};
+  // Type of implicit solver for radiation source terms
+  enum class Type_isolver{full_implicit,fixed_point_rad,fixed_point_gas};
 
   // RadSource constructor
   template <typename Phys>
   RadSource(Input &, Fluid<Phys> *);
-  
+
   void ShowConfig();                    // print configuration
   void AddRadSource(const real);        // Effectively add the radiation source terms
 
@@ -33,7 +36,7 @@ class RadSource {
   void SourceFullImplicit(const real);
   void SourceFixedPointRad(const real);
   void SourceFixedPointGas(const real);
-  
+
   // Add Relativistic Corrections in an explicit way as in Melon & Fuksman & Klahr 2022
   void RelativistCorrection(const real);
 
@@ -42,7 +45,7 @@ class RadSource {
 
   // Compute viscous heating
   void Qviscous(IdefixArray3D<real>);
-  
+
   // Arrays containing the userfunc opacities (copied from Fluid class)
   IdefixArray3D<real> xiArr;
   IdefixArray3D<real> kappapArr;
@@ -60,7 +63,7 @@ class RadSource {
   IdefixArray4D<real> VcRad;  // Radiation primitive quantities
   IdefixArray4D<real> VcGas;  // Gas primitive quantities
   IdefixArray3D<real> InvDt;  // The InvDt of current radiation multigroup
-  
+
   // Data related to current instance of the Rad object
   std::string prefix;
   int instanceNumber;
@@ -71,12 +74,13 @@ class RadSource {
 
     real kappa,xi;
     real mu = eos.GetMu(VcGas(PRS,k,j,i),VcGas(RHO,k,j,i));
-    
+
     if (kappa_type == Type_opac::constant) {
       kappa = this->kappar_0;
     } else if (kappa_type == Type_opac::kramers) {
       real T = VcGas(PRS,k,j,i)/(VcGas(RHO,k,j,i))*this->unit_Kelvin*mu;
-      kappa = this->kappar_0*VcGas(RHO,k,j,i)*this->unit_density/this->rho_0*std::pow(T/this->T_0,-3.5);
+      kappa = this->kappar_0*VcGas(RHO,k,j,i)*this->unit_density/this->rho_0;
+      kappa *= std::pow(T/this->T_0,-3.5);
     } else if (kappa_type == Type_opac::usertable) {
       real T = VcGas(PRS,k,j,i)/(VcGas(RHO,k,j,i))*this->unit_Kelvin*mu;
       real logT = std::log10(T);
@@ -115,9 +119,9 @@ class RadSource {
     // Compute optical depth across one cell
     real tau = VcGas(RHO,k,j,i)*this->unit_density*(kappa+xi)*dx*this->unit_length;
 
-    // return characteristic velocity of radiative diffusion 
+    // return characteristic velocity of radiative diffusion
     return 4./(3.*tau)*this->reduced_c;
-  };
+  }
 
  private:
   DataBlock* data;
@@ -134,7 +138,7 @@ class RadSource {
   real gamma;
   real mu;
   int count_max;
-  
+
   // EOS
   EquationOfState eos;
 
@@ -156,9 +160,9 @@ class RadSource {
   // Have relativist correction or not
   bool haveRelativistCorrection{false};
 
-  // Dimension of irradiation flux table 
+  // Dimension of irradiation flux table
   int irr_ndim;
-  
+
   // Irradiation flux table
   LookupTable<1> irr_1D;
 
@@ -175,8 +179,6 @@ class RadSource {
   real unit_density = idfx::units.GetDensity();
   real unit_length = idfx::units.GetLength();
   real unit_Kelvin = idfx::units.GetKelvin();
-  
-
 };
 
 #include "fluid.hpp"
@@ -188,9 +190,9 @@ RadSource::RadSource(Input &input, Fluid<Phys> *hydroin):
                       VcRad{hydroin->Vc},
                       VcGas{hydroin->data->hydro->Vc},
                       InvDt{hydroin->InvDt},
-                      eos{*(hydroin->data->hydro->eos.get())}{
+                      eos{*(hydroin->data->hydro->eos.get())} {
   idfx::pushRegion("RadSource::RadSource");
-  
+
   // Create our own prefix
   prefix = std::string(Phys::prefix);
 
@@ -205,7 +207,7 @@ RadSource::RadSource(Input &input, Fluid<Phys> *hydroin):
     IDEFIX_ERROR("Fluid is not radiative");
   }
 
-  // Reduced velocity of light 
+  // Reduced velocity of light
   this->reduced_c =  hydroin->reduced_c;
 
   // Information on scattering opacity coefficient
@@ -221,13 +223,14 @@ RadSource::RadSource(Input &input, Fluid<Phys> *hydroin):
       this->xi_type = Type_opac::usertable;
       this->xi_ndim = input.Get<int>(BlockName,"xi",n+1);
       std::string xi_file = input.Get<std::string>(BlockName,"xi",n+2);
-      if (this->xi_ndim == 1){
+      if (this->xi_ndim == 1) {
         this->xi_1D = LookupTable<1>(xi_file,',');
       } else if (this->xi_ndim == 2) {
         this->xi_2D = LookupTable<2>(xi_file,',');
       } else {
         std::stringstream msg;
-        msg << "Only 1 or 2 dimension for scattering opacity tables are currently accepted." << std::endl;
+        msg << "Only 1 or 2 dimension for scattering opacity tables"
+               "are currently accepted." << std::endl;
         IDEFIX_ERROR(msg);
       }
     } else if (xiType.compare("userfunc") == 0) {
@@ -238,13 +241,13 @@ RadSource::RadSource(Input &input, Fluid<Phys> *hydroin):
       msg << "Unknown xi type \"" <<  xiType
           << "\" in your input file." << std::endl
           << "Allowed values are: constant, usertable." << std::endl;
-
       IDEFIX_ERROR(msg);
     }
   } else {
-    IDEFIX_ERROR("A *xi* line in your [Rad] block is required in your input file to define the scattering opacity.");
+    IDEFIX_ERROR("A *xi* line in your [Rad] block is required"
+                 "in your input file to define the scattering opacity.");
   }
-  
+
   // Information on absorption opacity coefficient
   if(input.CheckEntry(BlockName,"kappa")>=0) {
     // Fetch the opacity coefficient for the current radiation group.
@@ -266,21 +269,22 @@ RadSource::RadSource(Input &input, Fluid<Phys> *hydroin):
       this->kappa_ndim = input.Get<int>(BlockName,"kappa",n+1);
       std::string kappap_file = input.Get<std::string>(BlockName,"kappa",n+2);
       std::string kappar_file = input.Get<std::string>(BlockName,"kappa",n+3);
-      if (this->kappa_ndim == 1){
+      if (this->kappa_ndim == 1) {
         this->kappa_planck_1D = LookupTable<1>(kappap_file,',');
         this->kappa_ross_1D = LookupTable<1>(kappar_file,',');
-      } else if (this->kappa_ndim == 2){
+      } else if (this->kappa_ndim == 2) {
         this->kappa_planck_2D = LookupTable<2>(kappap_file,',');
         this->kappa_ross_2D = LookupTable<2>(kappar_file,',');
       } else {
         std::stringstream msg;
-        msg << "Only 1 or 2 dimensions for absorption opacity tables are currently accepted." << std::endl;
+        msg << "Only 1 or 2 dimensions for absorption opacity tables"
+               "are currently accepted." << std::endl;
         IDEFIX_ERROR(msg);
       }
     } else if (kappaType.compare("userfunc") == 0) {
       this->kappa_type = Type_opac::userfunc;
-      this->kappapArr = hydroin->kappapArr; 
-      this->kapparArr = hydroin->kapparArr; 
+      this->kappapArr = hydroin->kappapArr;
+      this->kapparArr = hydroin->kapparArr;
     } else {
       std::stringstream msg;
       msg << "Unknown kappa type \"" <<  kappaType
@@ -290,7 +294,8 @@ RadSource::RadSource(Input &input, Fluid<Phys> *hydroin):
       IDEFIX_ERROR(msg);
     }
   } else {
-    IDEFIX_ERROR("A *kappa* line in your [Rad] block is required in your input file to define the absorption opacity.");
+    IDEFIX_ERROR("A *kappa* line in your [Rad] block is required"
+                 "in your input file to define the absorption opacity.");
   }
 
   // Information on solver for source terms
@@ -304,7 +309,7 @@ RadSource::RadSource(Input &input, Fluid<Phys> *hydroin):
     } else if(sourceType.compare("fixed_point_rad") == 0) {
       this->source_solver = Type_isolver::fixed_point_rad;
     } else if(sourceType.compare("fixed_point_gas") == 0) {
-      this->source_solver = Type_isolver::fixed_point_gas;      
+      this->source_solver = Type_isolver::fixed_point_gas;
     } else {
       std::stringstream msg;
       msg << "Unknown solver for source terms \"" <<  sourceType
@@ -315,9 +320,10 @@ RadSource::RadSource(Input &input, Fluid<Phys> *hydroin):
     }
 
   } else {
-    IDEFIX_ERROR("A *source* line in your [Rad] block is required in your input file to define the solver for the radiation source terms.");
+    IDEFIX_ERROR("A *source* line in your [Rad] block is required"
+                 "in your input file to define the solver for the radiation source terms.");
   }
- 
+
   // Information on relativist correction
   haveRelativistCorrection = input.GetOrSet<bool>(BlockName,"relativist_correction",0,false);
 
@@ -326,14 +332,16 @@ RadSource::RadSource(Input &input, Fluid<Phys> *hydroin):
     haveIrradiation = true;
     // Fetch the opacity coefficient for the current radiation group.
     const int n = hydroin->instanceNumber;
-    
-    this->column_rho = new Column(IDIR,1,data);
-    this->divF = IdefixArray3D<real>(prefix+"_divF",data->np_tot[KDIR], data->np_tot[JDIR], data->np_tot[IDIR]);
-    this->Qvisc = IdefixArray3D<real>(prefix+"_Qvisc",data->np_tot[KDIR], data->np_tot[JDIR], data->np_tot[IDIR]);
 
-                                    
+    this->column_rho = new Column(IDIR,1,data);
+    this->divF = IdefixArray3D<real>(prefix+"_divF",data->np_tot[KDIR],
+                                     data->np_tot[JDIR], data->np_tot[IDIR]);
+    this->Qvisc = IdefixArray3D<real>(prefix+"_Qvisc",data->np_tot[KDIR],
+                                      data->np_tot[JDIR], data->np_tot[IDIR]);
+
+
     std::string irrType = input.Get<std::string>(BlockName,"irr",0);
-    
+
     if(irrType.compare("constant") == 0) {
       this->irr_type = Type_irr::constant;
       this->rs = input.Get<real>(BlockName,"irr",n+1);
@@ -345,7 +353,7 @@ RadSource::RadSource(Input &input, Fluid<Phys> *hydroin):
       this->Ts = input.Get<real>(BlockName,"irr",n+2);
       this->irr_ndim = input.Get<int>(BlockName,"irr",n+3);
       std::string irr_file = input.Get<std::string>(BlockName,"irr",n+4);
-      if (input.Get<int>(BlockName,"irr",n+3) == 1){
+      if (input.Get<int>(BlockName,"irr",n+3) == 1) {
         this->irr_1D = LookupTable<1>(irr_file,',');
       } else {
         std::stringstream msg;
@@ -373,7 +381,7 @@ RadSource::RadSource(Input &input, Fluid<Phys> *hydroin):
       IDEFIX_ERROR(msg);
     }
   }
-  
+
 
 
   idfx::popRegion();

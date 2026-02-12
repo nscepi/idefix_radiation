@@ -39,7 +39,7 @@ LookupTable<1> *kappatableGlob;
 void MyKappa(DataBlock &data, IdefixArray3D<real> &kappap, IdefixArray3D<real> &kappar) {
   IdefixArray4D<real> Vc=data.hydro->Vc;
   auto units = idfx::units;
-  
+
   IdefixArray3D<real> tau;
   IdefixArray3D<real> kappa=(&data)->radiation[0]->radsource->kappapArr;
   IdefixArray3D<real> kapparho("rho",data.np_tot[KDIR],data.np_tot[JDIR],data.np_tot[IDIR]);
@@ -50,7 +50,7 @@ void MyKappa(DataBlock &data, IdefixArray3D<real> &kappap, IdefixArray3D<real> &
 
   columnGlob->ComputeColumn(kapparho);
   tau = columnGlob->GetColumn();
-  
+
   IdefixArray1D<real> dr = data.dx[IDIR];
 
   real Tsub = TsubGlob;
@@ -116,7 +116,7 @@ void UserdefBoundaryNoStress(Fluid<DefaultPhysics> *hydro, int dir, BoundarySide
   IdefixArray1D<real> x1 = data->x[IDIR];
   IdefixArray1D<real> x2 = data->x[JDIR];
   real rhomin = densityFloorGlob/idfx::units.GetDensity();
-  
+
   if(dir==IDIR) {
     int ighost,nxi,iend,ibeg;
     if(side == left) {
@@ -185,7 +185,7 @@ void UserdefBoundaryRad(Fluid<RadiationPhysics> *radiation, int dir, BoundarySid
         0, data->np_tot[JDIR],
         ibeg, iend,
         KOKKOS_LAMBDA (int k, int j, int i) {
-          Vc(ER,k,j,i) = Vc(ER,k,j,ighost);    
+          Vc(ER,k,j,i) = Vc(ER,k,j,ighost);
           if (Vc(FR1,k,j,ighost) >=ZERO_F){
             Vc(FR1,k,j,i) = ZERO_F;
           } else {
@@ -240,7 +240,7 @@ void ComputeUserVars(DataBlock & data, UserDefVariablesContainer &variables) {
 
   // Sync it
   d.SyncFromDevice();
-  
+
   auto units = idfx::units;
 
   IdefixHostArray1D<real> x1=d.x[IDIR];
@@ -250,7 +250,7 @@ void ComputeUserVars(DataBlock & data, UserDefVariablesContainer &variables) {
   IdefixHostArray3D<real> A1=d.A[IDIR];
   IdefixHostArray3D<real> A2=d.A[JDIR];
   IdefixHostArray3D<real> dV=d.dV;
- 
+
   IdefixArray3D<real> tau;
   //IdefixArray3D<real> tau2;
   IdefixArray4D<real> Vc=(&data)->hydro->Vc;
@@ -263,7 +263,7 @@ void ComputeUserVars(DataBlock & data, UserDefVariablesContainer &variables) {
   real Ts = TsGlob;
   real kappa_irr = kappairrGlob;
 
-  real kirr = kappa_irr*idfx::units.GetDensity()*idfx::units.GetLength(); 
+  real kirr = kappa_irr*idfx::units.GetDensity()*idfx::units.GetLength();
   real flux_pre = std::pow(rs/idfx::units.GetLength(),2.)*idfx::units.sigma_sb*std::pow(Ts,4.)/idfx::units.GetLength();
 
 
@@ -275,7 +275,7 @@ void ComputeUserVars(DataBlock & data, UserDefVariablesContainer &variables) {
 
   columnGlob->ComputeColumn(kapparho);
   tau = columnGlob->GetColumn();
-  
+
   //columnGlob->ComputeColumn(Vc,RHO);
   //tau = columnGlob->GetColumn();
 
@@ -302,7 +302,7 @@ void ComputeUserVars(DataBlock & data, UserDefVariablesContainer &variables) {
       }
     }
   } else if (kappatypeGlob=="usertable") {
-    
+
     for(int k = d.beg[KDIR]; k < d.end[KDIR] ; k++) {
       for(int j = d.beg[JDIR]; j < d.end[JDIR] ; j++) {
         for(int i = d.beg[IDIR]; i < d.end[IDIR] ; i++) {
@@ -318,7 +318,7 @@ void ComputeUserVars(DataBlock & data, UserDefVariablesContainer &variables) {
       }
     }
   }
-   
+
   Kokkos::deep_copy(variables["divF"], divF);
   Kokkos::deep_copy(variables["A1"], A1_out);
 
@@ -353,7 +353,7 @@ void InternalBoundary(Hydro *hydro, const real t) {
 // Initialisation routine. Can be used to allocate
 // Arrays or variables which are used later on
 Setup::Setup(Input &input, Grid &grid, DataBlock &data, Output &output)
-{ 
+{
   auto Vc = data.hydro->Vc;
 
   // Mirror data on Host
@@ -378,7 +378,7 @@ Setup::Setup(Input &input, Grid &grid, DataBlock &data, Output &output)
 
   GGlob = input.Get<real>("Gravity","gravCst",0);
   MGlob = input.Get<real>("Gravity","Mcentral",0);
-  
+
   muGlob = input.Get<real>("Hydro","mu",0);
   gammaGlob=data.hydro->eos->GetGamma();
   rsGlob=input.Get<real>("Rad","irr",1);
@@ -393,13 +393,13 @@ Setup::Setup(Input &input, Grid &grid, DataBlock &data, Output &output)
 
   columnGlob = new Column(IDIR,1,&data);
   columnGlob2 = new Column(IDIR,1,&data);
-  
+
   auto temp_array = columnGlob->GetColumn();
   auto temp_array2 = columnGlob2->GetColumn();
   data.dump->RegisterVariable(temp_array,"tau");
   data.dump->RegisterVariable(temp_array2,"tau2");
 
-  data.radiation[0]->EnrollKappa(&MyKappa); 
+  data.radiation[0]->EnrollKappa(&MyKappa);
   data.hydro->EnrollInternalBoundary(&InternalBoundary);
   //data.hydro->EnrollFluxBoundary(&FluxBoundary);
   data.hydro->viscosity->EnrollViscousDiffusivity(&MyViscosity);
@@ -412,4 +412,3 @@ Setup::Setup(Input &input, Grid &grid, DataBlock &data, Output &output)
 Setup::~Setup() {
   delete columnGlob;
 }
-

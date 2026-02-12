@@ -9,14 +9,13 @@ import sys
 sys.path.append(os.getenv("IDEFIX_DIR"))
 
 import pytools.idfx_test as tst
-import shutil
 
 name="dump.0001.dmp"
 
 def testMe(test,mpi):
   inifiles=["idefix_constant_kappa.ini","idefix_usertable_kappa.ini"]
   if mpi==True:
-     tolerance = 1.e-10  
+     tolerance = 1.e-10
   else:
      tolerance = 1.e-13
 
@@ -39,7 +38,7 @@ if not test.dec:
 if not test.all:
   if(test.check):
     test._readLog()
-    if test.mpi: 
+    if test.mpi:
      tolerance = 1.e-10
     else:
      tolerance = 1.e-13

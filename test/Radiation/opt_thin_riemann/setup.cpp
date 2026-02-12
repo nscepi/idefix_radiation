@@ -38,16 +38,16 @@ void Setup::InitFlow(DataBlock &data) {
     real rho0 = RhoGlob;
     real vx1_0 = VX1Glob;
     real vx2_0 = VX2Glob;
-    
+
     for(int k = 0; k < d.np_tot[KDIR] ; k++) {
         for(int j = 0; j < d.np_tot[JDIR] ; j++) {
             for(int i = 0; i < d.np_tot[IDIR] ; i++) {
-              
+
               d.Vc(RHO,k,j,i) = rho0;
               d.Vc(VX1,k,j,i) = vx1_0;
               d.Vc(VX2,k,j,i) = vx2_0;
               d.Vc(PRS,k,j,i) = rho0*csiso*csiso;
-        
+
               if (d.x[IDIR](i) < 0.){
                   d.RadVc[0](ER,k,j,i) = ERL;
                   d.RadVc[0](FR1,k,j,i) = FR1L;
@@ -80,11 +80,8 @@ void ComputeUserVars(DataBlock & data, UserDefVariablesContainer &variables) {
   for(int k = 0; k < d.np_tot[KDIR] ; k++) {
     for(int j = 0; j < d.np_tot[JDIR] ; j++) {
       for(int i = 0; i < d.np_tot[IDIR] ; i++) {
-        
+
       }
     }
   }
 }
-
-
-

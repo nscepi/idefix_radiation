@@ -46,7 +46,7 @@ void ComputeUserVars(DataBlock & data, UserDefVariablesContainer &variables) {
 
   // Sync it
   d.SyncFromDevice();
-  
+
   auto units = idfx::units;
 
   IdefixHostArray1D<real> x1=d.x[IDIR];
@@ -56,7 +56,7 @@ void ComputeUserVars(DataBlock & data, UserDefVariablesContainer &variables) {
   IdefixHostArray3D<real> A1=d.A[IDIR];
   IdefixHostArray3D<real> A2=d.A[JDIR];
   IdefixHostArray3D<real> dV=d.dV;
- 
+
   IdefixArray4D<real> Vc=(&data)->hydro->Vc;
 
   IdefixHostArray3D<real> divF  = variables["divF"];
@@ -75,7 +75,7 @@ void UserdefBoundaryNoStress(Fluid<DefaultPhysics> *hydro, int dir, BoundarySide
   IdefixArray1D<real> x1 = data->x[IDIR];
   IdefixArray1D<real> x2 = data->x[JDIR];
   real rhomin = densityFloorGlob/idfx::units.GetDensity();
-  
+
   if(dir==IDIR) {
     int ighost,nxi,iend,ibeg;
     if(side == left) {
@@ -143,7 +143,7 @@ void UserdefBoundaryRad(Fluid<RadiationPhysics> *radiation, int dir, BoundarySid
         0, data->np_tot[JDIR],
         ibeg, iend,
         KOKKOS_LAMBDA (int k, int j, int i) {
-          Vc(ER,k,j,i) = Vc(ER,k,j,ighost);    
+          Vc(ER,k,j,i) = Vc(ER,k,j,ighost);
           if (Vc(FR1,k,j,ighost) >=ZERO_F){
             Vc(FR1,k,j,i) = ZERO_F;
           } else {
@@ -188,7 +188,7 @@ void InternalBoundary(Hydro *hydro, const real t) {
   real densityFloor = densityFloorGlob;
   real rhoindex = rhoindexGlob;
   real x1beg = x1begGlob;
-  
+
   idefix_for("InternalBoundary",
     0, data->np_tot[KDIR],
     0, data->np_tot[JDIR],
@@ -209,7 +209,7 @@ void InternalBoundary(Hydro *hydro, const real t) {
 // Initialisation routine. Can be used to allocate
 // Arrays or variables which are used later on
 Setup::Setup(Input &input, Grid &grid, DataBlock &data, Output &output)
-{ 
+{
   auto Vc = data.hydro->Vc;
 
   // Mirror data on Host
@@ -223,7 +223,7 @@ Setup::Setup(Input &input, Grid &grid, DataBlock &data, Output &output)
 
   GGlob = input.Get<real>("Gravity","gravCst",0);
   MGlob = input.Get<real>("Gravity","Mcentral",0);
-  
+
   muGlob = input.Get<real>("Hydro","mu",0);
   gammaGlob=data.hydro->eos->GetGamma();
 
@@ -258,7 +258,7 @@ void Setup::InitFlow(DataBlock &data) {
     for(int k = 0; k < d.np_tot[KDIR] ; k++) {
         for(int j = 0; j < d.np_tot[JDIR] ; j++) {
             for(int i = 0; i < d.np_tot[IDIR] ; i++) {
-              
+
               real R = FMAX(d.x[IDIR](i)*std::sin(d.x[JDIR](j)),R0);
               real z2 = std::pow(d.x[IDIR](i)*std::cos(d.x[JDIR](j)),2.);
               real Omega = std::sqrt(CG)*std::pow(R,-1.5);
@@ -285,4 +285,3 @@ void Setup::InitFlow(DataBlock &data) {
     // Send it all, if needed
     d.SyncToDevice();
 }
-

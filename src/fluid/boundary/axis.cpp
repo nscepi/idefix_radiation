@@ -272,7 +272,7 @@ void Axis::EnforceAxisBoundary(int side) {
 
   IdefixArray1D<int> sVc = this->symmetryVc;
 
-  
+
   int ibeg = 0;
   int iend = data->np_tot[IDIR];
   int jref, jbeg,jend;

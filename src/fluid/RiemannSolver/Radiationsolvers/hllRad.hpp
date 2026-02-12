@@ -5,8 +5,8 @@
 // Licensed under CeCILL 2.1 License, see COPYING for more information
 // ***********************************************************************************
 
-#ifndef FLUID_RIEMANNSOLVER_RADSOLVERS_HLLRAD_HPP_
-#define FLUID_RIEMANNSOLVER_RADSOLVERS_HLLRAD_HPP_
+#ifndef FLUID_RIEMANNSOLVER_RADIATIONSOLVERS_HLLRAD_HPP_
+#define FLUID_RIEMANNSOLVER_RADIATIONSOLVERS_HLLRAD_HPP_
 
 #include "../idefix.hpp"
 #include "fluid.hpp"
@@ -41,7 +41,7 @@ void RiemannSolver<Phys>::HllRad(IdefixArray4D<real> &Flux) {
   //printf("reduced=%e\n",reduced_c);
 
   RadSource &rad_source = *(this->hydro->radsource);
-  
+
   idefix_for("HLL_Rad_Kernel",
              data->beg[KDIR],data->end[KDIR]+koffset,
              data->beg[JDIR],data->end[JDIR]+joffset,
@@ -50,7 +50,7 @@ void RiemannSolver<Phys>::HllRad(IdefixArray4D<real> &Flux) {
       // Init the directions (should be in the kernel for proper optimisation by the compilers)
       constexpr int Xn = DIR+MX1;
       const int index = ioffset*i + joffset*j + koffset*k;
-      
+
       // Primitive variables
       real vL[Phys::nvar];
       real vR[Phys::nvar];
@@ -61,7 +61,7 @@ void RiemannSolver<Phys>::HllRad(IdefixArray4D<real> &Flux) {
         v[nv] = Vc(nv,k,j,i);
         voffset[nv] = Vc(nv,k-koffset,j-joffset,i-ioffset);
       }
-            
+
       // Conservative variables
       real uL[Phys::nvar];
       real uR[Phys::nvar];
@@ -73,13 +73,13 @@ void RiemannSolver<Phys>::HllRad(IdefixArray4D<real> &Flux) {
       // Wave speeds
       real lambdaL[2];
       real lambdaR[2];
-      
+
       // xi from closure
       real xiL, xiR;
 
       // 1-- Store the primitive variables on the left, right, and averaged states
       extrapol.ExtrapolatePrimVar(i, j, k, vL, vR);
-      
+
       // Limit the fluxes after extrapolation to satisfy Fr<=Er
       K_LimitRadFluxReconstruct(vL,vR,v,voffset);
       //K_LimitRadFlux(vL);
@@ -90,12 +90,12 @@ void RiemannSolver<Phys>::HllRad(IdefixArray4D<real> &Flux) {
       K_SpeedsRad(lambdaR,vR,Xn,reduced_c,&xiR);
 
       real speed_diff = rad_source.LimitSpeedsRad(i,j,k,dx[index]);
-       
+
       real lambda_max_L = FMAX(lambdaL[0],lambdaL[1]);
       real lambda_max_R = FMAX(lambdaR[0],lambdaR[1]);
       real lambda_min_L = FMIN(lambdaL[0],lambdaL[1]);
       real lambda_min_R = FMIN(lambdaR[0],lambdaR[1]);
-      
+
       real SR = FMAX(ZERO_F,FMAX(lambda_max_L,lambda_max_R));
       SR = FMIN(speed_diff,SR);
       real SL = FMIN(ZERO_F,FMIN(lambda_min_L,lambda_min_R));
@@ -104,7 +104,7 @@ void RiemannSolver<Phys>::HllRad(IdefixArray4D<real> &Flux) {
       real cmax  = FMAX(FABS(SL), FABS(SR));
 
       // 3-- Compute the conservative variables: do this by extrapolation
-      K_PrimToCons<Phys>(uL, vL, NULL); 
+      K_PrimToCons<Phys>(uL, vL, NULL);
       K_PrimToCons<Phys>(uR, vR, NULL);
 
       // 4-- Compute the left and right fluxes (wave speed is null)
@@ -131,4 +131,4 @@ void RiemannSolver<Phys>::HllRad(IdefixArray4D<real> &Flux) {
   idfx::popRegion();
 }
 
-#endif // FLUID_RIEMANNSOLVER_RADSOLVERS_HLLRAD_HPP_
+#endif // FLUID_RIEMANNSOLVER_RADIATIONSOLVERS_HLLRAD_HPP_

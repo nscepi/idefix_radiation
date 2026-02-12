@@ -10,7 +10,3 @@ do
   mkdir 'cycle'$i
   mv data.*.vtk 'cycle'$i/
 done
-
-
-
-

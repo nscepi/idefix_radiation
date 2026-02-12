@@ -6,4 +6,3 @@
 #define     ENFORCE_EMF_CONSISTENCY
 
 #define     SMALL_PRESSURE_TEMPERATURE   (0.05)
-

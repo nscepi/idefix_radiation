@@ -105,14 +105,14 @@ class LookupTable {
             //if (count > 100) throw std::runtime_error("Dichotomy in LookupTable did not work");
           if (count > 100) Kokkos::abort("Dichotomy in LookupTable did not work");
           }
-          
+
           // Brut force method
           //i = 0;
           //while(xin(offset(n) + i) < x_n && i < dimensions(n)-1 ) {
           //  i++;
           //}
           //i = i-1; // i is overestimated by one
-        } 
+        }
       }
 
       // Store the index

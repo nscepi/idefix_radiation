@@ -678,11 +678,11 @@ void Setup::InitFlow(DataBlock &data) {
                     d.Ve(AX3e,k,j,i) = B0*(
                                       1/(gammaB+2)*(pow(R,gammaB+1) - pow(Rin,gammaB+2)/R)
                                       + Rin*Rin/(2.0*R));
-		    //d.Ve(AX3e,k,j,i) = B0*(pow(Rin,m+2.0)/R * (-1.0/(m+2.0)) + pow(R,m+1.0)/(m+2.0));
+            //d.Ve(AX3e,k,j,i) = B0*(pow(Rin,m+2.0)/R * (-1.0/(m+2.0)) + pow(R,m+1.0)/(m+2.0));
                   }
                   else {
                     d.Ve(AX3e,k,j,i) = B0*R/2.0;
-		    //d.Ve(AX3e,k,j,i) = 0.0;
+            //d.Ve(AX3e,k,j,i) = 0.0;
                   }
                 #else
                   if(R>Rin) {

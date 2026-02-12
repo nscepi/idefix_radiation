@@ -77,7 +77,7 @@ KOKKOS_INLINE_FUNCTION real computeDensityFloor(real R, real z, real d_floor_0, 
 void MyKappa(DataBlock &data, IdefixArray3D<real> &kappap, IdefixArray3D<real> &kappar) {
   IdefixArray4D<real> Vc=data.hydro->Vc;
   auto units = idfx::units;
-  
+
   IdefixArray3D<real> tau;
   IdefixArray3D<real> kappa=(&data)->radiation[0]->radsource->kappapArr;
   IdefixArray3D<real> kapparho("rho",data.np_tot[KDIR],data.np_tot[JDIR],data.np_tot[IDIR]);
@@ -88,7 +88,7 @@ void MyKappa(DataBlock &data, IdefixArray3D<real> &kappap, IdefixArray3D<real> &
 
   columnrGlob->ComputeColumn(kapparho);
   tau = columnrGlob->GetColumn();
-  
+
   IdefixArray1D<real> dr = data.dx[IDIR];
 
   real Tsub = TsubGlob;
@@ -139,7 +139,7 @@ void Ambipolar(DataBlock& data, real t, IdefixArray3D<real> &xAin) {
   columnrGlob->ComputeColumn(data.hydro->Vc,RHO);
   columnthupGlob->ComputeColumn(data.hydro->Vc,RHO);
   columnthdownGlob->ComputeColumn(data.hydro->Vc,RHO);
-  
+
   IdefixArray3D<real> Sigmar, Sigmathup, Sigmathdown;
   Sigmar = columnrGlob->GetColumn();
   Sigmathup = columnthupGlob->GetColumn();
@@ -184,9 +184,9 @@ void Ambipolar(DataBlock& data, real t, IdefixArray3D<real> &xAin) {
 
                     // Eq .14c of Lesur, Kunz & Fromang 2014
                     real eta = B2/(gammai*pow(Vc(RHO,k,j,i)*units.GetDensity(),2.)*xe);
-		                
+
                     // Use a diffusivity cap that leads to a constant CFL in radius
-		                real etamax_loc = etamax*x1(i)*x1(i)*units.GetVelocity()*units.GetLength();
+                        real etamax_loc = etamax*x1(i)*x1(i)*units.GetVelocity()*units.GetLength();
 
                     if(eta>etamax_loc) xA(k,j,i) = etamax_loc/B2*(units.GetDensity()/units.GetTime());
                     else xA(k,j,i) = eta/B2*(units.GetDensity()/units.GetTime());
@@ -194,7 +194,7 @@ void Ambipolar(DataBlock& data, real t, IdefixArray3D<real> &xAin) {
 
               });
 
-    
+
 
 }
 
@@ -203,7 +203,7 @@ void Resistivity(DataBlock& data, real t, IdefixArray3D<real> &etain) {
   IdefixArray1D<real> x1=data.x[IDIR];
   IdefixArray1D<real> x2=data.x[JDIR];
   IdefixArray4D<real> Vc=data.hydro->Vc;
-  
+
   auto units = idfx::units;
   real epsilon = epsilonGlob;
   real mu = muGlob;
@@ -217,7 +217,7 @@ void Resistivity(DataBlock& data, real t, IdefixArray3D<real> &etain) {
   columnrGlob->ComputeColumn(data.hydro->Vc,RHO);
   columnthupGlob->ComputeColumn(data.hydro->Vc,RHO);
   columnthdownGlob->ComputeColumn(data.hydro->Vc,RHO);
-  
+
   IdefixArray3D<real> Sigmar, Sigmathup, Sigmathdown;
   Sigmar = columnrGlob->GetColumn();
   Sigmathup = columnthupGlob->GetColumn();
@@ -267,7 +267,7 @@ void Resistivity(DataBlock& data, real t, IdefixArray3D<real> &etain) {
                     eta(k,j,i) = units.c*units.c*units.m_e*sigmave/(4.*M_PI*units.e*units.e*xe)*(units.GetTime()/(units.GetLength()*units.GetLength()));
 
                     // Use a diffusivity cap that leads to a constant CFL in radius
-		                real etamax_loc = etamax*x1(i)*x1(i)*units.GetVelocity()*units.GetLength();
+                        real etamax_loc = etamax*x1(i)*x1(i)*units.GetVelocity()*units.GetLength();
                     if(eta(k,j,i)>etamax_loc) eta(k,j,i) = etamax_loc;
                     //eta(k,j,i) = 5.e-5;
 
@@ -290,7 +290,7 @@ void MySourceTerm(Fluid<DefaultPhysics> *hydro, const real t, const real dtin) {
 
   real epsilonTop = epsilonTopGlob;
   real epsilon = epsilonGlob;
-  
+
   real Omega = std::sqrt(GGlob*MGlob)*std::pow(R0Glob,-1.5);
 
   real tauGlob=1.0/Omega;
@@ -509,7 +509,7 @@ void UserdefBoundaryRad(Fluid<RadiationPhysics> *radiation, int dir, BoundarySid
         0, data->np_tot[JDIR],
         ibeg, iend,
         KOKKOS_LAMBDA (int k, int j, int i) {
-          Vc(ER,k,j,i) = units.ar*std::pow(Tout,4.)/units.GetEnergy();    
+          Vc(ER,k,j,i) = units.ar*std::pow(Tout,4.)/units.GetEnergy();
           if (Vc(FR1,k,j,ighost) >=ZERO_F){
             Vc(FR1,k,j,i) = ZERO_F;
           } else {
@@ -751,7 +751,7 @@ Setup::Setup(Input &input, Grid &grid, DataBlock &data, Output &output) {
 
   densityFloorGlob = input.Get<real>("Setup","density_floor",0);
   trSmoothingGlob = input.Get<real>("Setup","transitionSmoothing",0);
-  
+
   muGlob = input.Get<real>("Hydro","mu",0);
 
   GGlob = input.Get<real>("Gravity","gravCst",0);
@@ -766,7 +766,7 @@ Setup::Setup(Input &input, Grid &grid, DataBlock &data, Output &output) {
   // assume disc surface at 6.5 h
   analysis = new Analysis(grid, data,std::string("profile.dat"), HidealGlob*epsilonGlob);
   output.EnrollAnalysis(&analysisFunction);
-   
+
   rsGlob=input.Get<real>("Rad","irr",1);
   TsGlob=input.Get<real>("Rad","irr",2);
   TsubGlob = input.Get<real>("Setup","Tsub",0);
@@ -778,7 +778,7 @@ Setup::Setup(Input &input, Grid &grid, DataBlock &data, Output &output) {
   kappagasGlob = input.Get<real>("Setup","kappa_gas",0);
 
   densityFloorGlob = input.Get<real>("Setup","density_floor",0);
-  data.radiation[0]->EnrollKappa(&MyKappa); 
+  data.radiation[0]->EnrollKappa(&MyKappa);
   data.radiation[0]->EnrollUserDefBoundary(&UserdefBoundaryRad);
 
   ComputeRho(data);
@@ -860,11 +860,11 @@ void Setup::InitFlow(DataBlock &data) {
                     d.Ve(AX3e,k,j,i) = B0*(
                                       1/(gammaB+2)*(pow(R,gammaB+1) - pow(Rin,gammaB+2)/R)
                                       + Rin*Rin/(2.0*R));
-		    //d.Ve(AX3e,k,j,i) = B0*(pow(Rin,m+2.0)/R * (-1.0/(m+2.0)) + pow(R,m+1.0)/(m+2.0));
+            //d.Ve(AX3e,k,j,i) = B0*(pow(Rin,m+2.0)/R * (-1.0/(m+2.0)) + pow(R,m+1.0)/(m+2.0));
                   }
                   else {
                     d.Ve(AX3e,k,j,i) = B0*R/2.0;
-		    //d.Ve(AX3e,k,j,i) = 0.0;
+            //d.Ve(AX3e,k,j,i) = 0.0;
                   }
                 #else
                   if(R>Rin) {

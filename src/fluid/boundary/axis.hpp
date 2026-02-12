@@ -127,7 +127,7 @@ Axis::Axis(Boundary<Phys> *boundary) {
 
   // Check where the axis is lying.
   if(data->lbound[JDIR] == axis) axisLeft = true;
-  if(data->rbound[JDIR] == axis) axisRight = true;  
+  if(data->rbound[JDIR] == axis) axisRight = true;
   if(data->lbound[JDIR] == axis_rad) axisLeft = true;
   if(data->rbound[JDIR] == axis_rad) axisRight = true;
 

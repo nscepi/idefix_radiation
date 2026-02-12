@@ -129,7 +129,7 @@ class Fluid {
   bool haveUserfuncKappairr{false};
   bool haveUserfuncXi{false};
   bool haveUserfuncIrrGeometry{false};
-  
+
   // Whether or not we have to treat the axis
   bool haveAxis{false};
 
@@ -305,7 +305,8 @@ Fluid<Phys>::Fluid(Grid &grid, Input &input, DataBlock *datain, int n) {
   // When dealing with dust, add the specie number
   if(Phys::prefix.compare("Dust") == 0) prefix += std::to_string(n);
 
-  // When dealing with radiation, add the frequency group number, reduced speed of light and status of opacities
+  // When dealing with radiation, add the frequency group number
+  //, reduced speed of light and status of opacities
   if(Phys::prefix.compare("Rad") == 0) {
     prefix += std::to_string(n);
     this->reduced_c = input.Get<real>(std::string(Phys::prefix),"reduced_c",0);
@@ -314,11 +315,11 @@ Fluid<Phys>::Fluid(Grid &grid, Input &input, DataBlock *datain, int n) {
       this->haveUserfuncKappa = true;
       this->kappapArr = IdefixArray3D<real>("kappapArray",data->np_tot[KDIR],
                                           data->np_tot[JDIR],
-                                          data->np_tot[IDIR]);        
+                                          data->np_tot[IDIR]);
       this->kapparArr = IdefixArray3D<real>("kapparArray",data->np_tot[KDIR],
                                           data->np_tot[JDIR],
-                                          data->np_tot[IDIR]);   
-    }      
+                                          data->np_tot[IDIR]);
+    }
 
     if (input.CheckEntry("Rad", "irr")>=0) {
       if(input.Get<std::string>(std::string(Phys::prefix),"irr",0).compare("userfunc") == 0 ) {
@@ -333,7 +334,7 @@ Fluid<Phys>::Fluid(Grid &grid, Input &input, DataBlock *datain, int n) {
       this->haveUserfuncXi = true;
       this->xiArr = IdefixArray3D<real>("xiArray",data->np_tot[KDIR],
                                           data->np_tot[JDIR],
-                                          data->np_tot[IDIR]);  
+                                          data->np_tot[IDIR]);
     }
 
     if (input.CheckEntry("Rad", "irr")>=0) {

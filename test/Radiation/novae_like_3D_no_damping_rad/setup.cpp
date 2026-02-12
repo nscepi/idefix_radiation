@@ -244,24 +244,24 @@ void EmfBoundary(Fluid<DefaultPhysics> *hydro, const real t) {
 
 void FluxBoundary(DataBlock & data, int dir, BoundarySide side, const real t) {
     IdefixArray4D<real> Flux = data.hydro->FluxRiemann[dir];
- 
- 
+
+
     idefix_for("FluxInternal",
                 0, data.np_tot[KDIR],
                 0, data.np_tot[JDIR],
                 0, data.np_tot[IDIR],
        KOKKOS_LAMBDA (int k, int j, int i) {
-         Flux(RHO, k, j, i) = 0.0; 
-         Flux(MX1, k, j, i) = 0.0; 
-         Flux(MX2, k, j, i) = 0.0; 
-         Flux(MX3, k, j, i) = 0.0; 
-         Flux(ENG, k, j, i) = 0.0; 
+         Flux(RHO, k, j, i) = 0.0;
+         Flux(MX1, k, j, i) = 0.0;
+         Flux(MX2, k, j, i) = 0.0;
+         Flux(MX3, k, j, i) = 0.0;
+         Flux(ENG, k, j, i) = 0.0;
      });
 }
 
 void FluxBoundaryRad(DataBlock & data, int dir, BoundarySide side, const real t) {
    IdefixArray4D<real> Flux = data.radiation[0]->FluxRiemann[dir];
- 
+
   if(dir==IDIR) {
     int ighost,nxi,iend,ibeg;
     if(side == left) {
@@ -292,7 +292,7 @@ void FluxBoundaryRad(DataBlock & data, int dir, BoundarySide side, const real t)
           if (Flux(FR2,k,j,i) <= ZERO_F) Flux(FR2,k,j,i) = ZERO_F;
         });
     }
-   } 
+   }
 
    if(dir==JDIR) {
     int jghost,nxj,jend,jbeg;
@@ -324,7 +324,7 @@ void FluxBoundaryRad(DataBlock & data, int dir, BoundarySide side, const real t)
           if (Flux(FR2,k,j,i) <= ZERO_F) Flux(FR2,k,j,i) = ZERO_F;
         });
     }
-   } 
+   }
 }
 
 void CoarsenFunction(DataBlock &data) {
@@ -346,7 +346,7 @@ void InternalBoundaryRad(Fluid<RadiationPhysics> *radiation, const real t) {
   auto units = idfx::units;
 
   real Tceiling = TceilingGlob;
-  
+
   idefix_for("InternalBoundaryRad",0,data->np_tot[KDIR],0,data->np_tot[JDIR],0,data->np_tot[IDIR],
     KOKKOS_LAMBDA (int k, int j, int i) {
         if (Vc(ER,k,j,i) > units.ar*std::pow(Tceiling,4)/units.GetEnergy()){
@@ -382,7 +382,7 @@ void UserdefBoundaryRad(Fluid<RadiationPhysics> *radiation, int dir, BoundarySid
         0, data->np_tot[JDIR],
         ibeg, iend,
         KOKKOS_LAMBDA (int k, int j, int i) {
-          Vc(ER,k,j,i) = Vc(ER,k,j,ighost);    
+          Vc(ER,k,j,i) = Vc(ER,k,j,ighost);
           if (Vc(FR1,k,j,ighost) >=ZERO_F){
             Vc(FR1,k,j,i) = ZERO_F;
           } else {
@@ -424,7 +424,7 @@ void UserdefBoundaryRad(Fluid<RadiationPhysics> *radiation, int dir, BoundarySid
         jbeg, jend,
         0, data->np_tot[IDIR],
         KOKKOS_LAMBDA (int k, int j, int i) {
-          Vc(ER,k,j,i) = Vc(ER,k,jghost,i);    
+          Vc(ER,k,j,i) = Vc(ER,k,jghost,i);
           if (Vc(FR2,k,jghost,i) >=ZERO_F){
             Vc(FR2,k,j,i) = ZERO_F;
           } else {
@@ -471,7 +471,7 @@ void ComputeUserVars(DataBlock & data, UserDefVariablesContainer &variables) {
   IdefixArray4D<real> FluxRiemannJDIR = data.hydro->FluxRiemann[JDIR];
   IdefixArray4D<real> RadFluxRiemannIDIR = data.radiation[0]->FluxRiemann[IDIR];
   IdefixArray4D<real> RadFluxRiemannJDIR = data.radiation[0]->FluxRiemann[JDIR];
-  
+
   idefix_for("UserVar",0,data.np_tot[KDIR],0,data.np_tot[JDIR],0,data.np_tot[IDIR],
    KOKKOS_LAMBDA (int k, int j, int i) {
       scrh1(k,j,i) = FluxRiemannIDIR(RHO,k,j,i);
@@ -522,7 +522,7 @@ void ComputeUserVars(DataBlock & data, UserDefVariablesContainer &variables) {
 
   // Make references to the user-defined arrays (variables is a container of IdefixHostArray3D)
   // Note that the labels should match the variable names in the input file
-  
+
   for(int k = d.beg[KDIR]; k < d.end[KDIR] ; k++) {
     for(int j = d.beg[JDIR]; j < d.end[JDIR] ; j++) {
       for(int i = d.beg[IDIR]; i < d.end[IDIR] ; i++) {
@@ -555,7 +555,7 @@ void ComputeUserVars(DataBlock & data, UserDefVariablesContainer &variables) {
         real x[2];
         x[0] = FMIN(-4.05,FMAX(-14.,logrho));
         x[1] = FMIN(FMAX(std::log10(T),2.5),5.98);
-        if (kappatypeGlob.compare("usertable") == 0){ 
+        if (kappatypeGlob.compare("usertable") == 0){
           variables["kappap"](k,j,i) = std::pow(10.,kappaptabGlob->GetHost(x));
           variables["kappar"](k,j,i) = std::pow(10.,kappartabGlob->GetHost(x));
         } else if (kappatypeGlob.compare("constant") == 0) {
@@ -622,17 +622,17 @@ Setup::Setup(Input &input, Grid &grid, DataBlock &data, Output &output) {
   // assume disc surface at 6.5 h
   analysis = new Analysis(grid, data,std::string("profile.dat"), HidealGlob*epsilonGlob);
   output.EnrollAnalysis(&analysisFunction);
-  
+
   kappatypeGlob = input.Get<std::string>("Rad","kappa",0);
   if (kappatypeGlob.compare("usertable") == 0){
     std::string kappapfile = input.Get<std::string>("Rad","kappa",2);
     std::string kapparfile = input.Get<std::string>("Rad","kappa",3);
     kappaptabGlob = new LookupTable<2>(kappapfile,',');
     kappartabGlob = new LookupTable<2>(kapparfile,',');
-   } else if (kappatypeGlob.compare("constant") == 0) { 
+   } else if (kappatypeGlob.compare("constant") == 0) {
     kappapGlob = input.Get<real>("Rad","kappa",1);
     kapparGlob = input.Get<real>("Rad","kappa",2);
-   } else if (kappatypeGlob.compare("kramers") == 0) { 
+   } else if (kappatypeGlob.compare("kramers") == 0) {
     kramersTindexGlob = input.Get<real>("Rad","kappa",4);
     kramersrhoindexGlob = input.Get<real>("Rad","kappa",3);
     kappapGlob = input.Get<real>("Rad","kappa",1);
@@ -648,7 +648,7 @@ void Setup::InitFlow(DataBlock &data) {
   DataBlockHost d(data);
 
   DumpImage image("dump.0241.dmp", &data);
-  
+
   for(int k = d.beg[KDIR]; k < d.end[KDIR] ; k++) {
     for(int j = d.beg[JDIR]; j < d.end[JDIR] ; j++) {
       for(int i = d.beg[IDIR]; i < d.end[IDIR] ; i++) {
@@ -695,5 +695,3 @@ void Setup::InitFlow(DataBlock &data) {
 Setup::~Setup() {
   delete analysis;
 }
-
-

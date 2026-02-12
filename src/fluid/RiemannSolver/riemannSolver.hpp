@@ -25,7 +25,8 @@ class RiemannSolver {
  public:
   // Riemann Solver type
 
-  enum Solver {TVDLF_MHD, HLL_MHD, HLLD_MHD, ROE_MHD, TVDLF, HLL, HLLC, ROE, HLL_DUST,HLL_RAD,LFR_RAD,HLLC_RAD};
+  enum Solver {TVDLF_MHD, HLL_MHD, HLLD_MHD, ROE_MHD, TVDLF, HLL, HLLC, ROE, HLL_DUST,
+               HLL_RAD, LFR_RAD, HLLC_RAD};
 
   RiemannSolver(Input &input, Fluid<Phys>* hydro);
 
@@ -110,7 +111,8 @@ RiemannSolver<Phys>::RiemannSolver(Input &input, Fluid<Phys>* hydro) : Vc{hydro-
     mySolver = HLL_DUST;
   } else if (Phys::radiation) {
     // We're dealing with radiation
-    std::string solver_rad_String = input.Get<std::string>(std::string(Phys::prefix),"solver_rad",0);
+    std::string solver_rad_String = input.Get<std::string>(std::string(Phys::prefix)
+                                                          ,"solver_rad",0);
     if (solver_rad_String.compare("hll_rad") == 0) {
       mySolver = HLL_RAD;
     } else if (solver_rad_String.compare("lfr_rad") == 0) {
@@ -165,16 +167,14 @@ RiemannSolver<Phys>::RiemannSolver(Input &input, Fluid<Phys>* hydro) : Vc{hydro-
         if(mySolver != HLL_MHD )
           IDEFIX_ERROR("Hall effect is only compatible with HLL Riemann solver.");
     }
-   
-
   }
 
-  // Reduced velocity of light 
-  if(input.CheckEntry(std::string(Phys::prefix),"reduced_c")>=0){
+  // Reduced velocity of light
+  if(input.CheckEntry(std::string(Phys::prefix),"reduced_c")>=0) {
     this->reduced_c = hydro->reduced_c;
     //printf("reduced_c=%e\n",this->reduced_c);
   }
-  
+
   // Shock flattening
   this->haveShockFlattening = input.CheckEntry(std::string(Phys::prefix),"shockFlattening")>=0;
   // Init shock flattening

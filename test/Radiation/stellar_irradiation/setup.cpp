@@ -47,18 +47,18 @@ void FluxBoundary(Fluid<DefaultPhysics> *hydro, int dir, BoundarySide side, cons
     auto *data = hydro->data;
 
     IdefixArray4D<real> Flux = data->hydro->FluxRiemann;
-    
+
     if( dir== IDIR ) {
       idefix_for("FluxInternal",
                   0, data->np_tot[KDIR],
                   0, data->np_tot[JDIR],
                   0, data->np_tot[IDIR],
          KOKKOS_LAMBDA (int k, int j, int i) {
-           Flux(RHO, k, j, i) = 0.0; 
-           Flux(MX1, k, j, i) = 0.0; 
-           Flux(MX2, k, j, i) = 0.0; 
-           Flux(MX3, k, j, i) = 0.0; 
-           Flux(ENG, k, j, i) = 0.0; 
+           Flux(RHO, k, j, i) = 0.0;
+           Flux(MX1, k, j, i) = 0.0;
+           Flux(MX2, k, j, i) = 0.0;
+           Flux(MX3, k, j, i) = 0.0;
+           Flux(ENG, k, j, i) = 0.0;
       });
     }
 
@@ -68,11 +68,11 @@ void FluxBoundary(Fluid<DefaultPhysics> *hydro, int dir, BoundarySide side, cons
                   0, data->np_tot[JDIR],
                   0, data->np_tot[IDIR],
          KOKKOS_LAMBDA (int k, int j, int i) {
-           Flux(RHO, k, j, i) = 0.0; 
-           Flux(MX1, k, j, i) = 0.0; 
-           Flux(MX2, k, j, i) = 0.0; 
-           Flux(MX3, k, j, i) = 0.0; 
-           Flux(ENG, k, j, i) = 0.0; 
+           Flux(RHO, k, j, i) = 0.0;
+           Flux(MX1, k, j, i) = 0.0;
+           Flux(MX2, k, j, i) = 0.0;
+           Flux(MX3, k, j, i) = 0.0;
+           Flux(ENG, k, j, i) = 0.0;
       });
     }
 
@@ -82,11 +82,11 @@ void FluxBoundary(Fluid<DefaultPhysics> *hydro, int dir, BoundarySide side, cons
                   0, data->np_tot[JDIR],
                   0, data->np_tot[IDIR],
          KOKKOS_LAMBDA (int k, int j, int i) {
-           Flux(RHO, k, j, i) = 0.0; 
-           Flux(MX1, k, j, i) = 0.0; 
-           Flux(MX2, k, j, i) = 0.0; 
-           Flux(MX3, k, j, i) = 0.0; 
-           Flux(ENG, k, j, i) = 0.0; 
+           Flux(RHO, k, j, i) = 0.0;
+           Flux(MX1, k, j, i) = 0.0;
+           Flux(MX2, k, j, i) = 0.0;
+           Flux(MX3, k, j, i) = 0.0;
+           Flux(ENG, k, j, i) = 0.0;
       });
     }
 
@@ -114,7 +114,7 @@ void InternalBoundary(Hydro *hydro, const real t) {
       0, data->np_tot[JDIR],
       0, data->np_tot[IDIR],
             KOKKOS_LAMBDA (int k, int j, int i) {
-              
+
               real R = FMAX(x1(i)*std::sin(x2(j)),1.);
               real z2 = std::pow(x1(i)*std::cos(x2(j)),2.);
               real H = h0*std::pow(R/R0,hpow);
@@ -147,14 +147,14 @@ void ComputeUserVars(DataBlock & data, UserDefVariablesContainer &variables) {
   IdefixHostArray3D<real> A1=d.A[IDIR];
   IdefixHostArray3D<real> A2=d.A[JDIR];
   IdefixHostArray3D<real> dV=d.dV;
- 
+
   IdefixArray3D<real> tau;
   IdefixArray4D<real> Vc=(&data)->hydro->Vc;
 
   IdefixHostArray3D<real> divF  = variables["divF"];
   IdefixHostArray3D<real> A1_out  = variables["A1"];
 
-  std::string kappairrType = kappairrtypeGlob; 
+  std::string kappairrType = kappairrtypeGlob;
 
   real rs = rsGlob;
   real Ts = TsGlob;
@@ -168,7 +168,7 @@ void ComputeUserVars(DataBlock & data, UserDefVariablesContainer &variables) {
 
   Kokkos::deep_copy(variables["tau"], tau);
   Kokkos::deep_copy(variables["dV"], dV);
-  
+
   IdefixArray3D<real> rho("rho",d.np_tot[KDIR],d.np_tot[JDIR],d.np_tot[IDIR]);
   idefix_for("init rho",0,data.np_tot[KDIR],0,data.np_tot[JDIR],0,data.np_tot[IDIR],
     KOKKOS_LAMBDA(int k, int j, int i) {
@@ -180,7 +180,7 @@ void ComputeUserVars(DataBlock & data, UserDefVariablesContainer &variables) {
   if(kappairrType=="constant") {
 
     real kappa_irr = kappairrGlob;
-    real kirr = kappa_irr*idfx::units.GetDensity()*idfx::units.GetLength(); 
+    real kirr = kappa_irr*idfx::units.GetDensity()*idfx::units.GetLength();
 
     for(int k = d.beg[KDIR]; k < d.end[KDIR] ; k++) {
       for(int j = d.beg[JDIR]; j < d.end[JDIR] ; j++) {
@@ -198,7 +198,7 @@ void ComputeUserVars(DataBlock & data, UserDefVariablesContainer &variables) {
       }
     }
   } else if (kappairrType=="usertable") {
-    
+
     for(int k = d.beg[KDIR]; k < d.end[KDIR] ; k++) {
       for(int j = d.beg[JDIR]; j < d.end[JDIR] ; j++) {
         for(int i = d.beg[IDIR]; i < d.end[IDIR] ; i++) {
@@ -224,7 +224,7 @@ void ComputeUserVars(DataBlock & data, UserDefVariablesContainer &variables) {
 // Initialisation routine. Can be used to allocate
 // Arrays or variables which are used later on
 Setup::Setup(Input &input, Grid &grid, DataBlock &data, Output &output)
-{ 
+{
   DataBlockHost d(data);
   auto Vc = data.hydro->Vc;
 
@@ -239,11 +239,11 @@ Setup::Setup(Input &input, Grid &grid, DataBlock &data, Output &output)
   gammaGlob=data.hydro->eos->GetGamma();
   rsGlob=input.Get<real>("Rad","irr",1);
   TsGlob=input.Get<real>("Rad","irr",2);
-  
+
   kappairrtypeGlob = input.Get<std::string>("Rad","irr",0);
   kappatypeGlob = input.Get<std::string>("Rad","kappa",0);
   xitypeGlob = input.Get<std::string>("Rad","xi",0);
-  
+
   if (kappairrtypeGlob == "constant") {
     kappairrGlob = input.Get<real>("Rad","irr",3);
   } else if (kappairrtypeGlob == "usertable") {
@@ -255,10 +255,10 @@ Setup::Setup(Input &input, Grid &grid, DataBlock &data, Output &output)
   columnGlob2 = new Column(IDIR,1,&data);
 
   if (kappatypeGlob == "userfunc") {
-    data.radiation[0]->EnrollKappa(&MyKappa); 
+    data.radiation[0]->EnrollKappa(&MyKappa);
   }
   if (xitypeGlob == "userfunc") {
-    data.radiation[0]->EnrollXi(&MyXi); 
+    data.radiation[0]->EnrollXi(&MyXi);
   }
 
   data.hydro->EnrollInternalBoundary(&InternalBoundary);
@@ -292,12 +292,12 @@ void Setup::InitFlow(DataBlock &data) {
     real rhomin = rhominGlob;
     real T0 = T0Glob;
     real mu = muGlob;
-    
+
 
     for(int k = 0; k < d.np_tot[KDIR] ; k++) {
         for(int j = 0; j < d.np_tot[JDIR] ; j++) {
             for(int i = 0; i < d.np_tot[IDIR] ; i++) {
-              
+
               real R = FMAX(d.x[IDIR](i)*std::sin(d.x[JDIR](j)),1.);
               real z2 = std::pow(d.x[IDIR](i)*std::cos(d.x[JDIR](j)),2.);
               real H = h0*std::pow(R/R0,hpow);
@@ -324,4 +324,3 @@ void Setup::InitFlow(DataBlock &data) {
     // Send it all, if needed
     d.SyncToDevice();
 }
-

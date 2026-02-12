@@ -53,19 +53,19 @@ void Fluid<Phys>::EvolveStage(const real t, const real dt) {
   if constexpr(Phys::eos) {
     eos->Refresh(*data, t);
   }
-  
+
   // Compute userfunc opacities
   if constexpr(Phys::radiation) {
-    if (haveUserfuncKappa){
+    if (haveUserfuncKappa) {
       kappaFunc(*data,kappapArr,kapparArr);
     }
-    if (haveUserfuncXi){
+    if (haveUserfuncXi) {
       xiFunc(*data,xiArr);
     }
-    if (haveUserfuncKappairr){
+    if (haveUserfuncKappairr) {
       kappairrFunc(*data,kappairrArr);
     }
-    if (haveUserfuncIrrGeometry){
+    if (haveUserfuncIrrGeometry) {
       irrFunc(*data,irrArr);
     }
   }
@@ -83,7 +83,7 @@ void Fluid<Phys>::EvolveStage(const real t, const real dt) {
     }
   }
 
-  // Step 6: add radiation source terms 
+  // Step 6: add radiation source terms
   if constexpr(Phys::radiation) {
     radsource->AddRadSource(dt);
   }

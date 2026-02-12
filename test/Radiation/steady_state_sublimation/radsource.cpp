@@ -18,7 +18,7 @@ void RadSource::RelativistCorrection(const real dt) {
   auto VcGas = this->VcGas;
   auto UcRad = this->UcRad;
   auto VcRad = this->VcRad;
- 
+
   auto units = idfx::units;
 
   auto kp1D = this->kappa_planck_1D;
@@ -35,7 +35,7 @@ void RadSource::RelativistCorrection(const real dt) {
   const Type_opac kappa_type = this->kappa_type;
   const int kappa_ndim = this->kappa_ndim;
   const int xi_ndim = this->xi_ndim;
-  
+
   IdefixArray3D<real> kappapArr;
   IdefixArray3D<real> kapparArr;
   IdefixArray3D<real> xiArr;
@@ -136,7 +136,7 @@ void RadSource::RelativistCorrection(const real dt) {
       // Compute beta parameter vector
       EXPAND(real beta1 = VGas[VX1]*units.GetVelocity()/units.c;,
              real beta2 = VGas[VX2]*units.GetVelocity()/units.c;,
-             real beta3 = VGas[VX3]*units.GetVelocity()/units.c;)   
+             real beta3 = VGas[VX3]*units.GetVelocity()/units.c;)
 
       // Dot product of beta and Fr
       real betaFr = EXPAND(VRad[FR1]*beta1,+VRad[FR2]*beta2,+VRad[FR3]*beta3);
@@ -151,9 +151,9 @@ void RadSource::RelativistCorrection(const real dt) {
       real f_param2 = (Er2 < 1.e-100 ? Fnorm2/(1.e-100) : Fnorm2/(Er2));
       real chi  = 3.+4.*f_param2;
       chi /= 5.+2.*std::sqrt(4.-3.*f_param2);
-  
+
       // Add momentum-like part of the radiation pressure tensor
-      EXPAND ( real P11 = HALF_F*(3.*chi-1.)*VRad[ER]*VRad[FR1]*VRad[FR1]*inv_Fnorm2;, 
+      EXPAND ( real P11 = HALF_F*(3.*chi-1.)*VRad[ER]*VRad[FR1]*VRad[FR1]*inv_Fnorm2;,
                real P12 = HALF_F*(3.*chi-1.)*VRad[ER]*VRad[FR1]*VRad[FR2]*inv_Fnorm2;
                real P22 = HALF_F*(3.*chi-1.)*VRad[ER]*VRad[FR2]*VRad[FR2]*inv_Fnorm2;,
                real P13 = HALF_F*(3.*chi-1.)*VRad[ER]*VRad[FR1]*VRad[FR3]*inv_Fnorm2;
@@ -164,10 +164,10 @@ void RadSource::RelativistCorrection(const real dt) {
       EXPAND ( P11 += HALF_F*(1.-chi)*VRad[ER];,
                P22 += HALF_F*(1.-chi)*VRad[ER];,
                P33 += HALF_F*(1.-chi)*VRad[ER];)
-      
+
       // Compute beta.(beta.P)
       real beta2P = EXPAND(beta1*beta1*P11, +2.*beta1*beta2*P12+beta2*beta2*P22, +2.*beta1*beta3*P13+2.*beta2*beta3*P23+beta3*beta3*P33);
-      
+
       // Add relativistic correction to energy source term
       real G0 = -2.*betaFr*kappa_p;
       G0 += (xi+kappa_r)*(betaFr - betasq*VRad[ER] - beta2P);
@@ -177,7 +177,7 @@ void RadSource::RelativistCorrection(const real dt) {
       EXPAND ( real G1 = kappa_p*beta1*(VRad[ER]-units.ar*std::pow(T,4)/units.GetEnergy()-2.*betaFr);,
               real G2 = kappa_p*beta2*(VRad[ER]-units.ar*std::pow(T,4)/units.GetEnergy()-2.*betaFr);,
                real G3 = kappa_p*beta3*(VRad[ER]-units.ar*std::pow(T,4)/units.GetEnergy()-2.*betaFr);)
-      
+
 
       EXPAND ( G1 -= (xi+kappa_r)*(beta1*P11+VRad[ER]*beta1);,
                G1 -= (xi+kappa_r)*beta2*P12;
@@ -190,9 +190,9 @@ void RadSource::RelativistCorrection(const real dt) {
                G3 *= VGas[RHO]*units.GetDensity();)
 
 
-      URad[ER] -= G0*dt*units.GetTime()*reduced_c*units.GetVelocity(); 
+      URad[ER] -= G0*dt*units.GetTime()*reduced_c*units.GetVelocity();
       EXPAND( URad[FR1] -= G1*dt*units.GetTime()*reduced_c*units.GetVelocity();,
-              URad[FR2] -= G2*dt*units.GetTime()*reduced_c*units.GetVelocity();, 
+              URad[FR2] -= G2*dt*units.GetTime()*reduced_c*units.GetVelocity();,
               URad[FR3] -= G3*dt*units.GetTime()*reduced_c*units.GetVelocity();)
 
       if ((Etot - URad[ER]*units.c/(reduced_c*units.GetVelocity()))<=ZERO_F) {
@@ -202,14 +202,14 @@ void RadSource::RelativistCorrection(const real dt) {
         //UGas[ENG] = Etot - URad[ER]*units.c/(reduced_c*units.GetVelocity());
         #else
         Kokkos::abort("ENG=0 in RadSourceRelativistCorrection");
-        #endif      
+        #endif
       } else {
         UGas[ENG] = Etot - URad[ER]*units.c/(reduced_c*units.GetVelocity());
       }
       EXPAND( UGas[MX1] = m1tot - URad[FR1]/reduced_c;,
               UGas[MX2] = m2tot - URad[FR2]/reduced_c;,
               UGas[MX3] = m3tot - URad[FR3]/reduced_c;)
-              
+
       for(int nv = 0 ; nv < RadiationPhysics::nvar ; nv++) {
         UcRad(nv,k,j,i) = URad[nv];
       }
@@ -217,10 +217,10 @@ void RadSource::RelativistCorrection(const real dt) {
       for(int nv = 0 ; nv < DefaultPhysics::nvar ; nv++) {
         UcGas(nv,k,j,i) = UGas[nv];
       }
-      
+
   });
 
-    
+
 
 }
 
@@ -228,7 +228,7 @@ void RadSource::SourceFullImplicit(const real dt) {
   idfx::pushRegion("RadSource::Source_full_implicit");
 
   // Ensure that radiation cannot be run with isothermal eos
-  #ifndef ISOTHERMAL 
+  #ifndef ISOTHERMAL
 
   auto UcGas = this->UcGas;
   auto VcGas = this->VcGas;
@@ -294,7 +294,7 @@ void RadSource::SourceFullImplicit(const real dt) {
 
   idefix_for("RadSourceFullImplicit",0,data->np_tot[KDIR],0,data->np_tot[JDIR],0,data->np_tot[IDIR],
     KOKKOS_LAMBDA (int k, int j, int i) {
-  
+
       real URad[RadiationPhysics::nvar];
       real UGas[DefaultPhysics::nvar];
       real VGas[DefaultPhysics::nvar];
@@ -311,20 +311,20 @@ void RadSource::SourceFullImplicit(const real dt) {
 
       // Compute total modified energy
       real Etot = UGas[ENG]+URad[ER]*units.c/(reduced_c*units.GetVelocity());
-      
+
       // Add irradiation heating if needed
-      if (irr_flag){  
+      if (irr_flag){
         Etot -= divF(k,j,i)*dt*units.GetTime()/units.GetEnergy();
       }
 
       // Add viscous energy
       Etot += Qvisc(k,j,i)*dt;
-      
+
       // Compute total modified momentum
       EXPAND(real m1tot = UGas[MX1]+URad[FR1]/reduced_c;,
              real m2tot = UGas[MX2]+URad[FR2]/reduced_c;,
              real m3tot = UGas[MX3]+URad[FR3]/reduced_c;)
-      
+
       // Store conserved variables after hyperbolic step
       real Er_hyp = URad[ER];
       EXPAND(real Fr1_hyp = URad[FR1];,
@@ -332,7 +332,7 @@ void RadSource::SourceFullImplicit(const real dt) {
              real Fr3_hyp = URad[FR3];)
 
       real Fnorm = std::sqrt(EXPAND(URad[FR1]*URad[FR1] , + URad[FR2]*URad[FR2], + URad[FR3]*URad[FR3]));
-        
+
       real mu = eos.GetMu(VGas[PRS],VGas[RHO]);
       real cv = units.k_B/(units.u*mu);
 
@@ -402,7 +402,7 @@ void RadSource::SourceFullImplicit(const real dt) {
       if (irr_flag){
         S1 -= divF(k,j,i)*dt*units.GetTime();
       }
- 
+
       // Add viscous heating to RHS
       S1 += Qvisc(k,j,i)*dt*units.GetEnergy();
 
@@ -432,7 +432,7 @@ void RadSource::SourceFullImplicit(const real dt) {
         #else
         Kokkos::abort("ENG=0 in RadSourceFullImplicit");
         #endif
-        
+
       } else {
         UGas[ENG] = Etot - URad[ER]*units.c/(reduced_c*units.GetVelocity());
       }
@@ -459,14 +459,14 @@ void RadSource::SourceFixedPointRad(const real dt) {
   idfx::pushRegion("RadSource::SourceFixedPointRad");
 
   // Ensure that radiation cannot be run with isothermal eos
-  #ifndef ISOTHERMAL 
+  #ifndef ISOTHERMAL
 
   auto UcGas = this->UcGas;
   auto VcGas = this->VcGas;
   auto UcRad = this->UcRad;
   auto VcRad = this->VcRad;
   auto InvDt = this->InvDt;
-  
+
   auto units=idfx::units;
 
   auto kp1D = this->kappa_planck_1D;
@@ -525,7 +525,7 @@ void RadSource::SourceFixedPointRad(const real dt) {
 
   idefix_for("RadSourceFixedPointRad",0,data->np_tot[KDIR],0,data->np_tot[JDIR],0,data->np_tot[IDIR],
     KOKKOS_LAMBDA (int k, int j, int i) {
-  
+
       // Add heating due to irradiation flux if needed
       if (irr_flag){
         // Limit time step relative to characteristic time of irradiation heating
@@ -544,24 +544,24 @@ void RadSource::SourceFixedPointRad(const real dt) {
       }
 
       for(int nv = 0 ; nv < DefaultPhysics::nvar ; nv++) {
-        UGas[nv] = UcGas(nv,k,j,i); 
+        UGas[nv] = UcGas(nv,k,j,i);
         VGas[nv] = VcGas(nv,k,j,i);
       }
-      
+
       // Compute total modified energy and momentum
       real Etot = UGas[ENG]+URad[ER]*units.c/(reduced_c*units.GetVelocity());
       EXPAND(real m1tot = UGas[MX1]+URad[FR1]/reduced_c;,
              real m2tot = UGas[MX2]+URad[FR2]/reduced_c;,
              real m3tot = UGas[MX3]+URad[FR3]/reduced_c;)
-      
+
       // Store conservative variables after hydro step
       real Er_hyp = URad[ER];
       EXPAND(real Fr1_hyp = URad[FR1];,
              real Fr2_hyp = URad[FR2];,
              real Fr3_hyp = URad[FR3];)
 
-      real Er_old, Fnorm_old, Egas_old, Mnorm_old;      
-    
+      real Er_old, Fnorm_old, Egas_old, Mnorm_old;
+
       real err1= 1.;
       real err2= 1.;
       real err3= 1.;
@@ -600,7 +600,7 @@ void RadSource::SourceFixedPointRad(const real dt) {
         kappa_p = kappapArr(k,j,i);
         kappa_r = kapparArr(k,j,i);
       }
-      
+
       if (xi_type == Type_opac::constant) {
         xi = xi_0;
       } else if (xi_type == Type_opac::usertable) {
@@ -625,7 +625,7 @@ void RadSource::SourceFixedPointRad(const real dt) {
         Fnorm_old = Fnorm;
         Egas_old = UGas[ENG];
         Mnorm_old = Mnorm;
-        
+
         real kk_red = reduced_c * units.GetVelocity() * dt * units.GetTime() * kappa_p * VGas[RHO]*units.GetDensity();
         real xx_red = reduced_c * units.GetVelocity() * dt * units.GetTime() * (xi + kappa_r) * VGas[RHO]*units.GetDensity();
 
@@ -650,17 +650,17 @@ void RadSource::SourceFixedPointRad(const real dt) {
 
         // Update gas primitive variables
         K_ConsToPrim<DefaultPhysics>(VGas, UGas, &eos);
-        
+
         // Compute new temperature
         T = VGas[PRS]/(VGas[RHO])*units.GetKelvin()*mu;
-        
+
         // Compute errors and number of cycles
         err1 = std::abs(1.-URad[ER]/Er_old);
         err2 = std::abs(1.-Fnorm/Fnorm_old);
         err3 = std::abs(1.-UGas[ENG]/Egas_old);
         err4 = std::abs(1.-Mnorm/Mnorm_old);
         count += 1;
-      } 
+      }
 
       for(int nv = 0 ; nv < RadiationPhysics::nvar ; nv++) {
         UcRad(nv,k,j,i) = URad[nv];
@@ -681,14 +681,14 @@ void RadSource::SourceFixedPointGas(const real dt) {
   idfx::pushRegion("RadSource::SourceFixedPointGas");
 
   // Ensure that radiation cannot be run with isothermal eos
-  #ifndef ISOTHERMAL 
+  #ifndef ISOTHERMAL
 
   auto UcGas = this->UcGas;
   auto VcGas = this->VcGas;
   auto UcRad = this->UcRad;
   auto VcRad = this->VcRad;
   auto InvDt = this->InvDt;
-  
+
   real reduced_c = this->reduced_c;
 
   auto units=idfx::units;
@@ -736,15 +736,15 @@ void RadSource::SourceFixedPointGas(const real dt) {
   } else if (xi_type == Type_opac::userfunc) {
     xiArr = this->xiArr;
   }
-  
+
   idefix_for("RadSource",0,data->np_tot[KDIR],0,data->np_tot[JDIR],0,data->np_tot[IDIR],
     KOKKOS_LAMBDA (int k, int j, int i) {
-  
+
       real Etot = UcGas(ENG,k,j,i)+UcRad(ER,k,j,i)*units.c/(reduced_c*units.GetVelocity());
       real m1tot = UcGas(MX1,k,j,i)+UcRad(FR1,k,j,i)/reduced_c;
       real m2tot = UcGas(MX2,k,j,i)+UcRad(FR2,k,j,i)/reduced_c;
       real m3tot = UcGas(MX3,k,j,i)+UcRad(FR3,k,j,i)/reduced_c;
-      
+
       real Er_hyp = UcRad(ER,k,j,i);
       real Fr1_hyp = UcRad(FR1,k,j,i);
       real Fr2_hyp = UcRad(FR2,k,j,i);
@@ -771,7 +771,7 @@ void RadSource::SourceFixedPointGas(const real dt) {
         UGas[nv] = UcGas(nv,k,j,i);
         VGas[nv] = VcGas(nv,k,j,i);
       }
-    
+
       real err1= 1.;
       real err2= 1.;
       real err3= 1.;
@@ -833,7 +833,7 @@ void RadSource::SourceFixedPointGas(const real dt) {
         Fnorm_old = Fnorm;
         Egas_old = UGas[ENG];
         Mnorm_old = Mnorm;
-        
+
         real kk =  units.c * dt * units.GetTime() * kappa_p * VGas[RHO]*units.GetDensity();
         real xx =  dt * units.GetTime() * (xi + kappa_r) * VGas[RHO]*units.GetDensity();
 
@@ -871,9 +871,9 @@ void RadSource::SourceFixedPointGas(const real dt) {
         err3 = std::abs(1.-URad[ER]/Er_old);
         err4 = std::abs(1.-Fnorm/Fnorm_old);
         count += 1;
-        
+
       }
-      
+
       for(int nv = 0 ; nv < RadiationPhysics::nvar ; nv++) {
         UcRad(nv,k,j,i) = URad[nv];
       }
@@ -891,7 +891,7 @@ void RadSource::SourceFixedPointGas(const real dt) {
 void RadSource::ShowConfig() {
 
   // Ensure that radiation cannot be run with isothermal eos
-  #ifndef ISOTHERMAL 
+  #ifndef ISOTHERMAL
 
   idfx::cout << "RadSource: kappa is ";
   switch(kappa_type) {
@@ -943,10 +943,10 @@ void RadSource::ShowConfig() {
       idfx::cout << "fixed_point_gas (to test)." << std::endl;
       break;
   }
- 
- #else 
+
+ #else
     IDEFIX_ERROR("Isothermal EOS is not compatible with radiative transfer.");
- #endif 
+ #endif
 
 }
 
@@ -974,7 +974,7 @@ void RadSource::AddRadSource(const real dt) {
 
 void RadSource::IrrFlux(IdefixArray3D<real> divFin) {
   idfx::pushRegion("RadSource::IrrFlux");
-  
+
   auto VcGas = this->VcGas;
   IdefixArray3D<real>  dV = this->data->dV;
   IdefixArray3D<real>  A1 = this->data->A[IDIR];
@@ -989,7 +989,7 @@ void RadSource::IrrFlux(IdefixArray3D<real> divFin) {
   real kappa_irr = this->kappa_irr;
 
   real flux_pre = std::pow(rs/units.GetLength(),2.)*units.sigma_sb*std::pow(Ts,4.)/units.GetLength();
-  
+
   if (irr_type==Type_irr::constant){
     column_rho->ComputeColumn(this->VcGas,RHO);
     tau = column_rho->GetColumn();
@@ -1021,14 +1021,14 @@ void RadSource::IrrFlux(IdefixArray3D<real> divFin) {
                 real kirr = kappa_irr*units.GetDensity()*units.GetLength();
                 Fim = std::exp(-kirr*tau(k,j,i-1))*A1(k,j,i)/std::pow(x1l(i),2.);
                 Fip = std::exp(-kirr*tau(k,j,i))*A1(k,j,i+1)/std::pow(x1l(i+1),2.);
-                
+
               // Usertable kappa
-              } else if (irr_type==Type_irr::usertable) {  
+              } else if (irr_type==Type_irr::usertable) {
                 real logtaum = std::log10(FMAX(tau(k,j,i-1)*units.GetDensity()*units.GetLength(),1.e-15));
                 Fim = pow(10.,irr1D.Get(&logtaum))*A1(k,j,i)/std::pow(x1l(i),2.);
                 real logtaup = std::log10(FMAX(tau(k,j,i)*units.GetDensity()*units.GetLength(),1.e-15));
                 Fip = pow(10.,irr1D.Get(&logtaup))*A1(k,j,i+1)/std::pow(x1l(i+1),2.);
-              
+
               // Userfunc kappa
               } else if (irr_type==Type_irr::userfunc){
                 Fim = std::exp(-tau(k,j,i-1))*A1(k,j,i)/std::pow(x1l(i),2.);
@@ -1046,7 +1046,7 @@ void RadSource::IrrFlux(IdefixArray3D<real> divFin) {
 
   void RadSource::Qviscous(IdefixArray3D<real> Qviscin) {
   idfx::pushRegion("RadSource::Qvisc");
-  
+
   auto VcGas = this->VcGas;
   IdefixArray3D<real>  dV = this->data->dV;
   IdefixArray3D<real>  A1 = this->data->A[IDIR];
@@ -1080,4 +1080,4 @@ void RadSource::IrrFlux(IdefixArray3D<real> divFin) {
   idfx::popRegion();
 
 
-} 
+}

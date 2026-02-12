@@ -337,7 +337,7 @@ void ComputeUserVars(DataBlock & data, UserDefVariablesContainer &variables) {
 
   IdefixArray4D<real> FluxRiemannIDIR = data.hydro->FluxRiemann[IDIR];
   IdefixArray4D<real> FluxRiemannJDIR = data.hydro->FluxRiemann[JDIR];
-  
+
 //  idefix_for("UserVar",0,data.np_tot[KDIR],0,data.np_tot[JDIR],0,data.np_tot[IDIR],
 //   KOKKOS_LAMBDA (int k, int j, int i) {
 //      scrh1(k,j,i) = FluxRiemannIDIR(RHO,k,j,i);
@@ -379,7 +379,7 @@ void ComputeUserVars(DataBlock & data, UserDefVariablesContainer &variables) {
 
   // Make references to the user-defined arrays (variables is a container of IdefixHostArray3D)
   // Note that the labels should match the variable names in the input file
-  
+
   for(int k = d.beg[KDIR]; k < d.end[KDIR] ; k++) {
     for(int j = d.beg[JDIR]; j < d.end[JDIR] ; j++) {
       for(int i = d.beg[IDIR]; i < d.end[IDIR] ; i++) {
@@ -406,7 +406,7 @@ void ComputeUserVars(DataBlock & data, UserDefVariablesContainer &variables) {
 //        variables["BVBt"](k,j,i) = BV*d.Vc(BX2,k,j,i);
 //        variables["Emfr"](k,j,i) = d.Ex1(k,j,i);
 //        variables["Emft"](k,j,i) = d.Ex2(k,j,i);
-//  	variables["Emfp"](k,j,i) = d.Ex3(k,j,i);
+//      variables["Emfp"](k,j,i) = d.Ex3(k,j,i);
 
         divB(k,j,i) = ((Ax1(k,j,i+1)*Vs(BX1s,k,j,i+1)-Ax1(k,j,i)*Vs(BX1s,k,j,i)) +
                       (Ax2(k,j+1,i)*Vs(BX2s,k,j+1,i)-Ax2(k,j,i)*Vs(BX2s,k,j,i)) +
@@ -592,11 +592,11 @@ void Setup::InitFlow(DataBlock &data) {
                     d.Ve(AX3e,k,j,i) = B0*(
                                       1/(gammaB+2)*(pow(R,gammaB+1) - pow(Rin,gammaB+2)/R)
                                       + Rin*Rin/(2.0*R));
-		    //d.Ve(AX3e,k,j,i) = B0*(pow(Rin,m+2.0)/R * (-1.0/(m+2.0)) + pow(R,m+1.0)/(m+2.0));
+            //d.Ve(AX3e,k,j,i) = B0*(pow(Rin,m+2.0)/R * (-1.0/(m+2.0)) + pow(R,m+1.0)/(m+2.0));
                   }
                   else {
                     d.Ve(AX3e,k,j,i) = B0*R/2.0;
-		    //d.Ve(AX3e,k,j,i) = 0.0;
+            //d.Ve(AX3e,k,j,i) = 0.0;
                   }
                 #else
                   if(R>Rin) {
