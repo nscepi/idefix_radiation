@@ -1,6 +1,6 @@
-.. _dustModule:
+.. _radiationModule:
 
-Dust fluid module
+Radiation module
 =========================
 
 Equations
