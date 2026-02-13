@@ -82,8 +82,6 @@ void RiemannSolver<Phys>::HllRad(IdefixArray4D<real> &Flux) {
 
       // Limit the fluxes after extrapolation to satisfy Fr<=Er
       K_LimitRadFluxReconstruct(vL,vR,v,voffset);
-      //K_LimitRadFlux(vL);
-      //K_LimitRadFlux(vR);
 
       // 2-- Get the wave speed
       K_SpeedsRad(lambdaL,vL,Xn,reduced_c,&xiL);

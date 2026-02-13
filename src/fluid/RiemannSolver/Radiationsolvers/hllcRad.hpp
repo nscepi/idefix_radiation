@@ -85,8 +85,6 @@ void RiemannSolver<Phys>::HllcRad(IdefixArray4D<real> &Flux) {
 
       // Limit Fr after extrapolation to satisfy Fr<=Er
       K_LimitRadFluxReconstruct(vL,vR,v,voffset);
-      //K_LimitRadFlux(vL);
-      //K_LimitRadFlux(vR);
 
       // 2-- Get the wave speed
       K_SpeedsRad(lambdaL,vL,Xn, reduced_c,&xiL);
@@ -127,12 +125,8 @@ void RiemannSolver<Phys>::HllcRad(IdefixArray4D<real> &Flux) {
         for (int nv = 0 ; nv < Phys::nvar; nv++) {
            Flux(nv,k,j,i) = fluxR[nv];
         }
-//       // switch to LFR solver if speeds are small
+       // switch to LFR solver if speeds are small
 //      } else if (FABS(SL) < SMALL_NUMBER && FABS(SR) < SMALL_NUMBER) {
-      //if (FABS(SL) < SMALL_NUMBER && FABS(SR) < SMALL_NUMBER) {
-//      if (FABS(dS) < SMALL_NUMBER) {
-//        dS = SMALL_NUMBER;
-      //  std::printf("Switch to LFR where velocities are the same at i=%i,j=%i,k=%i\n",i,j,k);
 //#pragma unroll
         //for (int nv = 0 ; nv < Phys::nvar; nv++) {
         //  Flux(nv,k,j,i) = 0.5*(fluxL[nv] + fluxR[nv]-cmax*(uR[nv]-uL[nv]));
@@ -195,36 +189,20 @@ void RiemannSolver<Phys>::HllcRad(IdefixArray4D<real> &Flux) {
         real BR = SR*vR[Xn] - fluxR[Xn];
         BR *= reduced_c;
 
-        //std::printf("vR[ER]=%e, vR[FR1]=%e, fluxR[ER]=%e, vL[ER]=%e, vL[FR1]=%e,"
-        //"fluxL[ER]=%e, AL=%e,AR=%e,BL=%e,BR=%e at i=%i, j=%i, k=%i and DIR=%i\n",
-        //vR[ER],vR[Xn],fluxR[ER],vL[ER],vL[Xn],fluxL[ER],AL,AR,BR,BL,i,j,k,DIR);
-
-        //real fpL = EXPAND(ZERO_F, + vL[Xt]*vL[Xt], + vL[Xb]*vL[Xb]) ;
-        //real fpR = EXPAND(ZERO_F, + vR[Xt]*vR[Xt], + vR[Xb]*vR[Xb]) ;
-
         real eeL = 1e-10*vL[ER];
         real eeR = 1e-10*vR[ER];
         real ee = 1.e-10*FMAX(eeL,eeR);
         ee = FMAX(ee,1.e-20);
-        //if( (fabs(AL)<(reduced_c*eeL) && fabs(AR)<(reduced_c*eeR)) ||
-        //    (fabs(fpL)<(eeL) && fabs(fpR)<(eeR)) ){
-        //if( true ){
-        //if( (fabs(FnormL - vL[ER]) < eeL) &&
-        //    (fabs(FnormR - vR[ER]) < eeR) &&
-        //    ((vL[Xn]/FnormL) <= (vR[Xn]/FnormR))){
+
         if( (fabs(AL) < ee) && (fabs(AR) < ee) && (fabs(BL) < ee) && (fabs(BR) < ee)) {
 #pragma unroll
             for(int nv = 0 ; nv < Phys::nvar; nv++) {
-                //std::printf("Switch to HLL solver because of vacuum like int. states at"
-                //"i=%i, x=%e, FxL/FL=%e, FxR=%e,FR=%e\n",
-                //i,this->data->x[DIR][i],uL[Xn]/FnormL,vR[Xn],FnormR);
                 //std::printf("Switch to HLL solver because of vacuum like int. states at"
                 //"i=%i, j=%i, k=%i and DIR=%i, AL=%e, AR=%e,"
                 //"BL=%e, BR=%e, f2_paramL=%e, f2_paramR=%e\n",
                 //i,j,k,DIR,AL,AR,BL,BR,f2_paramL,f2_paramR);
                 Flux(nv,k,j,i) = SL*SR*uR[nv] - SL*SR*uL[nv] + SR*fluxL[nv] - SL*fluxR[nv];
                 Flux(nv,k,j,i) /= dS;
-                //std::printf("dS=%e at i=%i\n",dS,i);
                 if (std::isnan(Flux(nv,k,j,i))) {
                   //throw std::runtime_error("Nan in HLL part of solver.");
                   Kokkos::abort("Nan in HLL part of solver.");
@@ -248,11 +226,6 @@ void RiemannSolver<Phys>::HllcRad(IdefixArray4D<real> &Flux) {
             real us   = c/scrh;
             real ps = (AL*us - BL)/(reduced_c*reduced_c - us*SL);
 
-            //std::printf("vR[FR1]=%e, vL[FR1]=%e, AL=%e,AR=%e,BL=%e,BR=%e,"
-            //"scrh=%e, fluxL=%e, fluxR=%e at i=%i, j=%i, k=%i and DIR=%i\n",
-            //vR[Xn],vL[Xn],AL,AR,BR,BL,scrh,fluxL[ER],fluxR[ER],i,j,k,DIR);
-            //std::printf("c=%e at i=%i\n",c,i);
-
             EXPAND( usL[Xn] = (SL*(vL[ER] + ps) - reduced_c*vL[Xn])*us/(SL - us)/reduced_c;
                     usR[Xn] = (SR*(vR[ER] + ps) - reduced_c*vR[Xn])*us/(SR - us)/reduced_c; ,
                     usL[Xt] = vL[Xt]*(SL - betaL)/(SL - us);
@@ -268,11 +241,6 @@ void RiemannSolver<Phys>::HllcRad(IdefixArray4D<real> &Flux) {
               for(int nv = 0 ; nv < Phys::nvar; nv++) {
                   Flux(nv,k,j,i) = fluxL[nv] + SL*(usL[nv] - uL[nv]);
                   if (std::isnan(Flux(nv,k,j,i))) {
-                    //std::printf("SR = %e, SL=%e, vR[ER]=%e, vL[ER]=%e, uR[ER]=%e, uL[ER]=%e,"
-                    //"uR[FX1]=%e,uL[FX1]=%e, usR[ER]=%e, usL[ER]=%e,  usR[FX1]=%e, usL[FX1]=%e,"
-                    //"ps=%e, us=%e,b*b - 4.0*a*c=%e, AR=%e, AL=%e, BR=%e, BL=%e\n",
-                    //SR,SL,vR[ER],vL[ER],uR[ER],uL[ER],uR[Xn],uL[Xn],usR[ER],usL[ER],
-                    //usR[Xn],usL[Xn],ps,us,b*b - 4.0*a*c,AR,AL,BR,BL);
                     //throw std::runtime_error("Nan in HLLC us>0 part of solver.");
                     Kokkos::abort("Nan in HLLC us>0 part of solver.");
                   }
@@ -282,11 +250,6 @@ void RiemannSolver<Phys>::HllcRad(IdefixArray4D<real> &Flux) {
               for(int nv = 0 ; nv < Phys::nvar; nv++) {
                   Flux(nv,k,j,i) = fluxR[nv] + SR*(usR[nv] - uR[nv]);
                   if (std::isnan(Flux(nv,k,j,i))) {
-                    //std::printf("SR = %e, SL=%e, vR[ER]=%e, vL[ER]=%e, uR[ER]=%e, uL[ER]=%e,"
-                    //"uR[FX1]=%e,uL[FX1]=%e, usR[ER]=%e, usL[ER]=%e,  usR[FX1]=%e, usL[FX1]=%e,"
-                    //"ps=%e, us=%e,b*b - 4.0*a*c=%e, AR=%e, AL=%e, BR=%e, BL=%e\n",
-                    //SR,SL,vR[ER],vL[ER],uR[ER],uL[ER],uR[Xn],uL[Xn],usR[ER],usL[ER],
-                    //usR[Xn],usL[Xn],ps,us,b*b - 4.0*a*c,AR,AL,BR,BL);
                     //throw std::runtime_error("Nan in HLLC us<0 part of solver.");
                     Kokkos::abort("Nan in HLLC us<0 part of solver.");
                   }
