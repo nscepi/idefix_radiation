@@ -161,6 +161,11 @@ DataBlock::DataBlock(Grid &grid, Input &input) {
   if(input.CheckBlock("Rad")) {
     haveRadiation = true;
     int nFrequencies = input.Get<int>("Rad","nFrequencies",0);
+    if (nFrequencies >1) {
+      std::stringstream msg;
+      msg << "Only 1 frequency group is currently accepted." << std::endl;
+      IDEFIX_ERROR(msg);
+    }
     for(int i = 0 ; i < nFrequencies ; i++) {
       radiation.emplace_back(std::make_unique<Fluid<RadiationPhysics>>(grid, input, this, i));
     }
@@ -369,7 +374,8 @@ void DataBlock::ShowConfig() {
     }*/
   }
   if(haveRadiation) {
-    idfx::cout << "DataBlock: evolving " << radiation.size() << " radiation frequencies." << std::endl;
+    idfx::cout << "DataBlock: evolving " << radiation.size()
+               << " radiation frequencies." << std::endl;
     // Only show the config the first radiation frequency
     radiation[0]->ShowConfig();
     /*
