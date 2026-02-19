@@ -28,13 +28,15 @@ void MyKappa(DataBlock &data, IdefixArray3D<real> &kappap, IdefixArray3D<real> &
   real Mmax = MmaxGlob;
   real sigmae = sigmaeGlob;
 
-  idefix_for("MyKappa",1,data.np_tot[KDIR],1,data.np_tot[JDIR],1,data.np_tot[IDIR],
+  idefix_for("MyKappa",data.beg[KDIR],data.end[KDIR],data.beg[JDIR],data.end[JDIR],data.beg[IDIR],data.end[IDIR],
               KOKKOS_LAMBDA (int k, int j, int i) {
 
-                real dvdr = (Vc(VX1,k,j,i)-Vc(VX1,k,j,i-1))/dr(i);
+                real dvdr = Kokkos::fabs(Vc(VX1,k,j,i)-Vc(VX1,k,j,i-1))/dr(i);
                 real cs = std::sqrt(Vc(PRS,k,j,i)/Vc(RHO,k,j,i));
                 real t = sigmae*units.GetDensity()*units.GetLength()*Vc(RHO,k,j,i)*cs/dvdr;
-                real M = k*std::pow(t,alpha);
+                if (t > 1.e10) t = 1.e10;
+                real M = Kokkos::min(k*std::pow(t,alpha),Mmax);
+                std::printf("VX1[i]=%e, VX1[i]=%e, dvdr=%e t=%e, M=%e at i=%i\n",Vc(VX1,k,j,i),Vc(VX1,k,j,i-1),dvdr,t,M,i);
 
                 kappap(k,j,i) = (1.+M)*sigmae;
                 kappar(k,j,i) = (1.+M)*sigmae;
@@ -51,15 +53,16 @@ void MyXi(DataBlock &data, IdefixArray3D<real> &xi) {
   real Mmax = MmaxGlob;
   real sigmae = sigmaeGlob;
 
-  idefix_for("MyXi",1,data.np_tot[KDIR],1,data.np_tot[JDIR],1,data.np_tot[IDIR],
+  idefix_for("MyXi",data.beg[KDIR],data.end[KDIR],data.beg[JDIR],data.end[JDIR],data.beg[IDIR],data.end[IDIR],
               KOKKOS_LAMBDA (int k, int j, int i) {
 
-                real dvdr = (Vc(VX1,k,j,i)-Vc(VX1,k,j,i-1))/dr(i);
+                real dvdr = Kokkos::fabs(Vc(VX1,k,j,i)-Vc(VX1,k,j,i-1))/dr(i);
                 real cs = std::sqrt(Vc(PRS,k,j,i)/Vc(RHO,k,j,i));
                 real t = sigmae*units.GetDensity()*units.GetLength()*Vc(RHO,k,j,i)*cs/dvdr;
-                real M = k*std::pow(t,alpha);
+                if (t > 1.e10) t = 1.e10;
+                real M = Kokkos::min(k*std::pow(t,alpha),Mmax);
 
-                xi(k,j,i) = (1.+k)*sigmae;
+                xi(k,j,i) = (1.+M)*sigmae;
               });
 }
 
@@ -235,7 +238,7 @@ void Setup::InitFlow(DataBlock &data) {
             for(int i = 0; i < d.np_tot[IDIR] ; i++) {
 
 
-              d.Vc(RHO,k,j,i) = rho0/idfx::units.GetDensity();
+              d.Vc(RHO,k,j,i) = rho0/idfx::units.GetDensity()/d.x[IDIR](i);
               d.Vc(PRS,k,j,i) = rho0*Ts/idfx::units.GetKelvin();
               d.Vc(VX1,k,j,i) = 0.;
               d.Vc(VX2,k,j,i) = 0.;
