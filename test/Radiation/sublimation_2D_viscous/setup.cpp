@@ -23,32 +23,43 @@ real rhosindexGlob;
 real TwidthGlob;
 real f0Glob;
 real kappastarGlob;
+real kapparimGlob;
 real kappagasGlob;
 real MGlob;
 real GGlob;
 real densityFloorGlob;
 real TMriGlob;
 real rhoindexGlob;
+real alphawidthGlob;
+real tauwidthGlob;
 
 Column *columnGlob;
-Column *columnGlob2;
 LookupTable<1> *kappatableGlob;
 
 
-void MyKappa(DataBlock &data, IdefixArray3D<real> &kappap, IdefixArray3D<real> &kappar) {
+
+void MyKappairr(DataBlock &data, IdefixArray3D<real> &kappairr) {
   IdefixArray4D<real> Vc=data.hydro->Vc;
   auto units = idfx::units;
+  real kappa_gas = kappagasGlob;
+  real rs = rsGlob;
+  IdefixArray1D<real> r = data.x[IDIR];
 
   IdefixArray3D<real> tau;
-  IdefixArray3D<real> kappa=(&data)->radiation[0]->radsource->kappapArr;
+  IdefixArray3D<real> kappa=(&data)->radiation[0]->radsource->kappairrArr;
   IdefixArray3D<real> kapparho("rho",data.np_tot[KDIR],data.np_tot[JDIR],data.np_tot[IDIR]);
-  idefix_for("init rho",0,data.np_tot[KDIR],0,data.np_tot[JDIR],0,data.np_tot[IDIR],
+  idefix_for("init kapparho in MyKappairr",0,data.np_tot[KDIR],0,data.np_tot[JDIR],0,data.np_tot[IDIR],
     KOKKOS_LAMBDA(int k, int j, int i) {
-      kapparho(k,j,i) = Vc(RHO,k,j,i)*kappa(k,j,i)*units.GetDensity()*units.GetLength();
+      kapparho(k,j,i) = Vc(RHO,k,j,i)*kappairr(k,j,i)*units.GetDensity()*units.GetLength();
     });
 
   columnGlob->ComputeColumn(kapparho);
   tau = columnGlob->GetColumn();
+  idefix_for("add tau0 in MyKappairr",0,data.np_tot[KDIR],0,data.np_tot[JDIR],0,data.np_tot[IDIR],
+    KOKKOS_LAMBDA(int k, int j, int i) {
+      tau(k,j,i) += Vc(RHO,k,j,0)*units.GetDensity()*kappa_gas*(r(0)*units.GetLength()-rs);
+  });
+
 
   IdefixArray1D<real> dr = data.dx[IDIR];
 
@@ -58,8 +69,62 @@ void MyKappa(DataBlock &data, IdefixArray3D<real> &kappap, IdefixArray3D<real> &
   real Twidth = TwidthGlob;
   real f0 = f0Glob;
   real kappa_star = kappastarGlob;
-  real kappa_gas = kappagasGlob;
   real mu = muGlob;
+  real tauwidth = tauwidthGlob;
+
+  idefix_for("MyKappairr",0,data.np_tot[KDIR],0,data.np_tot[JDIR],0,data.np_tot[IDIR],
+              KOKKOS_LAMBDA (int k, int j, int i) {
+
+                real Tsublim = Tsub*std::pow(Vc(RHO,k,j,i)*units.GetDensity()/rhos,rhos_index);
+                real T = Vc(PRS,k,j,i)/Vc(RHO,k,j,i)*units.GetKelvin()*mu;
+                real f_delta = 0.2/(Vc(RHO,k,j,i)*units.GetDensity()*kappa_star*dr(i)*units.GetLength())-kappa_gas/kappa_star;
+                real f_gtod;
+                if ((T < Tsublim) && (tau(k,j,i) > 3.)){
+                  f_gtod = f0;
+                } else {
+                  f_gtod = f_delta*0.25*(1.-std::tanh(std::pow((T-Tsublim)/Twidth,3.)));
+                  f_gtod *= 1.-std::tanh((2./3.-tau(k,j,i))/tauwidth);
+                }
+        f_gtod = FMAX(1.e-10,f_gtod);
+                f_gtod = FMIN(f_gtod,f0);
+                kappairr(k,j,i) = kappa_star*f_gtod+kappa_gas;
+                //kappairr(k,j,i) = 0.;
+              });
+}
+
+void MyKappa(DataBlock &data, IdefixArray3D<real> &kappap, IdefixArray3D<real> &kappar) {
+  IdefixArray4D<real> Vc=data.hydro->Vc;
+  auto units = idfx::units;
+  real kappa_gas = kappagasGlob;
+  real rs = rsGlob;
+  IdefixArray1D<real> r = data.x[IDIR];
+
+  IdefixArray3D<real> tau;
+  IdefixArray3D<real> kappa=(&data)->radiation[0]->radsource->kappapArr;
+  IdefixArray3D<real> kapparho("rho",data.np_tot[KDIR],data.np_tot[JDIR],data.np_tot[IDIR]);
+  idefix_for("init kapparho in MyKappa",0,data.np_tot[KDIR],0,data.np_tot[JDIR],0,data.np_tot[IDIR],
+    KOKKOS_LAMBDA(int k, int j, int i) {
+      kapparho(k,j,i) = Vc(RHO,k,j,i)*kappa(k,j,i)*units.GetDensity()*units.GetLength();
+    });
+
+  columnGlob->ComputeColumn(kapparho);
+  tau = columnGlob->GetColumn();
+  idefix_for("add tau0 in MyKappa",0,data.np_tot[KDIR],0,data.np_tot[JDIR],0,data.np_tot[IDIR],
+    KOKKOS_LAMBDA(int k, int j, int i) {
+      tau(k,j,i) += Vc(RHO,k,j,0)*units.GetDensity()*kappa_gas*(r(0)*units.GetLength()-rs);
+  });
+
+  IdefixArray1D<real> dr = data.dx[IDIR];
+
+  real Tsub = TsubGlob;
+  real rhos = rhosGlob;
+  real rhos_index = rhosindexGlob;
+  real Twidth = TwidthGlob;
+  real f0 = f0Glob;
+  real kappa_star = kappastarGlob;
+  real kappa_rim = kapparimGlob;
+  real mu = muGlob;
+  real tauwidth = tauwidthGlob;
 
   idefix_for("MyKappa",0,data.np_tot[KDIR],0,data.np_tot[JDIR],0,data.np_tot[IDIR],
               KOKKOS_LAMBDA (int k, int j, int i) {
@@ -68,15 +133,19 @@ void MyKappa(DataBlock &data, IdefixArray3D<real> &kappap, IdefixArray3D<real> &
                 real T = Vc(PRS,k,j,i)/Vc(RHO,k,j,i)*units.GetKelvin()*mu;
                 real f_delta = 0.2/(Vc(RHO,k,j,i)*units.GetDensity()*kappa_star*dr(i)*units.GetLength())-kappa_gas/kappa_star;
                 real f_gtod;
-                //if ((T < Tsublim) || (tau(k,j,i) > 3.)){
-                //  f_gtod = f0;
-                //} else {
-                //  f_gtod = f_delta*0.25*(1.-std::tanh(std::pow((T-Tsublim)/Twidth,3.)));
-                //}
-                //f_gtod *= 1.-std::tanh(2./3.-tau(k,j,i));
-                f_gtod = 1.e-3;
-                kappap(k,j,i) = kappa_star*f_gtod+kappa_gas;
-                kappar(k,j,i) = kappa_star*f_gtod+kappa_gas;
+                if ((T < Tsublim) && (tau(k,j,i) > 3.)){
+                  f_gtod = f0;
+                } else {
+                  f_gtod = f_delta*0.25*(1.-std::tanh(std::pow((T-Tsublim)/Twidth,3.)));
+          f_gtod *= 1.-std::tanh((2./3.-tau(k,j,i))/tauwidth);
+                }
+        f_gtod = FMAX(1.e-10,f_gtod);
+                f_gtod = FMIN(f_gtod,f0);
+                //f_gtod = f0;
+                kappap(k,j,i) = kappa_rim*f_gtod+kappa_gas;
+                //kappap(k,j,i) = 0.;
+                kappar(k,j,i) = kappa_rim*f_gtod+kappa_gas;
+                //kappar(k,j,i) = 0.;
               });
 }
 
@@ -94,6 +163,7 @@ void MyViscosity(DataBlock &data, const real t, IdefixArray3D<real> &eta1, Idefi
   real R0 = R0Glob;
   real T_MRI = TMriGlob;
   real mu = muGlob;
+  real alphawidth = alphawidthGlob;
 
   idefix_for("MyViscosity",0,data.np_tot[KDIR],0,data.np_tot[JDIR],0,data.np_tot[IDIR],
               KOKKOS_LAMBDA (int k, int j, int i) {
@@ -101,7 +171,7 @@ void MyViscosity(DataBlock &data, const real t, IdefixArray3D<real> &eta1, Idefi
                 real cs2 = Vc(PRS,k,j,i)/Vc(RHO,k,j,i);
                 real T = cs2*units.GetKelvin()*mu;
                 real Omega = std::sqrt(CG)*std::pow(R,-1.5);
-                real alpha = (alphaMRI-alphaDZ)*0.5*(1.-std::tanh((T_MRI-T)/250.))+alphaDZ;
+                real alpha = (alphaMRI-alphaDZ)*0.5*(1.-std::tanh((T_MRI-T)/alphawidth))+alphaDZ;
                 eta1(k,j,i) = alpha*cs2*Vc(RHO,k,j,i)/Omega;
                 eta2(k,j,i) = 0.;
               });
@@ -137,27 +207,6 @@ void UserdefBoundaryNoStress(Fluid<DefaultPhysics> *hydro, int dir, BoundarySide
           }
           Vc(VX2,k,j,i) = Vc(VX2,k,j,ighost);
         });
-    } else if (side ==right) {
-      ighost = data->nghost[IDIR];
-      nxi = data->np_int[IDIR];
-      ibeg = data->end[IDIR];
-      iend = data->np_tot[IDIR];
-      idefix_for("UserDefBoundary",
-        0, data->np_tot[KDIR],
-        0, data->np_tot[JDIR],
-        ibeg, iend,
-        KOKKOS_LAMBDA (int k, int j, int i) {
-          Vc(RHO,k,j,i) = Vc(RHO,k,j,ighost+nxi-1);
-          Vc(VX3,k,j,i) = Vc(VX3,k,j,ighost+nxi-1);
-
-          Vc(PRS,k,j,i) = Vc(PRS,k,j,ighost+nxi-1)/Vc(RHO,k,j,ighost+nxi-1)*Vc(RHO,k,j,i);
-          if(Vc(VX1,k,j,ighost+nxi-1)<=ZERO_F){
-            Vc(VX1,k,j,i)=ZERO_F;
-          }else {
-            Vc(VX1,k,j,i) = Vc(VX1,k,j,ighost+nxi-1);
-          }
-          Vc(VX2,k,j,i) = Vc(VX2,k,j,ighost+nxi-1);
-        });
     }
   }
 }
@@ -168,7 +217,6 @@ void UserdefBoundaryRad(Fluid<RadiationPhysics> *radiation, int dir, BoundarySid
   auto units=idfx::units;
 
   real T0 = T0Glob;
-  real flux_stellar = std::pow(rsGlob/units.GetLength(),2.)*units.sigma_sb*std::pow(TsGlob,4.)/units.GetEnergy()/units.c;
 
   IdefixArray1D<real> x1 = data->x[IDIR];
   IdefixArray1D<real> x2 = data->x[JDIR];
@@ -191,25 +239,6 @@ void UserdefBoundaryRad(Fluid<RadiationPhysics> *radiation, int dir, BoundarySid
           }
           Vc(FR2,k,j,i) = Vc(FR2,k,j,ighost);
           Vc(FR3,k,j,i) = Vc(FR3,k,j,ighost);
-        });
-    } else if (side==right){
-      ighost = data->nghost[IDIR];
-      nxi = data->np_int[IDIR];
-      ibeg = data->end[IDIR];
-      iend =data->np_tot[IDIR];
-      idefix_for("UserDefBoundaryRad",
-        0, data->np_tot[KDIR],
-        0, data->np_tot[JDIR],
-        ibeg, iend,
-        KOKKOS_LAMBDA (int k, int j, int i) {
-          Vc(ER,k,j,i) = units.ar*std::pow(10.,4.)/units.GetEnergy();
-          if (Vc(FR1,k,j,ighost+nxi-1) <=ZERO_F){
-            Vc(FR1,k,j,i) = ZERO_F;
-          } else {
-            Vc(FR1,k,j,i) = Vc(FR1,k,j,ighost+nxi-1);
-          }
-          Vc(FR2,k,j,i) = Vc(FR2,k,j,ighost+nxi-1);
-          Vc(FR3,k,j,i) = Vc(FR3,k,j,ighost+nxi-1);
         });
     }
   }
@@ -235,9 +264,8 @@ void ComputeUserVars(DataBlock & data, UserDefVariablesContainer &variables) {
   IdefixHostArray3D<real> dV=d.dV;
 
   IdefixArray3D<real> tau;
-  //IdefixArray3D<real> tau2;
   IdefixArray4D<real> Vc=(&data)->hydro->Vc;
-  IdefixArray3D<real> kappa=(&data)->radiation[0]->radsource->kappapArr;
+  IdefixArray3D<real> kappa=(&data)->radiation[0]->radsource->kappairrArr;
 
   IdefixHostArray3D<real> divF  = variables["divF"];
   IdefixHostArray3D<real> A1_out  = variables["A1"];
@@ -251,20 +279,24 @@ void ComputeUserVars(DataBlock & data, UserDefVariablesContainer &variables) {
 
 
   IdefixArray3D<real> kapparho("rho",d.np_tot[KDIR],d.np_tot[JDIR],d.np_tot[IDIR]);
-  idefix_for("init rho",0,data.np_tot[KDIR],0,data.np_tot[JDIR],0,data.np_tot[IDIR],
+  idefix_for("compute tau in UserVar",0,data.np_tot[KDIR],0,data.np_tot[JDIR],0,data.np_tot[IDIR],
     KOKKOS_LAMBDA(int k, int j, int i) {
-      kapparho(k,j,i) = Vc(RHO,k,j,i)*kappa(k,j,i)*units.GetDensity();
+      kapparho(k,j,i) = Vc(RHO,k,j,i)*kappa(k,j,i)*units.GetDensity()*units.GetLength();
     });
 
   columnGlob->ComputeColumn(kapparho);
   tau = columnGlob->GetColumn();
+  real kappagas = kappagasGlob;
 
-  //columnGlob->ComputeColumn(Vc,RHO);
-  //tau = columnGlob->GetColumn();
+  idefix_for("add tau_0",0,data.np_tot[KDIR],0,data.np_tot[JDIR],0,data.np_tot[IDIR],
+    KOKKOS_LAMBDA(int k, int j, int i) {
+      real tau_in = kappagas*(x1l(0)*units.GetLength()-rs);
+      tau_in *= Vc(RHO,k,j,0)*units.GetDensity();
+      tau(k,j,i) += tau_in;
+    });
 
 
   Kokkos::deep_copy(variables["tau"], tau);
-  //Kokkos::deep_copy(variables["tau2"], tau2);
   Kokkos::deep_copy(variables["dV"], dV);
 
   if(kappatypeGlob=="constant") {
@@ -297,6 +329,22 @@ void ComputeUserVars(DataBlock & data, UserDefVariablesContainer &variables) {
           real Fip = pow(10.,kappatableGlob->GetHost(&logtaup))*A1(k,j,i+1)/std::pow(x1l(i+1),2.);
           divF(k,j,i)  = flux_pre*(Fip-Fim)/dV(k,j,i);
 
+        }
+      }
+    }
+  } else if (kappatypeGlob=="userfunc") {
+
+    for(int k = d.beg[KDIR]; k < d.end[KDIR] ; k++) {
+      for(int j = d.beg[JDIR]; j < d.end[JDIR] ; j++) {
+        for(int i = d.beg[IDIR]; i < d.end[IDIR] ; i++) {
+          A1_out(k,j,i) = A1(k,j,i);
+
+          real tau_in = kappagas*(x1l(0)*units.GetLength()-rs);
+          tau_in *= Vc(RHO,k,j,0)*units.GetDensity();
+
+          real Fim = std::exp(-variables["tau"](k,j,i-1)-tau_in)*A1(k,j,i)/std::pow(x1l(i),2.);
+          real Fip = std::exp(-variables["tau"](k,j,i)-tau_in)*A1(k,j,i+1)/std::pow(x1l(i+1),2.);
+          divF(k,j,i)  = flux_pre*(Fip-Fim)/dV(k,j,i);
         }
       }
     }
@@ -355,16 +403,21 @@ Setup::Setup(Input &input, Grid &grid, DataBlock &data, Output &output)
   TMriGlob = input.Get<real>("Setup","TMRI",0);
   f0Glob = input.Get<real>("Setup","f0",0);
   kappastarGlob = input.Get<real>("Setup","kappa_star",0);
+  kapparimGlob = input.Get<real>("Setup","kappa_rim",0);
   kappagasGlob = input.Get<real>("Setup","kappa_gas",0);
   densityFloorGlob = input.Get<real>("Setup","density_floor",0);
+  alphawidthGlob = input.Get<real>("Setup","alphawidth",0);
+  tauwidthGlob = input.Get<real>("Setup","tauwidth",0);
+
+  TsGlob = input.Get<real>("Rad","irr",2);
+  rsGlob = input.Get<real>("Rad","irr",1);
 
   GGlob = input.Get<real>("Gravity","gravCst",0);
   MGlob = input.Get<real>("Gravity","Mcentral",0);
 
   muGlob = input.Get<real>("Hydro","mu",0);
   gammaGlob=data.hydro->eos->GetGamma();
-  rsGlob=input.Get<real>("Rad","irr",1);
-  TsGlob=input.Get<real>("Rad","irr",2);
+
   kappatypeGlob = input.Get<std::string>("Rad","irr",0);
   if (kappatypeGlob == "constant") {
     kappairrGlob = input.Get<real>("Rad","irr",3);
@@ -374,70 +427,63 @@ Setup::Setup(Input &input, Grid &grid, DataBlock &data, Output &output)
   }
 
   columnGlob = new Column(IDIR,1,&data);
-  columnGlob2 = new Column(IDIR,1,&data);
 
   auto temp_array = columnGlob->GetColumn();
-  auto temp_array2 = columnGlob2->GetColumn();
   data.dump->RegisterVariable(temp_array,"tau");
-  data.dump->RegisterVariable(temp_array2,"tau2");
 
   data.radiation[0]->EnrollKappa(&MyKappa);
+  data.radiation[0]->EnrollKappairr(&MyKappairr);
   data.hydro->EnrollInternalBoundary(&InternalBoundary);
   data.hydro->viscosity->EnrollViscousDiffusivity(&MyViscosity);
   output.EnrollUserDefVariables(&ComputeUserVars);
   data.hydro->EnrollUserDefBoundary(&UserdefBoundaryNoStress);
   data.radiation[0]->EnrollUserDefBoundary(&UserdefBoundaryRad);
+  //data.hydro->EnrollUserSourceTerm(&MySourceTerm);
+
+  IdefixArray4D<real> FluxIDIR = data.hydro->FluxRiemann[IDIR];
+
+  data.dump->RegisterVariable(FluxIDIR,"rhovr",RHO);
 
 }
 
 Setup::~Setup() {
   delete columnGlob;
 }
-// This routine initialize the flow
-// Note that data is on the device.
-// One can therefore define locally
-// a datahost and sync it, if needed
+
+// Flow initialisation, read directly from the DumpImage
 void Setup::InitFlow(DataBlock &data) {
-    // Create a host copy
-    DataBlockHost d(data);
 
-    auto units=idfx::units;
+  // Create a host copy
+  DataBlockHost d(data);
 
-    real R0 = R0Glob;
-    real rho0 = rho0Glob;
-    real rhomin = rhominGlob;
-    real rhoindex = rhoindexGlob;
-    real T0 = T0Glob;
-    real mu = muGlob;
-    real epsilon = epsilonGlob;
-    real CG = MGlob*GGlob;
+  auto units=idfx::units;
 
-    for(int k = 0; k < d.np_tot[KDIR] ; k++) {
-        for(int j = 0; j < d.np_tot[JDIR] ; j++) {
-            for(int i = 0; i < d.np_tot[IDIR] ; i++) {
+  real R0 = R0Glob;
+  real rho0 = rho0Glob;
+  real rhomin = rhominGlob;
+  real rhoindex = rhoindexGlob;
+  real T0 = T0Glob;
+  real mu = muGlob;
+  real epsilon = epsilonGlob;
+  real CG = MGlob*GGlob;
+  real Ts = TsGlob;
+  real Rs = rsGlob;
 
-              real R = FMAX(d.x[IDIR](i)*std::sin(d.x[JDIR](j)),R0);
-              real z2 = std::pow(d.x[IDIR](i)*std::cos(d.x[JDIR](j)),2.);
-              real H = epsilon*R;
-              real Omega = std::sqrt(CG)*std::pow(R,-1.5);
-              real cs = H*Omega;
+  for(int k = 0; k < d.np_tot[KDIR] ; k++) {
+      for(int j = 0; j < d.np_tot[JDIR] ; j++) {
+          for(int i = 0; i < d.np_tot[IDIR] ; i++) {
 
-              d.Vc(RHO,k,j,i) = (rho0*std::pow(R0/R,rhoindex)*std::exp(-0.25*M_PI*z2/(H*H))+rhomin)/idfx::units.GetDensity();
-              d.Vc(PRS,k,j,i) = d.Vc(RHO,k,j,i)*cs*cs;
-              d.Vc(VX1,k,j,i) = 0.;
-              d.Vc(VX2,k,j,i) = 0.;
-              d.Vc(VX3,k,j,i) =  Omega*R;
+        real T = d.Vc(PRS,k,j,i)/d.Vc(RHO,k,j,i)*units.GetKelvin()*mu;
+            d.RadVc[0](ER,k,j,i) = units.ar*std::pow(T,4)/units.GetEnergy();
+            //d.RadVc[0](FR1,k,j,i) = d.RadVc[0](ER,k,j,i);
+            d.RadVc[0](FR1,k,j,i) = 0.;
+            d.RadVc[0](FR2,k,j,i) = 0.;
+            d.RadVc[0](FR3,k,j,i) = 0.;
+          }
+      }
+  }
 
-              real T = d.Vc(PRS,k,j,i)/d.Vc(RHO,k,j,i)*units.GetKelvin()*mu;
-              d.RadVc[0](ER,k,j,i) = idfx::units.ar*std::pow(T,4.)/idfx::units.GetEnergy();
-              d.RadVc[0](FR1,k,j,i) = ZERO_F;
-              d.RadVc[0](FR2,k,j,i) = ZERO_F;
-              d.RadVc[0](FR3,k,j,i) = ZERO_F;
+  // Send it all, if needed
+  d.SyncToDevice();
 
-            }
-        }
-    }
-
-    // Send it all, if needed
-    d.SyncToDevice();
 }
