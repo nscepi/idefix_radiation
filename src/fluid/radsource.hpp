@@ -127,6 +127,8 @@ class RadSource {
   DataBlock* data;
   real kappap_0;
   real kappar_0;
+  real kappap_es;
+  real kappar_es;
   real xi_0;
   real kappa_irr;
   real rho_0;
@@ -264,6 +266,8 @@ RadSource::RadSource(Input &input, Fluid<Phys> *hydroin):
       this->kappa_type = Type_opac::kramers;
       this->rho_0 = input.Get<real>(BlockName,"kappa",n+3);
       this->T_0 = input.Get<real>(BlockName,"kappa",n+4);
+      this->kappap_es = input.Get<real>(BlockName,"kappa",n+5);
+      this->kappar_es = input.Get<real>(BlockName,"kappa",n+6);
     } else if(kappaType.compare("usertable") == 0) {
       this->kappa_type = Type_opac::usertable;
       this->kappa_ndim = input.Get<int>(BlockName,"kappa",n+1);

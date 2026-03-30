@@ -97,8 +97,8 @@ void RadSource::RelativistCorrection(const real dt) {
         kappa_p = kappap_0;
         kappa_r = kappar_0;
       } else if (kappa_type == Type_opac::kramers) {
-        kappa_p = kappap_0*VGas[RHO]*units.GetDensity()/rho_0*std::pow(T/T_0,-3.5);
-        kappa_r = kappar_0*VGas[RHO]*units.GetDensity()/rho_0*std::pow(T/T_0,-3.5);
+        kappa_p = kappap_0*VGas[RHO]*units.GetDensity()/rho_0*std::pow(T/T_0,-3.5)+kappap_es;
+        kappa_r = kappar_0*VGas[RHO]*units.GetDensity()/rho_0*std::pow(T/T_0,-3.5)+kappar_es;
       } else if (kappa_type == Type_opac::usertable) {
         real logT = std::log10(T);
         real logrho = std::log10(VGas[RHO]*units.GetDensity());
@@ -347,8 +347,8 @@ void RadSource::SourceFullImplicit(const real dt) {
         kappa_p = kappap_0;
         kappa_r = kappar_0;
       } else if (kappa_type == Type_opac::kramers) {
-        kappa_p = kappap_0*VGas[RHO]*units.GetDensity()/rho_0*std::pow(T/T_0,-3.5);
-        kappa_r = kappar_0*VGas[RHO]*units.GetDensity()/rho_0*std::pow(T/T_0,-3.5);
+        kappa_p = kappap_0*VGas[RHO]*units.GetDensity()/rho_0*std::pow(T/T_0,-3.5)+kappap_es;
+        kappa_r = kappar_0*VGas[RHO]*units.GetDensity()/rho_0*std::pow(T/T_0,-3.5)+kappar_es;
       } else if (kappa_type == Type_opac::usertable) {
         real logT = std::log10(T);
         real logrho = std::log10(VGas[RHO]*units.GetDensity());
@@ -611,8 +611,8 @@ void RadSource::SourceFixedPointRad(const real dt) {
         kappa_p = kappap_0;
         kappa_r = kappar_0;
       } else if (kappa_type == Type_opac::kramers) {
-        kappa_p = kappap_0*VGas[RHO]*units.GetDensity()/rho_0*std::pow(T/T_0,-3.5);
-        kappa_r = kappar_0*VGas[RHO]*units.GetDensity()/rho_0*std::pow(T/T_0,-3.5);
+        kappa_p = kappap_0*VGas[RHO]*units.GetDensity()/rho_0*std::pow(T/T_0,-3.5)+kappap_es;
+        kappa_r = kappar_0*VGas[RHO]*units.GetDensity()/rho_0*std::pow(T/T_0,-3.5)+kappar_es;
       } else if (kappa_type == Type_opac::usertable) {
         real logT = std::log10(T);
         real logrho = std::log10(VGas[RHO]*units.GetDensity());
