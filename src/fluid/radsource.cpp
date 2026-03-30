@@ -969,28 +969,31 @@ void RadSource::ShowConfig() {
       }
       break;
   }
-  idfx::cout << "RadSource: irr is ";
-  switch(irr_type) {
-    case Type_irr::constant:
-      idfx::cout << "constant." << std::endl;
-      break;
-    case Type_irr::usertable:
-      idfx::cout << "from a user-defined table" << std::endl;
-      break;
-    case Type_irr::userfunc:
-      idfx::cout << "from a user-defined function for the opacity." << std::endl;
-      if(!data->radiation[0]->kappairrFunc) {
-        IDEFIX_ERROR("No irradiation function has been enrolled for the irradiation opacity");
-      }
-      break;
-    case Type_irr::usergeometry:
-      idfx::cout << "from a user-defined geometry function."
-                     << std::endl;
-      if(!data->radiation[0]->irrFunc) {
-        IDEFIX_ERROR("No irradiation function has been enrolled for the irradiation function");
-      }
-      break;
+  if (haveIrradiation) {
+    idfx::cout << "RadSource: irr is ";
+    switch(irr_type) {
+      case Type_irr::constant:
+        idfx::cout << "constant." << std::endl;
+        break;
+      case Type_irr::usertable:
+        idfx::cout << "from a user-defined table" << std::endl;
+        break;
+      case Type_irr::userfunc:
+        idfx::cout << "from a user-defined function for the opacity." << std::endl;
+        if(!data->radiation[0]->kappairrFunc) {
+          IDEFIX_ERROR("No irradiation function has been enrolled for the irradiation opacity");
+        }
+        break;
+      case Type_irr::usergeometry:
+        idfx::cout << "from a user-defined geometry function."
+                       << std::endl;
+        if(!data->radiation[0]->irrFunc) {
+          IDEFIX_ERROR("No irradiation function has been enrolled for the irradiation function");
+        }
+        break;
+    }
   }
+
   idfx::cout << "Source term solver is ";
   switch(source_solver) {
     case Type_isolver::full_implicit:
