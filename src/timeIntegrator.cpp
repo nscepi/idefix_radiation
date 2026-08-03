@@ -337,13 +337,13 @@ void TimeIntegrator::Cycle(DataBlock &data) {
       data.fargo->ShiftSolution(t0,data.dt);
     }
 
-    // Coarsen conservative variables once they have been evolved
+    // Convert conservative to primitive before coarsening to ensure pressure positivity
+    data.ConsToPrim();
+
+    // Coarsen conservative and primitive variables once they have been evolved
     if(data.haveGridCoarsening) {
       data.Coarsen();
     }
-
-    // Back to using Vc
-    data.ConsToPrim();
 
     // Add back fargo velocity so that boundary conditions are applied on the total V
     if(data.haveFargo) data.fargo->AddVelocity(data.t);
