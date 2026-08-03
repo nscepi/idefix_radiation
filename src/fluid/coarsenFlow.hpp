@@ -16,6 +16,32 @@ KOKKOS_INLINE_FUNCTION int Kmax(int n, int m) {
 }
 // This function coarsen the flow according to the grid coarsening array
 
+KOKKOS_INLINE_FUNCTION static void K_CoarsenArray(IdefixArray4D<real> Arr, IdefixArray3D<real> dV,
+    int coarsen_condition, int factor,
+    int k, int j, int i,
+    int koffset, int joffset, int ioffset,
+    int n) {
+
+  // We average the cells by groups of "factor" in direction "dir",
+  // so only the first element of each group will do the job.
+  if( coarsen_condition == 0) {
+    real q = 0.0;
+    real V = 0.0;
+    for(int shift = 0 ; shift < factor ; shift++) {
+      q = q + Arr(n, k + shift*koffset, j + shift*joffset, i+shift*ioffset)
+            * dV(k + shift*koffset, j + shift*joffset, i+shift*ioffset);
+      V = V + dV(k + shift*koffset, j + shift*joffset, i+shift*ioffset);
+    }
+    // Average
+    q = q/V;
+    // Write back the cell elements
+    for(int shift = 0 ; shift < factor ; shift++) {
+      Arr(n, k + shift*koffset, j + shift*joffset, i+shift*ioffset) = q;
+    }
+  }
+}
+
+
 template<typename Phys>
 void Fluid<Phys>::CoarsenFlow(IdefixArray4D<real> &Vi) {
   idfx::pushRegion("Fluid::CoarsenFlow");
@@ -34,7 +60,54 @@ void Fluid<Phys>::CoarsenFlow(IdefixArray4D<real> &Vi) {
           data->beg[JDIR],data->end[JDIR],
           data->beg[IDIR],data->end[IDIR],
       KOKKOS_LAMBDA (int n, int k, int j, int i) {
-        int factor, index;
+        int factor, index, coarsen_condition;
+        int ioffset = 0;
+        int joffset = 0;
+        int koffset = 0;
+        if(dir==IDIR) {
+          factor = 1 << (coarseningLevel(k,j) - 1);
+          index = i;
+          ioffset = 1;
+        }
+        if(dir==JDIR) {
+          factor = 1 << (coarseningLevel(k,i) - 1);
+          index = j;
+          joffset = 1;
+        }
+        if(dir==KDIR) {
+          factor = 1 << (coarseningLevel(j,i) - 1);
+          index = k;
+          koffset = 1;
+        }
+        // check if coarsening is required in this region
+        if(factor>1) {
+          coarsen_condition = (index-begDir)%factor;
+          K_CoarsenArray(Vi,dV,coarsen_condition,factor,k,j,i,koffset,joffset,ioffset,n);
+        }
+    });
+  }
+  idfx::popRegion();
+}
+
+template<typename Phys>
+void Fluid<Phys>::CoarsenFlow(IdefixArray4D<real> &Vi, IdefixArray4D<real> &Ui) {
+  idfx::pushRegion("Fluid::CoarsenFlow");
+
+  IdefixArray3D<real> dV   = data->dV;
+  for(int dir = 0 ; dir < DIMENSIONS ; dir++) {
+    if(!data->coarseningDirection[dir]) continue;
+    int begDir = data->beg[dir];
+    int endDir = data->end[dir];
+
+    IdefixArray2D<int> coarseningLevel = data->coarseningLevel[dir];
+
+    idefix_for("FLUID_CoarsenFlow",
+          0, Phys::nvar,
+          data->beg[KDIR],data->end[KDIR],
+          data->beg[JDIR],data->end[JDIR],
+          data->beg[IDIR],data->end[IDIR],
+      KOKKOS_LAMBDA (int n, int k, int j, int i) {
+        int factor, index, coarsen_condition;
         int ioffset = 0;
         int joffset = 0;
         int koffset = 0;
@@ -56,23 +129,9 @@ void Fluid<Phys>::CoarsenFlow(IdefixArray4D<real> &Vi) {
         }
         // check if coarsening is required in this region
         if(factor>1) {
-          // We average the cells by groups of "factor" in direction "dir",
-          // so only the first element of each group will do the job.
-          if( (index-begDir)%factor == 0) {
-            real q = 0.0;
-            real V = 0.0;
-            for(int shift = 0 ; shift < factor ; shift++) {
-              q = q + Vi(n, k + shift*koffset, j + shift*joffset, i+shift*ioffset)
-                    * dV(k + shift*koffset, j + shift*joffset, i+shift*ioffset);
-              V = V + dV(k + shift*koffset, j + shift*joffset, i+shift*ioffset);
-            }
-            // Average
-            q = q/V;
-            // Write back the cell elements
-            for(int shift = 0 ; shift < factor ; shift++) {
-              Vi(n, k + shift*koffset, j + shift*joffset, i+shift*ioffset) = q;
-            }
-          }
+          coarsen_condition = (index-begDir)%factor;
+          K_CoarsenArray(Vi,dV,coarsen_condition,factor,k,j,i,koffset,joffset,ioffset,n);
+          K_CoarsenArray(Ui,dV,coarsen_condition,factor,k,j,i,koffset,joffset,ioffset,n);
         }
     });
   }

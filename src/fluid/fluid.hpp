@@ -64,6 +64,7 @@ class Fluid {
   void CalcCurrent();
   void AddSourceTerms(real, real );
   void CoarsenFlow(IdefixArray4D<real>&);
+  void CoarsenFlow(IdefixArray4D<real>&,IdefixArray4D<real>&);
   void CoarsenMagField(IdefixArray4D<real>&);
   real CheckDivB();
   void EvolveStage(const real, const real);
