@@ -27,6 +27,11 @@ real kapparGlob;
 std::string kappatypeGlob;
 real kramersTindexGlob;
 real kramersrhoindexGlob;
+real kappaGlob;
+real trestartGlob;
+real tradGlob;
+
+IdefixArray2D<real> *rhoInit;
 
 LookupTable<2> *kappaptabGlob;
 LookupTable<2> *kappartabGlob;
@@ -70,11 +75,82 @@ KOKKOS_INLINE_FUNCTION real computeDensityFloor(real R, real z, real d_floor_0, 
   return D_return;
 }
 
+void MySourceTerm(Fluid<DefaultPhysics> *hydro, const real t, const real dtin) {
+  IdefixArray4D<real> Vc = hydro->Vc;
+  IdefixArray4D<real> Uc = hydro->Uc;
+  auto data = hydro->data;
+  auto x1 = data->x[IDIR];
+  auto x2 = data->x[JDIR];
+  IdefixArray2D<real> rhoEq = *rhoInit;
 
+  real epsilonTop = epsilonTopGlob;
+  real epsilon = epsilonGlob;
+  real tauGlob=1.0;
+  real tauWind=1e-2;
+  real tauInner=0.1;
+  real gamma_m1=gammaGlob-1.0;
+  real dt=dtin;
+  real Hideal=HidealGlob;
+  //real tauVel=0.5;
+  real R0=1.0;
+  real trSmoothing = trSmoothingGlob;
+  real alpha=alphaGlob;
+  real trestart = trestartGlob;
+  real trad = tradGlob;
+
+  idefix_for("MySourceTerm",0,data->np_tot[KDIR],0,data->np_tot[JDIR],0,data->np_tot[IDIR],
+              KOKKOS_LAMBDA (int k, int j, int i) {
+                real r=x1(i);
+                real th=x2(j);
+                real z=r*cos(th);
+                real R=r*sin(th);
+                real Ri = FMAX(R0,R);
+                real Vk=1.0/pow(Ri,0.5);
+
+                real Zh = FABS(z/R)/epsilon;
+                real Tdisk = epsilon*epsilon/Ri;
+                real Tcorona = epsilonTop*epsilonTop/Ri;
+                //if(x1(i) < 1.5) cscorona = csdisk;
+                real f = tanh((Zh-Hideal)/trSmoothing);
+                real Teff=0.5*(Tdisk+Tcorona)+0.5*(Tcorona-Tdisk)*f;
+
+                real tau= 0.5*(tauGlob+tauWind)+0.5*(tauWind-tauGlob)*f;
+                tau *= pow(Ri,1.5);
+                // Cooling /heatig function
+                real Ptarget = Teff*Vc(RHO,k,j,i);
+
+                Uc(ENG,k,j,i) += -dt*(1.-(FMIN(t,trad)-trestart)/(trad-trestart))*(Vc(PRS,k,j,i)-Ptarget)/(tau*gamma_m1);
+});
+
+
+}
+
+
+void MyKappa(DataBlock &data, IdefixArray3D<real> &kappap, IdefixArray3D<real> &kappar) {
+  IdefixArray4D<real> Vc=data.hydro->Vc;
+  auto units = idfx::units;
+  real kappa_gas = kappaGlob;
+  real mu = muGlob;
+  real time = data.t;
+  real trestart = trestartGlob;
+  real trad = tradGlob;
+
+  idefix_for("MyKappa",0,data.np_tot[KDIR],0,data.np_tot[JDIR],0,data.np_tot[IDIR],
+              KOKKOS_LAMBDA (int k, int j, int i) {
+
+                kappap(k,j,i) = kappa_gas*std::pow(Vc(PRS,k,j,i)/Vc(RHO,k,j,i)*units.GetKelvin()*mu,-3.5)*Vc(RHO,k,j,i)*units.GetDensity()+0.34;
+                kappap(k,j,i) *= (FMIN(trad,time)-trestart)/(trad-trestart);
+                //kappap(k,j,i) = 0.;
+                kappar(k,j,i) = 0.;
+              });
+}
+  
+  
 void InternalBoundary(Fluid<DefaultPhysics> *hydro, const real t) {
   IdefixArray4D<real> Vc = hydro->Vc;
   IdefixArray4D<real> Uc = hydro->Uc;
   auto *data = hydro->data;
+  IdefixArray4D<real> RadVc = data->radiation[0]->Vc;
   IdefixArray4D<real> Vs = data->hydro->Vs;
   IdefixArray1D<real> x1=data->x[IDIR];
   IdefixArray1D<real> x2=data->x[JDIR];
@@ -112,9 +188,14 @@ void InternalBoundary(Fluid<DefaultPhysics> *hydro, const real t) {
       real densityFloor = computeDensityFloor(R,z,densityFloor0,Rin,epsilon);
       if(Vc(RHO,k,j,i) < densityFloor) {
         real oldrho = Vc(RHO,k,j,i);
-        real T= Vc(PRS,k,j,i)/Vc(RHO,k,j,i);
-        Vc(RHO,k,j,i)=densityFloor;
-        Vc(VX1,k,j,i) *= oldrho/densityFloor;
+        real T = Vc(PRS,k,j,i)/Vc(RHO,k,j,i);
+        Vc(RHO,k,j,i) = densityFloor;
+	Vc(PRS,k,j,i) = T*Vc(RHO,k,j,i);
+        RadVc(ER,k,j,i) = 0.;
+        RadVc(FR1,k,j,i) = 0.;
+        RadVc(FR2,k,j,i) = 0.;
+        RadVc(FR3,k,j,i) = 0.;
+	Vc(VX1,k,j,i) *= oldrho/densityFloor;
         Vc(VX2,k,j,i) *= oldrho/densityFloor;
         Vc(VX3,k,j,i) *= oldrho/densityFloor;
       }
@@ -244,24 +325,24 @@ void EmfBoundary(Fluid<DefaultPhysics> *hydro, const real t) {
 
 void FluxBoundary(DataBlock & data, int dir, BoundarySide side, const real t) {
     IdefixArray4D<real> Flux = data.hydro->FluxRiemann[dir];
-
-
+ 
+ 
     idefix_for("FluxInternal",
                 0, data.np_tot[KDIR],
                 0, data.np_tot[JDIR],
                 0, data.np_tot[IDIR],
        KOKKOS_LAMBDA (int k, int j, int i) {
-         Flux(RHO, k, j, i) = 0.0;
-         Flux(MX1, k, j, i) = 0.0;
-         Flux(MX2, k, j, i) = 0.0;
-         Flux(MX3, k, j, i) = 0.0;
-         Flux(ENG, k, j, i) = 0.0;
+         Flux(RHO, k, j, i) = 0.0; 
+         Flux(MX1, k, j, i) = 0.0; 
+         Flux(MX2, k, j, i) = 0.0; 
+         Flux(MX3, k, j, i) = 0.0; 
+         Flux(ENG, k, j, i) = 0.0; 
      });
 }
 
 void FluxBoundaryRad(DataBlock & data, int dir, BoundarySide side, const real t) {
    IdefixArray4D<real> Flux = data.radiation[0]->FluxRiemann[dir];
-
+ 
   if(dir==IDIR) {
     int ighost,nxi,iend,ibeg;
     if(side == left) {
@@ -273,9 +354,9 @@ void FluxBoundaryRad(DataBlock & data, int dir, BoundarySide side, const real t)
         0, data.np_tot[JDIR],
         ibeg, iend,
         KOKKOS_LAMBDA (int k, int j, int i) {
-          if (Flux(ER,k,j,i) >= ZERO_F) Flux(ER,k,j,i) = ZERO_F;
-          if (Flux(FR1,k,j,i) >= ZERO_F) Flux(FR1,k,j,i) = ZERO_F;
-          if (Flux(FR2,k,j,i) >= ZERO_F) Flux(FR2,k,j,i) = ZERO_F;
+          if (Flux(ER,k,j,i) > ZERO_F) Flux(ER,k,j,i) = ZERO_F;
+          //if (Flux(FR1,k,j,i) >= ZERO_F) Flux(FR1,k,j,i) = ZERO_F;
+          //if (Flux(FR2,k,j,i) >= ZERO_F) Flux(FR2,k,j,i) = ZERO_F;
         });
     } else if (side==right){
       ighost = data.nghost[IDIR];
@@ -287,13 +368,12 @@ void FluxBoundaryRad(DataBlock & data, int dir, BoundarySide side, const real t)
         0, data.np_tot[JDIR],
         ibeg, iend,
         KOKKOS_LAMBDA (int k, int j, int i) {
-          if (Flux(ER,k,j,i) <= ZERO_F) Flux(ER,k,j,i) = ZERO_F;
-          if (Flux(FR1,k,j,i) <= ZERO_F) Flux(FR1,k,j,i) = ZERO_F;
-          if (Flux(FR2,k,j,i) <= ZERO_F) Flux(FR2,k,j,i) = ZERO_F;
+          if (Flux(ER,k,j,i) < ZERO_F) Flux(ER,k,j,i) = ZERO_F;
+          //if (Flux(FR1,k,j,i) <= ZERO_F) Flux(FR1,k,j,i) = ZERO_F;
+          //if (Flux(FR2,k,j,i) <= ZERO_F) Flux(FR2,k,j,i) = ZERO_F;
         });
     }
    }
-
    if(dir==JDIR) {
     int jghost,nxj,jend,jbeg;
     if(side == left) {
@@ -302,12 +382,10 @@ void FluxBoundaryRad(DataBlock & data, int dir, BoundarySide side, const real t)
       jend = data.beg[JDIR];
       idefix_for("UserDefBoundaryRad",
         0, data.np_tot[KDIR],
-        jbeg, jend,
+	jbeg,jend,
         0, data.np_tot[IDIR],
         KOKKOS_LAMBDA (int k, int j, int i) {
-          if (Flux(ER,k,j,i) >= ZERO_F) Flux(ER,k,j,i) = ZERO_F;
-          if (Flux(FR1,k,j,i) >= ZERO_F) Flux(FR1,k,j,i) = ZERO_F;
-          if (Flux(FR2,k,j,i) >= ZERO_F) Flux(FR2,k,j,i) = ZERO_F;
+          if (Flux(ER,k,j,i) < ZERO_F) Flux(ER,k,j,i) = ZERO_F;
         });
     } else if (side==right){
       jghost = data.nghost[JDIR];
@@ -316,15 +394,14 @@ void FluxBoundaryRad(DataBlock & data, int dir, BoundarySide side, const real t)
       jend =data.np_tot[JDIR];
       idefix_for("UserDefBoundaryRad",
         0, data.np_tot[KDIR],
-        jbeg, jend,
+	jbeg,jend,
         0, data.np_tot[IDIR],
         KOKKOS_LAMBDA (int k, int j, int i) {
-          if (Flux(ER,k,j,i) <= ZERO_F) Flux(ER,k,j,i) = ZERO_F;
-          if (Flux(FR1,k,j,i) <= ZERO_F) Flux(FR1,k,j,i) = ZERO_F;
-          if (Flux(FR2,k,j,i) <= ZERO_F) Flux(FR2,k,j,i) = ZERO_F;
+          if (Flux(ER,k,j,i) > ZERO_F) Flux(ER,k,j,i) = ZERO_F;
         });
     }
    }
+ 
 }
 
 void CoarsenFunction(DataBlock &data) {
@@ -346,7 +423,7 @@ void InternalBoundaryRad(Fluid<RadiationPhysics> *radiation, const real t) {
   auto units = idfx::units;
 
   real Tceiling = TceilingGlob;
-
+  
   idefix_for("InternalBoundaryRad",0,data->np_tot[KDIR],0,data->np_tot[JDIR],0,data->np_tot[IDIR],
     KOKKOS_LAMBDA (int k, int j, int i) {
         if (Vc(ER,k,j,i) > units.ar*std::pow(Tceiling,4)/units.GetEnergy()){
@@ -382,7 +459,7 @@ void UserdefBoundaryRad(Fluid<RadiationPhysics> *radiation, int dir, BoundarySid
         0, data->np_tot[JDIR],
         ibeg, iend,
         KOKKOS_LAMBDA (int k, int j, int i) {
-          Vc(ER,k,j,i) = Vc(ER,k,j,ighost);
+          Vc(ER,k,j,i) = Vc(ER,k,j,ighost);    
           if (Vc(FR1,k,j,ighost) >=ZERO_F){
             Vc(FR1,k,j,i) = ZERO_F;
           } else {
@@ -413,49 +490,6 @@ void UserdefBoundaryRad(Fluid<RadiationPhysics> *radiation, int dir, BoundarySid
     }
   }
 
-  if(dir==JDIR) {
-    int jghost,nxj,jend,jbeg;
-    if(side == left) {
-      jghost = data->nghost[JDIR];
-      jbeg = 0;
-      jend = data->beg[JDIR];
-      idefix_for("UserDefBoundaryRad",
-        0, data->np_tot[KDIR],
-        jbeg, jend,
-        0, data->np_tot[IDIR],
-        KOKKOS_LAMBDA (int k, int j, int i) {
-          Vc(ER,k,j,i) = Vc(ER,k,jghost,i);
-          if (Vc(FR2,k,jghost,i) >=ZERO_F){
-            Vc(FR2,k,j,i) = ZERO_F;
-          } else {
-            Vc(FR2,k,j,i) = Vc(FR2,k,jghost,i);
-          }
-          Vc(FR1,k,j,i) = Vc(FR1,k,jghost,i);
-          Vc(FR3,k,j,i) = Vc(FR3,k,jghost,i);
-        });
-    } else if (side==right){
-      jghost = data->nghost[JDIR];
-      nxj = data->np_int[JDIR];
-      jbeg = data->end[JDIR];
-      jend =data->np_tot[JDIR];
-      idefix_for("UserDefBoundaryRad",
-        0, data->np_tot[KDIR],
-        jbeg, jend,
-        0, data->np_tot[IDIR],
-        KOKKOS_LAMBDA (int k, int j, int i) {
-          Vc(ER,k,j,i) = Vc(ER,k,jghost+nxj-1,i);
-          if (Vc(FR2,k,jghost+nxj-1,i) <=ZERO_F){
-            Vc(FR2,k,j,i) = ZERO_F;
-            //FluxRad(ER,k,j,i) = ZERO_F;
-          } else {
-            Vc(FR2,k,j,i) = Vc(FR2,k,jghost+nxj-1,i);
-          }
-          Vc(FR1,k,j,i) = Vc(FR1,k,jghost+nxj-1,i);
-          Vc(FR3,k,j,i) = Vc(FR3,k,jghost+nxj-1,i);
-        });
-    }
-  }
-
 }
 
 void ComputeUserVars(DataBlock & data, UserDefVariablesContainer &variables) {
@@ -471,7 +505,7 @@ void ComputeUserVars(DataBlock & data, UserDefVariablesContainer &variables) {
   IdefixArray4D<real> FluxRiemannJDIR = data.hydro->FluxRiemann[JDIR];
   IdefixArray4D<real> RadFluxRiemannIDIR = data.radiation[0]->FluxRiemann[IDIR];
   IdefixArray4D<real> RadFluxRiemannJDIR = data.radiation[0]->FluxRiemann[JDIR];
-
+  
   idefix_for("UserVar",0,data.np_tot[KDIR],0,data.np_tot[JDIR],0,data.np_tot[IDIR],
    KOKKOS_LAMBDA (int k, int j, int i) {
       scrh1(k,j,i) = FluxRiemannIDIR(RHO,k,j,i);
@@ -512,6 +546,12 @@ void ComputeUserVars(DataBlock & data, UserDefVariablesContainer &variables) {
   Kokkos::deep_copy(variables["FluxRadFtr"], scrh3);
   Kokkos::deep_copy(variables["FluxRadFtt"], scrh4);
 
+  if (kappatypeGlob.compare("userfunc") == 0){
+    MyKappa(data,scrh1,scrh2);
+    Kokkos::deep_copy(variables["kappap"], scrh1);
+    Kokkos::deep_copy(variables["kappar"], scrh2);
+  }
+
   // Mirror data on Host
   DataBlockHost d(data);
 
@@ -522,7 +562,7 @@ void ComputeUserVars(DataBlock & data, UserDefVariablesContainer &variables) {
 
   // Make references to the user-defined arrays (variables is a container of IdefixHostArray3D)
   // Note that the labels should match the variable names in the input file
-
+  
   for(int k = d.beg[KDIR]; k < d.end[KDIR] ; k++) {
     for(int j = d.beg[JDIR]; j < d.end[JDIR] ; j++) {
       for(int i = d.beg[IDIR]; i < d.end[IDIR] ; i++) {
@@ -551,11 +591,12 @@ void ComputeUserVars(DataBlock & data, UserDefVariablesContainer &variables) {
         variables["Emft"](k,j,i) = d.Ex2(k,j,i);
         variables["Emfp"](k,j,i) = d.Ex3(k,j,i);
         real T = d.Vc(PRS,k,j,i)/d.Vc(RHO,k,j,i)*units.GetKelvin()*muGlob;
+        real T_nounit = d.Vc(PRS,k,j,i)/d.Vc(RHO,k,j,i)*muGlob;
         real logrho = std::log10(d.Vc(RHO,k,j,i)*units.GetDensity());
         real x[2];
         x[0] = FMIN(-4.05,FMAX(-14.,logrho));
         x[1] = FMIN(FMAX(std::log10(T),2.5),5.98);
-        if (kappatypeGlob.compare("usertable") == 0){
+        if (kappatypeGlob.compare("usertable") == 0){ 
           variables["kappap"](k,j,i) = std::pow(10.,kappaptabGlob->GetHost(x));
           variables["kappar"](k,j,i) = std::pow(10.,kappartabGlob->GetHost(x));
         } else if (kappatypeGlob.compare("constant") == 0) {
@@ -579,6 +620,67 @@ void analysisFunction(DataBlock& data) {
   analysis->PerformAnalysis(data);
 }
 
+void ComputeRho(DataBlock &data) {
+  real Rin=1.0;
+  real alpha = alphaGlob; // Density power law
+
+  DataBlockHost d(data);
+  // Compute vertical equilibrium following Bai & Stone (2017) (BS17)
+  GridHost gh(*data.mygrid);
+  gh.SyncFromDevice();
+  IdefixHostArray1D<real> logf = IdefixHostArray1D<real>("fvert", gh.np_tot[JDIR]);
+  int jmid = gh.np_tot[JDIR]/2;
+  logf(jmid) = 0;
+
+  for(int j = jmid+1 ; j < gh.np_tot[JDIR] ; j++) {
+    real th = gh.xl[JDIR](j);
+    real dth = 0.5*(gh.dx[JDIR](j-1)+gh.dx[JDIR](j));
+    real Zh = 1/FABS(tan(th))/epsilonGlob;
+    real Tdisk = epsilonGlob*epsilonGlob;
+    real Tcorona = epsilonTopGlob*epsilonTopGlob;
+    //if(x1(i) < 1.5) cscorona = csdisk;
+    real Teff=0.5*(Tdisk+Tcorona)+0.5*(Tcorona-Tdisk)*tanh((Zh-HidealGlob)/trSmoothingGlob);
+    // BS17 eq. 14
+    logf(j) = logf(j-1)+dth*(cos(th)/sin(th)*1/Teff-(alpha+1));
+    //idfx::cout << "j=" << j << " th-pi/2=" << th - M_PI/2 << " Zh="<< Zh << " Teff=" << Teff << " logf=" << logf(j) << " log(sin(th))/g=" << log(sin(th))/Teff << std::endl;
+  }
+
+  // That's for the other side, by symmetry accross the midplane
+  for(int j = 0 ; j < jmid ; j++) {
+    logf(j) = logf(2*jmid-j-1);
+  }
+
+  rhoInit = new IdefixArray2D<real>("RhoInit",d.np_tot[JDIR],d.np_tot[IDIR]);
+  IdefixHostArray2D<real> rhoH("RhoHost",d.np_tot[JDIR],d.np_tot[IDIR]);
+
+  for(int j = 0; j < d.np_tot[JDIR] ; j++) {
+    int jglob = j + d.gbeg[JDIR] - d.beg[JDIR];
+    for(int i = 0; i < d.np_tot[IDIR] ; i++) {
+      real r=d.x[IDIR](i);
+      real th=d.x[JDIR](j);
+      real z=r*cos(th);
+      real R=r*sin(th);
+      real Ri = FMAX(R,Rin);
+      real Zh = FABS(z/R)/epsilonGlob;
+
+      real Tdisk = epsilonGlob*epsilonGlob;
+      real Tcorona = epsilonTopGlob*epsilonTopGlob;
+      //if(x1(i) < 1.5) cscorona = csdisk;
+      real Teff=0.5*(Tdisk+Tcorona)+0.5*(Tcorona-Tdisk)*tanh((Zh-HidealGlob)/trSmoothingGlob);
+
+      // BS17 F(theta)=f(theta)*g(theta)
+      // here logF is log(F) and g is Teff
+      // We normalise f so that it is=1 in the disc midaplne
+      real f = exp(logf(jglob)) *epsilonGlob*epsilonGlob / Teff;
+
+      rhoH(j,i) = pow(Ri,-alpha) * f;
+      real densityFloor = computeDensityFloor(R,z,densityFloorGlob,Rin,epsilonGlob);
+      if(rhoH(j,i) < densityFloor) {
+        rhoH(j,i) = densityFloor;
+      }
+    }}
+  Kokkos::deep_copy(*rhoInit,rhoH);
+}
 
 // Default constructor
 
@@ -593,6 +695,7 @@ Setup::Setup(Input &input, Grid &grid, DataBlock &data, Output &output) {
   if(data.haveGridCoarsening) {
     data.EnrollGridCoarseningLevels(&CoarsenFunction);
   }
+  data.hydro->EnrollUserSourceTerm(&MySourceTerm);
   data.hydro->EnrollInternalBoundary(&InternalBoundary);
   //data.hydro->EnrollEmfBoundary(&EmfBoundary);
   //data.hydro->EnrollFluxBoundary(&FluxBoundary);
@@ -614,6 +717,9 @@ Setup::Setup(Input &input, Grid &grid, DataBlock &data, Output &output) {
   HidealGlob = input.Get<real>("Setup","Hideal",0);
   TceilingGlob = input.Get<real>("Setup","Tceiling",0);
   TfloorGlob = input.Get<real>("Setup","Tfloor",0);
+  kappaGlob = input.Get<real>("Setup","kappa",0);
+  trestartGlob = input.Get<real>("Setup","trestart",0);
+  tradGlob = input.Get<real>("Setup","trad",0);
 
   densityFloorGlob = input.Get<real>("Setup","densityFloor",0);
   trSmoothingGlob = input.Get<real>("Setup","transitionSmoothing",0);
@@ -622,22 +728,28 @@ Setup::Setup(Input &input, Grid &grid, DataBlock &data, Output &output) {
   // assume disc surface at 6.5 h
   analysis = new Analysis(grid, data,std::string("profile.dat"), HidealGlob*epsilonGlob);
   output.EnrollAnalysis(&analysisFunction);
-
-  kappatypeGlob = input.Get<std::string>("Rad","kappa",0);
+  
+  if(data.haveRadiation) { 
+    kappatypeGlob = input.Get<std::string>("Rad","kappa",0);
+  }
   if (kappatypeGlob.compare("usertable") == 0){
     std::string kappapfile = input.Get<std::string>("Rad","kappa",2);
     std::string kapparfile = input.Get<std::string>("Rad","kappa",3);
     kappaptabGlob = new LookupTable<2>(kappapfile,',');
     kappartabGlob = new LookupTable<2>(kapparfile,',');
-   } else if (kappatypeGlob.compare("constant") == 0) {
+   } else if (kappatypeGlob.compare("constant") == 0) { 
     kappapGlob = input.Get<real>("Rad","kappa",1);
     kapparGlob = input.Get<real>("Rad","kappa",2);
-   } else if (kappatypeGlob.compare("kramers") == 0) {
+   } else if (kappatypeGlob.compare("kramers") == 0) { 
     kramersTindexGlob = input.Get<real>("Rad","kappa",4);
     kramersrhoindexGlob = input.Get<real>("Rad","kappa",3);
     kappapGlob = input.Get<real>("Rad","kappa",1);
     kapparGlob = input.Get<real>("Rad","kappa",2);
+   } else if (kappatypeGlob.compare("userfunc") == 0){
+    data.radiation[0]->EnrollKappa(&MyKappa);
    }
+
+   ComputeRho(data);
 }
 
 
@@ -647,7 +759,8 @@ void Setup::InitFlow(DataBlock &data) {
   // Create a host copy
   DataBlockHost d(data);
 
-  DumpImage image("dump.0241.dmp", &data);
+  // Sync it
+  d.SyncFromDevice();
 
   for(int k = d.beg[KDIR]; k < d.end[KDIR] ; k++) {
     for(int j = d.beg[JDIR]; j < d.end[JDIR] ; j++) {
@@ -655,34 +768,19 @@ void Setup::InitFlow(DataBlock &data) {
 
         // Note that the restart dump array only contains the full (global) active domain
         // (i.e. it excludes the boundaries, but it is not decomposed accross MPI procs)
-        int iglob=i-2*d.beg[IDIR]+d.gbeg[IDIR];
-        int jglob=j-2*d.beg[JDIR]+d.gbeg[JDIR];
-        int kglob=k-2*d.beg[KDIR]+d.gbeg[KDIR];
 
-        d.Vc(RHO,k,j,i) = image.arrays["Vc-RHO"](kglob,jglob,iglob);
-        d.Vc(PRS,k,j,i) = image.arrays["Vc-PRS"](kglob,jglob,iglob);
-        real T = d.Vc(PRS,k,j,i)/d.Vc(RHO,k,j,i)*idfx::units.GetKelvin()*muGlob;
+        //real T = d.Vc(PRS,k,j,i)/d.Vc(RHO,k,j,i)*idfx::units.GetKelvin()*muGlob;
+        real T = 1.e2;
+	//Kokkos::printf("T=%e\n",T);
         d.RadVc[0](ER,k,j,i) = idfx::units.ar*std::pow(T,4)/idfx::units.GetEnergy();
-        d.RadVc[0](FR1,k,j,i) = d.RadVc[0](ER,k,j,i);
+        //d.RadVc[0](FR1,k,j,i) = 1.e-1*idfx::units.ar*std::pow(T,4)/idfx::units.GetEnergy();
+        d.RadVc[0](FR1,k,j,i) = 0.;
         d.RadVc[0](FR2,k,j,i) = 0.;
         d.RadVc[0](FR3,k,j,i) = 0.;
-        d.Vc(VX1,k,j,i) = image.arrays["Vc-VX1"](kglob,jglob,iglob);
-        d.Vc(VX2,k,j,i) = image.arrays["Vc-VX2"](kglob,jglob,iglob);
-        d.Vc(VX3,k,j,i) = image.arrays["Vc-VX3"](kglob,jglob,iglob);
+        //d.RadVc[0](FR2,k,j,i) = 1.e-3*idfx::units.ar*std::pow(T,4)/idfx::units.GetEnergy();
+        //d.RadVc[0](FR3,k,j,i) = 1.e-3*idfx::units.ar*std::pow(T,4)/idfx::units.GetEnergy();
 }}}
 
-  // For magnetic variable, we should fill the entire active domain, hence an additional
-  // point in the field direction
-  for(int k = d.beg[KDIR]; k < d.end[KDIR] ; k++) {
-    for(int j = d.beg[JDIR]; j < d.end[JDIR] ; j++) {
-        for(int i = d.beg[IDIR]; i < d.end[IDIR]+IOFFSET ; i++) {
-          int iglob=i-2*d.beg[IDIR]+d.gbeg[IDIR];
-          int jglob=j-2*d.beg[JDIR]+d.gbeg[JDIR];
-          int kglob=k-2*d.beg[KDIR]+d.gbeg[KDIR];
-          d.Vs(BX1s,k,j,i) = image.arrays["Vs-BX1s"](kglob,jglob,iglob);
-          d.Vs(BX2s,k,j,i) = image.arrays["Vs-BX2s"](kglob,jglob,iglob);
-          d.Vs(BX3s,k,j,i) = image.arrays["Vs-BX3s"](kglob,jglob,iglob);
-  }}}
 
 
   // Send our datablock to the device
@@ -693,5 +791,8 @@ void Setup::InitFlow(DataBlock &data) {
 
 
 Setup::~Setup() {
+  delete rhoInit;
   delete analysis;
 }
+
+

@@ -321,3 +321,4 @@ void Analysis::PerformAnalysis(DataBlock &data) {
   }
   idfx::popRegion();
 }
+
