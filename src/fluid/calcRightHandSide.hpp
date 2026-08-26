@@ -363,7 +363,7 @@ struct Fluid_CalcRHSFunctor {
         #if (GEOMETRY == SPHERICAL) && (COMPONENTS == 3)
           rhs[iMPHI] /= FABS(sinx2(j));
           if constexpr(Phys::mhd) {
-            rhs[iBPHI] = -dt / (rt(i)*dx(j)) * (Flux(iBPHI, k, j+1, i) - Flux(iBPHI, k, j, i));
+            rhs[iBPHI] = -dt / (x1(i)*dx(j)) * (Flux(iBPHI, k, j+1, i) - Flux(iBPHI, k, j, i));
           } // MHD
         #endif // GEOMETRY
       }
@@ -472,12 +472,18 @@ struct Fluid_CalcRHSFunctor {
 
     // Body force
     if(needBodyForce) {
-      rhs[MX1+dir] += dt * Vc(RHO,k,j,i) * bodyForce(dir,k,j,i);
+      real bf = bodyForce(dir,k,j,i);
+      #if GEOMETRY == CARTESIAN
+        if(haveFargo && dir==IDIR) {
+          // Remove Body force that is already compensated by Fargo shear*Rotation
+          bf -= -2*Omega*sbS * x1(i);
+        }
+      #endif
+      rhs[MX1+dir] += dt * Vc(RHO,k,j,i) * bf;
       if constexpr(Phys::pressure) {
         //  rho * v . f, where rhov is taken as a  volume average of Flux(RHO)
         rhs[ENG] += HALF_F * dtdV * dl *
-                      (Flux(RHO,k,j,i) + Flux(RHO, k+koffset, j+joffset, i+ioffset)) *
-                        bodyForce(dir,k,j,i);
+                      (Flux(RHO,k,j,i) + Flux(RHO, k+koffset, j+joffset, i+ioffset)) * bf;
       } // Pressure
 
       // Particular cases if we do not sweep all of the components

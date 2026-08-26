@@ -11,6 +11,7 @@
 #include "idefix.hpp"
 #include "input.hpp"
 #include "riemannSolver.hpp"
+#include "buffer.hpp"
 
 // Forward declarations
 #include "physics.hpp"
@@ -101,13 +102,17 @@ class ConstrainedTransport {
   // Routines for evolving the magnetic potential (only available when EVOLVE_VECTOR_POTENTIAL)
   void EvolveVectorPotential(real, IdefixArray4D<real> &);
   void ComputeMagFieldFromA(IdefixArray4D<real> &Vein, IdefixArray4D<real> &Vsout);
+  void EnforceVectorPotentialBoundary(IdefixArray4D<real> &Vein); // Enforce BCs on A
+  void EnforceEMFBoundaryPeriodic(IdefixArray3D<real> ex,
+                                  IdefixArray3D<real> ey,
+                                  IdefixArray3D<real> ez);
 
 #ifdef WITH_MPI
   // Exchange surface EMFs to remove interprocess round off errors
-  void ExchangeAll();
-  void ExchangeX1();
-  void ExchangeX2();
-  void ExchangeX3();
+  void ExchangeAll(IdefixArray3D<real> ex, IdefixArray3D<real> ey, IdefixArray3D<real> ez);
+  void ExchangeX1(IdefixArray3D<real> ey, IdefixArray3D<real> ez);
+  void ExchangeX2(IdefixArray3D<real> ex, IdefixArray3D<real> ez);
+  void ExchangeX3(IdefixArray3D<real> ex, IdefixArray3D<real> ey);
 #endif
 
  private:
@@ -118,12 +123,12 @@ class ConstrainedTransport {
   enum {faceRight, faceLeft};
 
   // Buffers for MPI calls
-  IdefixArray1D<real> BufferSendX1[2];
-  IdefixArray1D<real> BufferSendX2[2];
-  IdefixArray1D<real> BufferSendX3[2];
-  IdefixArray1D<real> BufferRecvX1[2];
-  IdefixArray1D<real> BufferRecvX2[2];
-  IdefixArray1D<real> BufferRecvX3[2];
+  Buffer BufferSendX1[2];
+  Buffer BufferSendX2[2];
+  Buffer BufferSendX3[2];
+  Buffer BufferRecvX1[2];
+  Buffer BufferRecvX2[2];
+  Buffer BufferRecvX3[2];
 
   IdefixArray1D<int>  mapVars;
 
@@ -282,10 +287,10 @@ ConstrainedTransport<Phys>::ConstrainedTransport(Input &input, Fluid<Phys> *hydr
   bufferSizeX1 += data->np_int[JDIR] * (data->np_int[KDIR]+KOFFSET);
   #endif
 
-  BufferRecvX1[faceLeft ] = IdefixArray1D<real>("EmfRecvX1Left", bufferSizeX1);
-  BufferRecvX1[faceRight] = IdefixArray1D<real>("EmfRecvX1Right",bufferSizeX1);
-  BufferSendX1[faceLeft ] = IdefixArray1D<real>("EmfSendX1Left", bufferSizeX1);
-  BufferSendX1[faceRight] = IdefixArray1D<real>("EmfSendX1Right",bufferSizeX1);
+  BufferRecvX1[faceLeft ] = Buffer(bufferSizeX1);
+  BufferRecvX1[faceRight] = Buffer(bufferSizeX1);
+  BufferSendX1[faceLeft ] = Buffer(bufferSizeX1);
+  BufferSendX1[faceRight] = Buffer(bufferSizeX1);
 
   // Number of cells in X2 boundary condition (only required when problem >2D):
 #if DIMENSIONS >= 2
@@ -297,10 +302,10 @@ ConstrainedTransport<Phys>::ConstrainedTransport(Input &input, Fluid<Phys> *hydr
   bufferSizeX2 += data->np_int[IDIR] * (data->np_int[KDIR]+KOFFSET);
   #endif
 
-  BufferRecvX2[faceLeft ] = IdefixArray1D<real>("EmfRecvX2Left", bufferSizeX2);
-  BufferRecvX2[faceRight] = IdefixArray1D<real>("EmfRecvX2Right",bufferSizeX2);
-  BufferSendX2[faceLeft ] = IdefixArray1D<real>("EmfSendX2Left", bufferSizeX2);
-  BufferSendX2[faceRight] = IdefixArray1D<real>("EmfSendX2Right",bufferSizeX2);
+  BufferRecvX2[faceLeft ] = Buffer(bufferSizeX2);
+  BufferRecvX2[faceRight] = Buffer(bufferSizeX2);
+  BufferSendX2[faceLeft ] = Buffer(bufferSizeX2);
+  BufferSendX2[faceRight] = Buffer(bufferSizeX2);
 
 #endif
 // Number of cells in X3 boundary condition (only required when problem is 3D):
@@ -310,10 +315,10 @@ ConstrainedTransport<Phys>::ConstrainedTransport(Input &input, Fluid<Phys> *hydr
   // ey
   bufferSizeX3 += (data->np_int[IDIR]+IOFFSET) * data->np_int[JDIR];
 
-  BufferRecvX3[faceLeft ] = IdefixArray1D<real>("EmfRecvX3Left", bufferSizeX3);
-  BufferRecvX3[faceRight] = IdefixArray1D<real>("EmfRecvX3Right",bufferSizeX3);
-  BufferSendX3[faceLeft ] = IdefixArray1D<real>("EmfSendX3Left", bufferSizeX3);
-  BufferSendX3[faceRight] = IdefixArray1D<real>("EmfSendX3Right",bufferSizeX3);
+  BufferRecvX3[faceLeft ] = Buffer(bufferSizeX3);
+  BufferRecvX3[faceRight] = Buffer(bufferSizeX3);
+  BufferSendX3[faceLeft ] = Buffer(bufferSizeX3);
+  BufferSendX3[faceRight] = Buffer(bufferSizeX3);
 #endif // DIMENSIONS
 
   // Init persistent MPI communications
@@ -449,6 +454,7 @@ void ConstrainedTransport<Phys>::ShowConfig() {
 #include "calcRiemannEmf.hpp"
 #include "EMFexchange.hpp"
 #include "enforceEMFBoundary.hpp"
+#include "enforceVectorPotentialBoundary.hpp"
 #include "evolveMagField.hpp"
 #include "evolveVectorPotential.hpp"
 

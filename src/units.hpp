@@ -25,17 +25,18 @@ class Units {
   const real m_e{9.1093837015e-28};                 // electron mass unit (g)
   const real k_B{1.380649e-16};                     // Boltzmann constant (erg/K)
   const real sigma_sb{5.6703744191844314e-05};      // Stephan Boltzmann constant (g/(K^4 s^3))
-  const real ar{7.5646e-15};                        // 4*sigma_sb/c (g/(K^4 s^2 cm))
+  const real ar{7.5646e-15};                        // Radiation constant
+                                                    //      = 4*sigma_sb/c (g/(K^4 s^2 cm))
   const real c{29979245800.0};                      // Speed of light (cm/s)
   const real M_sun{1.988409870698051e+33};          // Solar mass (g)
   const real R_sun{69570000000.0};                  // Solar radius (cm)
   const real M_earth{5.972167867791379e+27};        // Earth mass (g)
-  const real R_earth{637810000.0};                  // Earth radius (cm)
-  const real G{6.674299999999999e-8};               // Gravitatonal constant  (cm3 / (g s2))
+  const real R_earth{6.3781e8};                     // Earth radius (cm)
+  const real G{6.674299999999999e-8};               // Gravitational constant  (cm3 / (g s2))
   const real h{6.62607015e-27};                     // Planck constant (erg.s)
   const real pc{3.08568e+18};                       // Parsec (cm)
-  const real au{1.49597892e13};                       // Astronomical unit (cm)
-  const real e{4.80320425e-10};                      // Elementary charge (cm^3/2 g^1/2 s^-1)
+  const real au{1.49597892e13};                     // Astronomical unit (cm)
+  const real e{4.80320425e-10};                     // Elementary charge (cm^3/2 g^1/2 s^-1)
 
 
   // User-defined units, non user-modifiable
@@ -45,7 +46,6 @@ class Units {
   KOKKOS_INLINE_FUNCTION real GetVelocity() const {return _velocity;}
   // density (g/cm^3) = density(code) * Units::density
   KOKKOS_INLINE_FUNCTION real GetDensity() const {return _density;}
-                                                    //
 
   // Deduced units from user-defined units
   // T(K) = P(code)/rho(code) * mu * Units::Kelvin
