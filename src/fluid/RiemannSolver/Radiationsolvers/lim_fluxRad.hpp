@@ -17,13 +17,11 @@
 KOKKOS_INLINE_FUNCTION void K_LimitRadFlux(real  V[]) {
 real Fnorm = std::sqrt(EXPAND(V[FR1]*V[FR1] , + V[FR2]*V[FR2], + V[FR3]*V[FR3]));
 
-//real small_factor = ONE_F-2.e-16;
-real small_factor = 1.e-15;
 if (Fnorm > V[ER]) {
     //printf("Limit Flux Fnorm/Er=%e \n",Fnorm/V[ER]);
-    EXPAND( V[FR1] *= (Fnorm <= 1.e-50 ? V[ER]/1.e-50 : (V[ER]/Fnorm)-small_factor); ,
-            V[FR2] *= (Fnorm <= 1.e-50 ? V[ER]/1.e-50 : (V[ER]/Fnorm)-small_factor); ,
-            V[FR3] *= (Fnorm <= 1.e-50 ? V[ER]/1.e-50 : (V[ER]/Fnorm)-small_factor); )
+    EXPAND( V[FR1] *= (Fnorm <= 1.e-50 ? V[ER]/1.e-50 : (V[ER]/Fnorm)); ,
+            V[FR2] *= (Fnorm <= 1.e-50 ? V[ER]/1.e-50 : (V[ER]/Fnorm)); ,
+            V[FR3] *= (Fnorm <= 1.e-50 ? V[ER]/1.e-50 : (V[ER]/Fnorm)); )
 }
 
 return;
