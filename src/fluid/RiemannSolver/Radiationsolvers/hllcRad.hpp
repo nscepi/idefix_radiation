@@ -36,7 +36,6 @@ void RiemannSolver<Phys>::HllcRad(IdefixArray4D<real> &Flux) {
 
 
   ExtrapolateToFaces<Phys,DIR> extrapol = *this->GetExtrapolator<DIR>();
-  IdefixArray3D<FlagShock> flagArray = this->shockFlattening->flagArray;
 
   // Reduced velocity of light
   real reduced_c = this->reduced_c;
@@ -127,32 +126,9 @@ void RiemannSolver<Phys>::HllcRad(IdefixArray4D<real> &Flux) {
         for (int nv = 0 ; nv < Phys::nvar; nv++) {
            Flux(nv,k,j,i) = fluxR[nv];
         }
-       // switch to LFR solver if speeds are small
-//      } else if (FABS(SL) < SMALL_NUMBER && FABS(SR) < SMALL_NUMBER) {
-//#pragma unroll
-        //for (int nv = 0 ; nv < Phys::nvar; nv++) {
-        //  Flux(nv,k,j,i) = 0.5*(fluxL[nv] + fluxR[nv]-cmax*(uR[nv]-uL[nv]));
-        //}
-      // switch to HLL if strong shocks
-      //bool condition1 = ((flagArray(k-koffset,j-joffset,i-ioffset) == FlagShock::Shock);
-      //bool condition2 = (flagArray(k,j,i) == FlagShock::Shock)));
-//      } else if (this->haveShockFlattening && condition1 || condition2  {
-          //std::printf("Switch to HLL solver because of shock flattening"
-          //"at i=%i, j=%i, k=%i\n",i,j,k);
-//        real dS = SR-SL;
-//        if(std::abs(dS) < SMALL_NUMBER) {
-//          dS = SMALL_NUMBER;
-//          std::printf("Velocities are the same\n");
-//        }
-// #pragma unroll
-//        for (int nv = 0 ; nv < Phys::nvar; nv++) {
-//          Flux(nv,k,j,i) = SL*SR*uR[nv] - SL*SR*uL[nv] + SR*fluxL[nv] - SL*fluxR[nv];
-//          Flux(nv,k,j,i) /= dS;
-//        }
       } else {
         if(std::abs(dS) < SMALL_NUMBER) {
           dS = SMALL_NUMBER;
-          //std::printf("Velocities are the same\n");
         }
 
         // Get U*
