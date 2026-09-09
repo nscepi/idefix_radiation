@@ -1002,7 +1002,7 @@ void RadSource::ShowConfig() {
     }
   }
 
-  idfx::cout << "Source term solver is ";
+  idfx::cout << "Radiation source term solver is ";
   switch(source_solver) {
     case Type_isolver::full_implicit:
       idfx::cout << "full_implicit." << std::endl;
