@@ -28,6 +28,9 @@ class RiemannSolver {
   enum Solver {TVDLF_MHD, HLL_MHD, HLLD_MHD, ROE_MHD, TVDLF, HLL, HLLC, ROE, HLL_DUST,
                HLL_RAD, LFR_RAD, HLLC_RAD};
 
+  enum class Type_Radlimiter{simple,flatten,fpreserving};
+  Type_Radlimiter radLimiter;  // Type of radiative flux limiter
+
   RiemannSolver(Input &input, Fluid<Phys>* hydro);
 
   template <int> void CalcFlux(IdefixArray4D<real> &);
@@ -169,11 +172,34 @@ RiemannSolver<Phys>::RiemannSolver(Input &input, Fluid<Phys>* hydro) : Vc{hydro-
     }
   }
 
+  //Retrieve haveRadiation from fluid class
+  haveRadiation = hydro->haveRadiation;
+
   // Reduced velocity of light
   if(input.CheckEntry(std::string(Phys::prefix),"reduced_c")>=0) {
     this->reduced_c = hydro->reduced_c;
     //printf("reduced_c=%e\n",this->reduced_c);
   }
+
+  // Radiative flux limiter
+  if (haveRadiation) {
+    std::string limiterString;
+    limiterString = input.GetOrSet<std::string>(std::string(Phys::prefix),"rad_limiter",0,"simple");
+    if(limiterString.compare("simple") == 0) {
+      radLimiter = Type_Radlimiter::simple;
+    } else if(limiterString.compare("flatten") == 0) {
+      radLimiter = Type_Radlimiter::flatten;
+    } else if(limiterString.compare("fpreserving") == 0) {
+      radLimiter = Type_Radlimiter::fpreserving;
+    } else {
+      std::stringstream msg;
+      msg << "Unknown limiter for radiative flux \"" <<  limiterString
+          << "\" in your input file." << std::endl
+          << "Allowed values are: simple, flatten, fpreserving." << std::endl;
+      IDEFIX_ERROR(msg);
+    }
+  }
+
 
   // Shock flattening
   this->haveShockFlattening = input.CheckEntry(std::string(Phys::prefix),"shockFlattening")>=0;
@@ -239,6 +265,21 @@ void RiemannSolver<Phys>::ShowConfig() {
 
   if(haveShockFlattening) {
     idfx::cout << Phys::prefix << ": Shock Flattening ENABLED." << std::endl;
+  }
+
+  if(haveRadiation) {
+    idfx::cout << Phys::prefix << ": Radiative flux limiter is ";
+    switch(radLimiter) {
+      case Type_Radlimiter::simple:
+        idfx::cout << "simple." << std::endl;
+        break;
+      case Type_Radlimiter::flatten:
+        idfx::cout << "flatten." << std::endl;
+        break;
+      case Type_Radlimiter::fpreserving:
+        idfx::cout << "f-preserving." << std::endl;
+        break;
+    }
   }
 }
 

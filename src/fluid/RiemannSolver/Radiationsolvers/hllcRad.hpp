@@ -34,13 +34,15 @@ void RiemannSolver<Phys>::HllcRad(IdefixArray4D<real> &Flux) {
   // Required for high order interpolations
   IdefixArray1D<real> dx = this->data->dx[DIR];
 
-
   ExtrapolateToFaces<Phys,DIR> extrapol = *this->GetExtrapolator<DIR>();
 
   // Reduced velocity of light
   real reduced_c = this->reduced_c;
 
   RadSource &rad_source = *(this->hydro->radsource);
+
+  // Type of rad flux limiter
+  Type_Radlimiter rad_limiter = radLimiter;
 
   idefix_for("HLLC_Rad_Kernel",
              data->beg[KDIR],data->end[KDIR]+koffset,
@@ -82,10 +84,8 @@ void RiemannSolver<Phys>::HllcRad(IdefixArray4D<real> &Flux) {
       // 1-- Store the primitive variables on the left, right, and averaged states
       extrapol.ExtrapolatePrimVar(i, j, k, vL, vR);
 
-      // Limit Fr after extrapolation to satisfy Fr<=Er
-      //K_LimitRadFluxReconstruct(vL,vR,v,voffset);
-      K_LimitRadFlux(vL);
-      K_LimitRadFlux(vR);
+      // Limit the fluxes after extrapolation to satisfy Fr<=Er
+      K_LimitRadFlux<Phys>(vL,vR,v,voffset,rad_limiter);
 
       // 2-- Get the wave speed
       K_SpeedsRad(lambdaL,vL,Xn, reduced_c,&xiL);

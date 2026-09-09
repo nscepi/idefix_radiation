@@ -40,6 +40,9 @@ void RiemannSolver<Phys>::HllRad(IdefixArray4D<real> &Flux) {
   real reduced_c = this->reduced_c;
   //printf("reduced=%e\n",reduced_c);
 
+  // Type of rad flux limiter
+  Type_Radlimiter rad_limiter = radLimiter;
+
   RadSource &rad_source = *(this->hydro->radsource);
 
   idefix_for("HLL_Rad_Kernel",
@@ -81,9 +84,7 @@ void RiemannSolver<Phys>::HllRad(IdefixArray4D<real> &Flux) {
       extrapol.ExtrapolatePrimVar(i, j, k, vL, vR);
 
       // Limit the fluxes after extrapolation to satisfy Fr<=Er
-      //K_LimitRadFluxReconstruct(vL,vR,v,voffset);
-      K_LimitRadFlux(vL);
-      K_LimitRadFlux(vR);
+      K_LimitRadFlux<Phys>(vL,vR,v,voffset,rad_limiter);
 
       // 2-- Get the wave speed
       K_SpeedsRad(lambdaL,vL,Xn,reduced_c,&xiL);

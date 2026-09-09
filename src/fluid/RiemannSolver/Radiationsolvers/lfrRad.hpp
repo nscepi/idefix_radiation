@@ -38,6 +38,9 @@ void RiemannSolver<Phys>::LFRRad(IdefixArray4D<real> &Flux) {
   // Reduced velocity of light
   real reduced_c = this->reduced_c;
 
+  // Type of rad flux limiter
+  Type_Radlimiter rad_limiter = radLimiter;
+
   idefix_for("LFR_Rad_Kernel",
              data->beg[KDIR],data->end[KDIR]+koffset,
              data->beg[JDIR],data->end[JDIR]+joffset,
@@ -49,6 +52,13 @@ void RiemannSolver<Phys>::LFRRad(IdefixArray4D<real> &Flux) {
       // Primitive variables
       real vL[Phys::nvar];
       real vR[Phys::nvar];
+      real v[Phys::nvar];
+      real voffset[Phys::nvar];
+
+      for(int nv = 0 ; nv < Phys::nvar; nv++) {
+        v[nv] = Vc(nv,k,j,i);
+        voffset[nv] = Vc(nv,k-koffset,j-joffset,i-ioffset);
+      }
 
       // Conservative variables
       real uL[Phys::nvar];
@@ -69,8 +79,7 @@ void RiemannSolver<Phys>::LFRRad(IdefixArray4D<real> &Flux) {
       extrapol.ExtrapolatePrimVar(i, j, k, vL, vR);
 
       // Limit the fluxes after extrapolation to satisfy Fr<=Er
-      K_LimitRadFlux(vL);
-      K_LimitRadFlux(vR);
+      K_LimitRadFlux<Phys>(vL,vR,v,voffset,rad_limiter);
 
       // 2-- Get the wave speed
       K_SpeedsRad(lambdaL,vL,Xn, reduced_c,&xiL);

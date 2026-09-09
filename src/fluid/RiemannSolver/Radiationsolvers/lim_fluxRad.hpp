@@ -14,7 +14,7 @@
 #include "input.hpp"
 
 
-KOKKOS_INLINE_FUNCTION void K_LimitRadFlux(real  V[]) {
+KOKKOS_INLINE_FUNCTION void K_LimitRadFluxSimple(real  V[]) {
 real Fnorm = std::sqrt(EXPAND(V[FR1]*V[FR1] , + V[FR2]*V[FR2], + V[FR3]*V[FR3]));
 
 //real small_factor = ONE_F-2.e-16;
@@ -92,6 +92,23 @@ if ((FnormR > vR[ER])|| (ratiocell > ratioR)) {
             vR[FR3] = Vc[FR3]*vR[ER]/Vc[ER]; )
 }
 
+
+return;
+}
+
+template <typename Phys>
+KOKKOS_INLINE_FUNCTION void K_LimitRadFlux(
+    real  vL[], real vR[], real Vc[], real VOff[],
+    typename RiemannSolver<Phys>::Type_Radlimiter radLimiter) {
+
+  if (radLimiter == RiemannSolver<Phys>::Type_Radlimiter::simple) {
+      K_LimitRadFluxSimple(vL);
+      K_LimitRadFluxSimple(vR);
+  } else if (radLimiter == RiemannSolver<Phys>::Type_Radlimiter::flatten) {
+      K_LimitRadFluxFlatten(vL,vR,Vc,VOff);
+  } else if (radLimiter == RiemannSolver<Phys>::Type_Radlimiter::fpreserving) {
+      K_LimitRadFluxReconstruct(vL,vR,Vc,VOff);
+  }
 
 return;
 }

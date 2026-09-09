@@ -257,14 +257,16 @@ class Fluid {
   IdefixArray3D<real> xHall;
   IdefixArray3D<real> xAmbipolar;
 
+  // Radiation reduced speed of light
+  real reduced_c;
+  bool haveRadiation{false};
+
   // Enroll user-defined opacity function
   XiFunc xiFunc;
   KappaFunc kappaFunc;
   KappairrFunc kappairrFunc;
   IrrFunc irrFunc;
 
-  // Radiation reduced speed of light
-  real reduced_c;
 
   // Arrays containing the opacities from userdef function (only allocated when needed)
   IdefixArray3D<real> xiArr;
@@ -308,6 +310,7 @@ Fluid<Phys>::Fluid(Grid &grid, Input &input, DataBlock *datain, int n) {
   // When dealing with radiation, add the frequency group number
   //, reduced speed of light and status of opacities
   if(Phys::prefix.compare("Rad") == 0) {
+    this->haveRadiation=true;
     prefix += std::to_string(n);
     this->reduced_c = input.Get<real>(std::string(Phys::prefix),"reduced_c",0);
     this->reduced_c *= idfx::units.c/idfx::units.GetVelocity();
