@@ -144,16 +144,6 @@ void RiemannSolver<Phys>::HllcRad(IdefixArray4D<real> &Flux) {
         real f_paramR = FnormR/vR[ER];
         real f2_paramR = f_paramR*f_paramR;
 
-        real zeta_L = std::sqrt(4.-3.*f2_paramL);
-
-        real zeta_R = std::sqrt(4.-3.*f2_paramR);
-
-        real xiL = 3.+4.*f2_paramL;
-        xiL /= 5.+2.*zeta_L;
-
-        real xiR = 3.+4.*f2_paramR;
-        xiR /= 5.+2.*zeta_R;
-
         real betaL = (f2_paramL < 1.e-100) ? 1.e-100 : (1.5*xiL-0.5)*cos_thetaL/f_paramL;
         betaL *= reduced_c;
         real betaR = (f2_paramR < 1.e-100) ? 1.e-100 : (1.5*xiR-0.5)*cos_thetaR/f_paramR;
@@ -193,12 +183,7 @@ void RiemannSolver<Phys>::HllcRad(IdefixArray4D<real> &Flux) {
             real c = (BR - BL)*reduced_c*reduced_c;
             real delta;
             // Ensure posivity on delta for stability of the HLLC solver
-            if ((b*b - 4.0*a*c < ZERO_F)) {
-              //std::printf("delta<0 in HLLC solver! at i=%i,j=%i,k=%i \n",i,j,k);
-              delta = ZERO_F;
-            } else {
-              delta = b*b - 4.0*a*c;
-            }
+            delta = FMAX(ZERO_F,b*b - 4.0*a*c);
 
             real scrh = (b >= ZERO_F) ? -0.5*(b + std::sqrt(delta)) :  -0.5*(b - std::sqrt(delta));
             real us   = c/scrh;
