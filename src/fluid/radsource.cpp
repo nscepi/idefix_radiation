@@ -1071,7 +1071,7 @@ void RadSource::IrrFlux(IdefixArray3D<real> divFin) {
               rdOmegadr = x1(i)*(Omegap-Omegam)/(x1(i+1)-x1(i));
               mu = eta1(k,j,i);
 
-              Qvisc(k,j,i) = mu*rdOmegadr*rdOmegadr;
+              Qviscin(k,j,i) = mu*rdOmegadr*rdOmegadr;
               //std::printf("Qvisc=%e\n",Qvisc(k,j,i));
 
     });
