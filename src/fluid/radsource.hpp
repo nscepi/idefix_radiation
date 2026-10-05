@@ -13,6 +13,7 @@
 #include "fluid_defs.hpp"
 #include "eos.hpp"
 #include "units.hpp"
+#include "mpiWrapper.hpp"
 #include "lookupTable.hpp"
 #include "column.hpp"
 
