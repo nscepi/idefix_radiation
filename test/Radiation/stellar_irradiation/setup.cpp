@@ -46,7 +46,7 @@ void FluxBoundary(Fluid<DefaultPhysics> *hydro, int dir, BoundarySide side, cons
 
     auto *data = hydro->data;
 
-    IdefixArray4D<real> Flux = data->hydro->FluxRiemann;
+    IdefixArray4D<real> Flux = data->hydro->FluxRiemann[dir];
 
     if( dir== IDIR ) {
       idefix_for("FluxInternal",

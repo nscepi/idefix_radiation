@@ -62,7 +62,7 @@ void Setup::InitFlow(DataBlock &data) {
               d.Vc(VX1,k,j,i) = ZERO_F;
               d.Vc(VX2,k,j,i) = ZERO_F;
               d.Vc(VX3,k,j,i) = ZERO_F;
-              T = d.Vc(PRS,k,j,i)/d.Vc(RHO,k,j,i)*idfx::units.GetKelvin();
+              T = prs_in/rho0*idfx::units.GetKelvin();
               if (haveRadiationGlob) {
                 d.RadVc[0](ER,k,j,i) = idfx::units.ar*std::pow(T,4)/unit_energy;
                 d.RadVc[0](FR1,k,j,i) = ZERO_F;
