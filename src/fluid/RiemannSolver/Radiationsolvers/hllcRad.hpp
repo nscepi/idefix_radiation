@@ -106,6 +106,9 @@ void RiemannSolver<Phys>::HllcRad(IdefixArray4D<real> &Flux) {
       real cmax  = FMAX(FABS(SL), FABS(SR));
 
       real dS = SR-SL;
+      if(std::abs(dS) < SMALL_NUMBER) {
+        dS = SMALL_NUMBER;
+      }
 
       // 3-- Compute the conservative variables: do this by extrapolation
       K_PrimToCons<Phys>(uL, vL, NULL);
@@ -116,7 +119,13 @@ void RiemannSolver<Phys>::HllcRad(IdefixArray4D<real> &Flux) {
       K_Flux<Phys,DIR>(fluxR, vR, uR, reduced_c,xiR);
 
       // 5-- Compute the flux from the left and right states
-      if (SL >= 0) {
+      if ((SR == speed_diff) && (SL== -speed_diff)) {
+      #pragma unroll
+        for(int nv = 0 ; nv < Phys::nvar; nv++) {
+           Flux(nv,k,j,i) = SL*SR*uR[nv] - SL*SR*uL[nv] + SR*fluxL[nv] - SL*fluxR[nv];
+           Flux(nv,k,j,i) /= dS;
+        }
+      } else if (SL >= 0) {
       #pragma unroll
         for (int nv = 0 ; nv < Phys::nvar; nv++) {
            Flux(nv,k,j,i) = fluxL[nv];
@@ -127,10 +136,6 @@ void RiemannSolver<Phys>::HllcRad(IdefixArray4D<real> &Flux) {
            Flux(nv,k,j,i) = fluxR[nv];
         }
       } else {
-        if(std::abs(dS) < SMALL_NUMBER) {
-          dS = SMALL_NUMBER;
-        }
-
         // Get U*
         real FnormL = std::sqrt(EXPAND(vL[FR1]*vL[FR1] , + vL[FR2]*vL[FR2], + vL[FR3]*vL[FR3]));
         real FnormR = std::sqrt(EXPAND(vR[FR1]*vR[FR1] , + vR[FR2]*vR[FR2], + vR[FR3]*vR[FR3]));
