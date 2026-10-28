@@ -37,7 +37,7 @@ Setup::Setup(Input &input, Grid &grid, DataBlock &data, Output &output)
   v0Glob = input.Get<real>("Setup","v0",0);
   muGlob = input.Get<real>("Hydro","mu",0);
 
-  data.radiation[0]->EnrollIrradiation(&MyIrradiation);
+  //data.radiation[0]->EnrollIrradiation(&MyIrradiation);
 }
 
 // This routine initialize the flow
