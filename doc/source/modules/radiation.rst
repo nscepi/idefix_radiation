@@ -52,7 +52,7 @@ The source terms in the radiation equations are defined as
 
 
 where :math:`\kappa_\mathrm{P}` is the Planck absorption opacity, :math:`\chi\equiv\kappa_\mathrm{R}+\sigma` where :math:`\kappa_\mathrm{R}` and :math:`\sigma` are the Rosseland absorption and scattering opacities respectively.
-The present formulation of the source terms is only valid for non-relativistic sources with :math:`\beta\equiv\frac{||\mathbf{v}||}{c} \ll 1` so that we only take into account a correction of order :math:`\tau \beta`.
+The present formulation of the source terms is only valid for non-relativistic sources with :math:`\beta\equiv\frac{||\mathbf{v}||}{c} \ll 1` so that we only take into account a correction of order :math:`\tau \beta` to model the dynamic diffusion limit.
 For midly relativistic sources, higher order corrections that are included here are likely to be important.
 
 In addition to the matter-radiation interaction source terms, the user can add an additional heating term :math:`- \nabla \cdot \mathbf{F}_\mathrm{irr}`.
@@ -76,29 +76,41 @@ Explicit part: Reduced speed of light approximation
 In order to reduce the CFL constraint that would arise when dealing with explicit radiation transport at the speed of light, we use the reduced speed of light approximation :math:`\hat{c}`.
 The value of  :math:`\hat{c}` is set by the user and should be chosen so that radiation sets the shortest time-scale.
 
-Several
+Two explicit solvers are implemented, ``hll_rad`` and ``hllc_rad``, although we exclusively use hll_rad for our applications so that ``hllc_rad`` is not tested for complex setups.
 
 Implicit part:
 +++++++++++++++
 
-When the drag is applied with a 1st order implicit scheme, the drag force is applied at the end of each step. In order to avoid
-the complete inversion of the system, we follow a simplified inversion procedure, where we first update the gas momentum as:
+The source terms are included using an implicit scheme. All of the tests have been carried with the full_implicit solver but two iterative other solvers (fixed_point_rad and fixed_point_gas) described in ??? are also implemented although less tested.
+
+When using the ``full_implicit`` solver the radiation energy and the radiation fluxes are evolved by inverting the following system
+
+.. math::
+    M =
+    \begin{pmatrix}
+    1+\gamma_\mathrm{abs,red} & -4\gamma_\mathrm{abs,red} a_R {T^n}^3 & 0 & 0 & 0 \\
+    -\gamma_\mathrm{abs} & C_v+4\gamma_\mathrm{abs} a_R {T^n}^3 & 0 & 0 & 0 \\
+    -2\beta_1\gamma_\mathrm{scatt,red}/3 & 0 & 1+\gamma_\mathrm{scatt,red} & 0 & 0 \\
+    -2\beta_1\gamma_\mathrm{scatt,red}/3 & 0 & 0 & 1+\gamma_\mathrm{scat,red} & 0 \\
+    -2\beta_1\gamma_\mathrm{scatt,red}/3 & 0 & 0 & 0 & 1+\gamma_\mathrm{scatt,red}
+    \end{pmatrix}
+
+with the following right hand side
+
+.. math::
+    S =
+    \begin{pmatrix}
+    1+\gamma_1 \\
+    -\gamma_2  \\
+    -C_1\gamma_3 \\
+    -C_2\gamma_3  \\
+    -C_3\gamma_3
+    \end{pmatrix}
+
+Then, the gas energy and gas momentum are updated to conserve to total energy and total momentum by doing
 
 .. math::
 
-    v_g^{(n+1)}=\left(v_g^{(n)}+\sum_i\frac{\rho_i\gamma_i dt}{1+\rho \gamma_i dt}v_i^{(n)}\right)/\left(1+\sum_i\frac{\rho_i\gamma_i dt}{1+\rho\gamma_idt}\right)
-
-And then update the dust momentum as:
-
-.. math::
-
-    v_i^{(n+1)}=\left(v_i^{(n)}+\rho\gamma_i v_g^{(n+1)}dt\right)/(1+\rho\gamma_i dt)
-
-Note that the latter equation relies on the *updated* gas velocity.
-
-.. warning::
-  While the implicit scheme is more stable than the explicit one, and it does not require any additional CFL condition, it is less accurate and
-  possibly lead to inacurrate dust velocities when :math:`dt\gg (\gamma_i\rho)^{-1}`. Use it at your own risk.
 
 Radiation parameters
 ---------------
@@ -169,7 +181,15 @@ The radiation module can be enabled adding a block `[Rad]` in your input .ini fi
 |                |                         | | source term :math:`-\nabla \cdot \mathbf{F}_\mathrm{irr}` through the enrollment of a function               |
 |                |                         | | ``Radiation[nFrequencies]::EnrollIrradiation(IrrFunc)`` in the ``RadSource`` class.                          |
 +----------------+-------------------------+----------------------------------------------------------------------------------------------------------------+
-
+| rad_limiter    | string, ...             | | (optional, default is simple) Sets the way the physical condition :math:`f\equiv||F||/E_r\leq 1` is enforced.|
+|                |                         | | The choice of ``rad_limiter``is of the most importance in optically thin regions.                            |
+|                |                         | | Possible values are: ``simple``, ``flatten`` and ``fpreserving``.                                            |
+|                |                         | | ``simple`` ensures :math: `f\leq 1` on the reconstructed values at the cell faces. This can lead to beam     |
+|                |                         | | widening in the case of the propagation of a highly collimated radiation field.                              |
+|                |                         | | ``flatten`` switch to a flat reconstruction scheme whenever  :math: `f\leq 1` on the faces.                  |
+|                |                         | | ``fpreserving`` sets :math: `f\leq 1` by ensuring that the value of :math: `f` is equal on the faces and at  |
+|                |                         | | the center of a cell. It is the most accurate implementation.                                                |
++----------------+-------------------------+----------------------------------------------------------------------------------------------------------------+
 
 Using the Radiation module
 ---------------------
