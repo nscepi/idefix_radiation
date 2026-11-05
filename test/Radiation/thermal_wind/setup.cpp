@@ -93,8 +93,6 @@ void MySourceTerm(Fluid<DefaultPhysics> *hydro, const real tin, const real dtin)
                 real total_cooling = n*n*(Gcompton+GX)*units.GetTime()/units.GetEnergy();
                 total_cooling *= FMIN(ONE_F,(t*units.GetTime()-tstart)/t_trans);
                 
-		total_cooling = 1.;
-
                 real new_dt = dt;
                 real frac_ENG = 0.8;
                 if (total_cooling*dt > frac_ENG*Uc(ENG,k,j,i)) {
