@@ -50,7 +50,7 @@ void MySourceTerm(Fluid<DefaultPhysics> *hydro, const real tin, const real dtin)
   real tstart = tstartGlob;
   real t_trans = ttransGlob;
   real dt = dtin;
-  real t = tin ; 
+  real t = tin ;
 
   IdefixArray3D<real> tau;
   IdefixArray3D<real> kapparho("rho",data->np_tot[KDIR],data->np_tot[JDIR],data->np_tot[IDIR]);
@@ -66,34 +66,40 @@ void MySourceTerm(Fluid<DefaultPhysics> *hydro, const real tin, const real dtin)
 
                 real FX = Lstar * std::exp(-tau(k,j,i));
                 FX /= r(i)*r(i)*units.GetLength()*units.GetLength();
-                real n = Vc(RHO,k,j,i)*units.GetDensity()/(units.u*mu);
-                real xi = FX/n;
+                real nH = Vc(RHO,k,j,i)*units.GetDensity()/(units.u*mu);
+
+                real xi = FX/nH;
 
                 real T = Vc(PRS,k,j,i)/Vc(RHO,k,j,i)*units.GetKelvin()*mu;
 
+                real ne1 = 2.545825721359034e-52*std::pow(T,12.27740153);
+                real ne2 = 0.00015577691900385798*std::pow(T,0.86092628);
+                real ne3 = 1.21;
+                real ne = FMIN(FMIN(ne1,ne2),ne3);
+
                 //Blondin formula from Proga, Stone & Kallman 2000
                 //Compton heating/cooling
-                real Gcompton = 8.9e-36*xi*(TX-4.*T); //Compton heating/cooling
+                real Gcompton = ne*8.9e-36*xi*(TX-4.*T); //Compton heating/cooling
                 //if (std::isnan(Gcompton)) {
                 //  std::printf("xi=%e, T=%e\n",xi,T);
                 //  Kokkos::abort("Nan in Gcompton");
                 //}
                 //net rate of X-ray photoionization heating-recombination cooling
-                real GX = 1.5e-21*std::pow(xi,0.25)*std::pow(T,-0.5)*(1.-T/TX);
+                real GX = nH*1.5e-21*std::pow(xi,0.25)*std::pow(T,-0.5)*(1.-T/TX);
                 //if (std::isnan(GX)) {
                 //  std::printf("xi=%e, T=%e, PRS=%e, RHO=%e\n",xi,T,Vc(PRS,k,j,i),Vc(RHO,k,j,i));
                 //  Kokkos::abort("Nan in GX");
                 //}
                 //Bremsstrahlung cooling
-                real Lbt = 3.3e-27*std::sqrt(T);
+                real Lbt = ne*3.3e-27*std::sqrt(T);
                 //Line cooling
-                real delta = 1.; //parameter controlling line cooling
-		delta *= FMIN(ONE_F,(t*units.GetTime()-tstart)/t_trans); // don't start line cooling at beginning
-                Lbt += (1.7e-18*std::exp(FMAX(-1.3e5/T,-30.))/xi*std::pow(T,-0.5)+1.e-24)*delta;
+                real delta = 0.; //parameter controlling line cooling
+        delta *= FMIN(ONE_F,(t*units.GetTime()-tstart)/t_trans); // don't start line cooling at beginning
+                Lbt += ne*(1.7e-18*std::exp(FMAX(-1.3e5/T,-30.))/xi*std::pow(T,-0.5)+1.e-24)*delta;
 
-                real total_cooling = n*n*(Gcompton+GX-Lbt)*units.GetTime()/units.GetEnergy();
+                real total_cooling = nH*(Gcompton+GX-Lbt)*units.GetTime()/units.GetEnergy();
                 total_cooling *= FMIN(ONE_F,(t*units.GetTime()-tstart)/t_trans);
-                
+
                 real new_dt = dt;
                 real frac_ENG = 0.8;
                 if (total_cooling*dt > frac_ENG*Uc(ENG,k,j,i)) {
