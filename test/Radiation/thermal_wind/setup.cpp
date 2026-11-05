@@ -40,7 +40,7 @@ void MySourceTerm(Fluid<DefaultPhysics> *hydro, const real tin, const real dtin)
   auto data = hydro->data;
   auto units = idfx::units;
   IdefixArray3D<real> InvDt = hydro->InvDt;
-
+  IdefixArray1D<real> r = data->x[IDIR];
   real mu = muGlob;
   real TX = TXGlob;
   real kappaX = kappaXGlob;
@@ -65,7 +65,7 @@ void MySourceTerm(Fluid<DefaultPhysics> *hydro, const real tin, const real dtin)
               KOKKOS_LAMBDA (int k, int j, int i) {
 
                 real FX = Lstar * std::exp(-tau(k,j,i));
-                FX /= data->x[IDIR](i)*data->x[IDIR](i)*units.GetLength()*units.GetLength();
+                FX /= r(i)*r(i)*units.GetLength()*units.GetLength();
                 real n = Vc(RHO,k,j,i)*units.GetDensity()/(units.u*mu);
                 real xi = FX/n;
 
@@ -88,9 +88,10 @@ void MySourceTerm(Fluid<DefaultPhysics> *hydro, const real tin, const real dtin)
                 real Lbt = 3.3e-27*std::sqrt(T);
                 //Line cooling
                 real delta = 1.; //parameter controlling line cooling
-                Lbt += (1.7e-18*std::exp(-1.3e5/T)/xi*std::pow(T,-0.5)+1.e-24)*delta;
+		delta *= FMIN(ONE_F,(t*units.GetTime()-tstart)/t_trans); // don't start line cooling at beginning
+                Lbt += (1.7e-18*std::exp(FMAX(-1.3e5/T,-30.))/xi*std::pow(T,-0.5)+1.e-24)*delta;
 
-                real total_cooling = n*n*(Gcompton+GX)*units.GetTime()/units.GetEnergy();
+                real total_cooling = n*n*(Gcompton+GX-Lbt)*units.GetTime()/units.GetEnergy();
                 total_cooling *= FMIN(ONE_F,(t*units.GetTime()-tstart)/t_trans);
                 
                 real new_dt = dt;
@@ -99,7 +100,7 @@ void MySourceTerm(Fluid<DefaultPhysics> *hydro, const real tin, const real dtin)
                     InvDt(k,j,i) = total_cooling/(frac_ENG*Uc(ENG,k,j,i));
                     new_dt = 1./InvDt(k,j,i);
                 }
-                Uc(ENG,k,j,i) += -new_dt*total_cooling;
+                Uc(ENG,k,j,i) -= new_dt*total_cooling;
               }
             );
 }
@@ -253,9 +254,12 @@ void ComputeUserVars(DataBlock & data, UserDefVariablesContainer &variables) {
 
   IdefixHostArray3D<real> FX  = variables["FX"];
   IdefixHostArray3D<real> xi  = variables["xi"];
-  IdefixHostArray3D<real> Gcompton  = variables["Gcompton"];
-  IdefixHostArray3D<real> GX  = variables["GX"];
-  IdefixHostArray3D<real> mLbt  = variables["-Lbt"];
+  IdefixHostArray3D<real> Hcompton  = variables["Hcompton"];
+  IdefixHostArray3D<real> Ccompton  = variables["Ccompton"];
+  IdefixHostArray3D<real> HX  = variables["HX"];
+  IdefixHostArray3D<real> CX  = variables["CX"];
+  IdefixHostArray3D<real> bremLbt  = variables["bremLbt"];
+  IdefixHostArray3D<real> lineLbt  = variables["lineLbt"];
 
   real mu = muGlob;
   real TX = TXGlob;
@@ -289,14 +293,16 @@ void ComputeUserVars(DataBlock & data, UserDefVariablesContainer &variables) {
 
           //Blondin formula from Proga, Stone & Kallman 2000
           //Compton heating/cooling
-          Gcompton(k,j,i) = 8.9e-36*xi(k,j,i)*(TX-4.*T); //Compton heating/cooling
+          Hcompton(k,j,i) = 8.9e-36*xi(k,j,i)*TX; //Compton heating/cooling
+          Ccompton(k,j,i) = 8.9e-36*xi(k,j,i)*4.*T; //Compton heating/cooling
           //net rate of X-ray photoionization heating-recombination cooling
-          GX(k,j,i) = 1.5e-21*std::pow(xi(k,j,i),0.25)*std::pow(T,-0.5)*(1.-T/TX);
+          HX(k,j,i) = 1.5e-21*std::pow(xi(k,j,i),0.25)*std::pow(T,-0.5);
+          CX(k,j,i) = 1.5e-21*std::pow(xi(k,j,i),0.25)*std::pow(T,-0.5)*T/TX;
           //Bremsstrahlung cooling
-          mLbt(k,j,i) = -3.3e-27*std::sqrt(T);
+          bremLbt(k,j,i) = 3.3e-27*std::sqrt(T);
           //Line cooling
           real delta = 1.; //parameter controlling line cooling
-          mLbt(k,j,i) -= (1.7e-18*std::exp(-1.3e5/T)/xi(k,j,i)*std::pow(T,-0.5)+1.e-24)*delta;
+          lineLbt(k,j,i) = (1.7e-18*std::exp(FMIN(-1.3e5/T,-30.))/xi(k,j,i)*std::pow(T,-0.5)+1.e-24)*delta;
       }
     }
   }
@@ -304,9 +310,12 @@ void ComputeUserVars(DataBlock & data, UserDefVariablesContainer &variables) {
   Kokkos::deep_copy(variables["tau"],tau);
   Kokkos::deep_copy(variables["FX"], FX);
   Kokkos::deep_copy(variables["xi"], xi);
-  Kokkos::deep_copy(variables["Gcompton"], Gcompton);
-  Kokkos::deep_copy(variables["GX"], GX);
-  Kokkos::deep_copy(variables["-Lbt"], mLbt);
+  Kokkos::deep_copy(variables["Hcompton"], Hcompton);
+  Kokkos::deep_copy(variables["Ccompton"], Ccompton);
+  Kokkos::deep_copy(variables["HX"], HX);
+  Kokkos::deep_copy(variables["CX"], CX);
+  Kokkos::deep_copy(variables["bremLbt"], bremLbt);
+  Kokkos::deep_copy(variables["lineLbt"], lineLbt);
 
 }
 
