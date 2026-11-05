@@ -34,11 +34,12 @@ bool haveRadiationGlob = false;
 
 Column *column;
 
-void MySourceTerm(Fluid<DefaultPhysics> *hydro, const real t, const real dtin) {
+void MySourceTerm(Fluid<DefaultPhysics> *hydro, const real tin, const real dtin) {
   IdefixArray4D<real> Vc = hydro->Vc;
   IdefixArray4D<real> Uc = hydro->Uc;
   auto data = hydro->data;
   auto units = idfx::units;
+  IdefixArray3D<real> InvDt = hydro->InvDt;
 
   real mu = muGlob;
   real TX = TXGlob;
@@ -49,6 +50,7 @@ void MySourceTerm(Fluid<DefaultPhysics> *hydro, const real t, const real dtin) {
   real tstart = tstartGlob;
   real t_trans = ttransGlob;
   real dt = dtin;
+  real t = tin ; 
 
   IdefixArray3D<real> tau;
   IdefixArray3D<real> kapparho("rho",data->np_tot[KDIR],data->np_tot[JDIR],data->np_tot[IDIR]);
@@ -72,31 +74,32 @@ void MySourceTerm(Fluid<DefaultPhysics> *hydro, const real t, const real dtin) {
                 //Blondin formula from Proga, Stone & Kallman 2000
                 //Compton heating/cooling
                 real Gcompton = 8.9e-36*xi*(TX-4.*T); //Compton heating/cooling
-                if (std::isnan(Gcompton)) {
-                  std::printf("xi=%e, T=%e\n",xi,T);
-                  Kokkos::abort("Nan in Gcompton");
-                }
+                //if (std::isnan(Gcompton)) {
+                //  std::printf("xi=%e, T=%e\n",xi,T);
+                //  Kokkos::abort("Nan in Gcompton");
+                //}
                 //net rate of X-ray photoionization heating-recombination cooling
                 real GX = 1.5e-21*std::pow(xi,0.25)*std::pow(T,-0.5)*(1.-T/TX);
-                if (std::isnan(GX)) {
-                  std::printf("xi=%e, T=%e, PRS=%e, RHO=%e\n",xi,T,Vc(PRS,k,j,i),Vc(RHO,k,j,i));
-                  Kokkos::abort("Nan in GX");
-                }
+                //if (std::isnan(GX)) {
+                //  std::printf("xi=%e, T=%e, PRS=%e, RHO=%e\n",xi,T,Vc(PRS,k,j,i),Vc(RHO,k,j,i));
+                //  Kokkos::abort("Nan in GX");
+                //}
                 //Bremsstrahlung cooling
                 real Lbt = 3.3e-27*std::sqrt(T);
                 //Line cooling
                 real delta = 1.; //parameter controlling line cooling
                 Lbt += (1.7e-18*std::exp(-1.3e5/T)/xi*std::pow(T,-0.5)+1.e-24)*delta;
 
-                //Uc(ENG,k,j,i) += -dt*n*n*(Gcompton+GX-Lbt)/units.GetEnergy();
                 real total_cooling = n*n*(Gcompton+GX)*units.GetTime()/units.GetEnergy();
                 total_cooling *= FMIN(ONE_F,(t*units.GetTime()-tstart)/t_trans);
+                
+		total_cooling = 1.;
 
                 real new_dt = dt;
                 real frac_ENG = 0.8;
                 if (total_cooling*dt > frac_ENG*Uc(ENG,k,j,i)) {
-                    hydro->InvDt(k,j,i) = total_cooling/(frac_ENG*Uc(ENG,k,j,i));
-                    new_dt = 1./hydro->InvDt(k,j,i);
+                    InvDt(k,j,i) = total_cooling/(frac_ENG*Uc(ENG,k,j,i));
+                    new_dt = 1./InvDt(k,j,i);
                 }
                 Uc(ENG,k,j,i) += -new_dt*total_cooling;
               }
@@ -172,7 +175,7 @@ void UserdefBoundary(Fluid<DefaultPhysics> *hydro, int dir, BoundarySide side, r
           real T = T0;
           real cs = std::sqrt(T/(units.GetKelvin()*mu));;
 
-          Vc(RHO,k,j,i) = rho0*std::pow(RIC/R,rhoindex)/idfx::units.GetDensity();
+          Vc(RHO,k,j,i) = rho0*std::pow(RIC/R,rhoindex)/units.GetDensity();
           Vc(VX1,k,j,i) = ZERO_F;
           Vc(VX2,k,j,i) = ZERO_F;
           Vc(VX3,k,j,i) =  Omega*R;
@@ -271,16 +274,20 @@ void ComputeUserVars(DataBlock & data, UserDefVariablesContainer &variables) {
   column->ComputeColumn(kapparho);
   tau = column->GetColumn();
 
+  IdefixArray3D<real>::host_mirror_type tauHost;
+  tauHost = Kokkos::create_mirror_view(tau);
+  Kokkos::deep_copy(tauHost,tau);
+
   for(int k = d.beg[KDIR]; k < d.end[KDIR] ; k++) {
     for(int j = d.beg[JDIR]; j < d.end[JDIR] ; j++) {
       for(int i = d.beg[IDIR]; i < d.end[IDIR] ; i++) {
 
-          FX(k,j,i) = Lstar * std::exp(-tau(k,j,i));
+          FX(k,j,i) = Lstar * std::exp(-tauHost(k,j,i));
           FX(k,j,i) /= d.x[IDIR](i)*d.x[IDIR](i)*units.GetLength()*units.GetLength();
-          real n = Vc(RHO,k,j,i)*units.GetDensity()/(units.u*mu);
+          real n = d.Vc(RHO,k,j,i)*units.GetDensity()/(units.u*mu);
           xi(k,j,i) = FX(k,j,i)/n;
 
-          real T = Vc(PRS,k,j,i)/Vc(RHO,k,j,i)*units.GetKelvin()*mu;
+          real T = d.Vc(PRS,k,j,i)/d.Vc(RHO,k,j,i)*units.GetKelvin()*mu;
 
           //Blondin formula from Proga, Stone & Kallman 2000
           //Compton heating/cooling
