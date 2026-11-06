@@ -267,6 +267,7 @@ void ComputeUserVars(DataBlock & data, UserDefVariablesContainer &variables) {
   IdefixHostArray3D<real> CX  = variables["CX"];
   IdefixHostArray3D<real> bremLbt  = variables["bremLbt"];
   IdefixHostArray3D<real> lineLbt  = variables["lineLbt"];
+  IdefixHostArray3D<real> ne  = variables["ne"];
 
   real mu = muGlob;
   real TX = TXGlob;
@@ -301,25 +302,26 @@ void ComputeUserVars(DataBlock & data, UserDefVariablesContainer &variables) {
           real ne1 = 2.545825721359034e-52*std::pow(T,12.27740153);
           real ne2 = 0.00015577691900385798*std::pow(T,0.86092628);
           real ne3 = 1.21;
-          real ne = FMIN(FMIN(ne1,ne2),ne3);
-          ne *= nH;
+          ne(k,j,i) = FMIN(FMIN(ne1,ne2),ne3);
+          ne(k,j,i) *= nH;
 
           //Blondin formula from Proga, Stone & Kallman 2000
           //Compton heating/cooling
-          Hcompton(k,j,i) = ne*8.9e-36*xi(k,j,i)*TX; //Compton heating/cooling
-          Ccompton(k,j,i) = ne*8.9e-36*xi(k,j,i)*4.*T; //Compton heating/cooling
+          Hcompton(k,j,i) = ne(k,j,i)*8.9e-36*xi(k,j,i)*TX; //Compton heating/cooling
+          Ccompton(k,j,i) = ne(k,j,i)*8.9e-36*xi(k,j,i)*4.*T; //Compton heating/cooling
           //net rate of X-ray photoionization heating-recombination cooling
           HX(k,j,i) = nH*1.5e-21*std::pow(xi(k,j,i),0.25)*std::pow(T,-0.5);
           CX(k,j,i) = nH*1.5e-21*std::pow(xi(k,j,i),0.25)*std::pow(T,-0.5)*T/TX;
           //Bremsstrahlung cooling
-          bremLbt(k,j,i) = ne*3.3e-27*std::sqrt(T);
+          bremLbt(k,j,i) = ne(k,j,i)*3.3e-27*std::sqrt(T);
           //Line cooling
           real delta = 1.; //parameter controlling line cooling
-          lineLbt(k,j,i) = ne*(1.7e-18*std::exp(FMIN(-1.3e5/T,-30.))/xi(k,j,i)*std::pow(T,-0.5)+1.e-24)*delta;
+          lineLbt(k,j,i) = ne(k,j,i)*(1.7e-18*std::exp(FMIN(-1.3e5/T,-30.))/xi(k,j,i)*std::pow(T,-0.5)+1.e-24)*delta;
       }
     }
   }
 
+  Kokkos::deep_copy(variables["ne"],ne);
   Kokkos::deep_copy(variables["tau"],tau);
   Kokkos::deep_copy(variables["FX"], FX);
   Kokkos::deep_copy(variables["xi"], xi);
